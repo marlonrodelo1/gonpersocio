@@ -1,0 +1,471 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Fuentes: en Next se inyectan con next/font; aquí se cargan desde Google
+   Fonts (ver index.html) y mapeamos las CSS vars que usa el resto del CSS. */
+:root {
+  --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-geist-sans: 'Geist', system-ui, -apple-system, sans-serif;
+  --font-geist-mono: 'Geist Mono', ui-monospace, Consolas, monospace;
+  --font-instrument-serif: 'Instrument Serif', serif;
+  --font-playfair: 'Playfair Display', 'Times New Roman', serif;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+    font-size: 18px;
+    scroll-padding-top: 110px;
+  }
+  html[data-scroll-behavior="smooth"] {
+    scroll-behavior: smooth;
+  }
+  section[id] {
+    scroll-margin-top: 110px;
+  }
+}
+
+/* =====================================================================
+   Gonper Studio · Brand palette (Landing + Salon-Publico)
+===================================================================== */
+
+:root {
+  --cream: #F7F3EC;
+  --cream-2: #EFE9DD;
+  --paper: #FBF8F2;
+  --ink: #1A1815;
+  --ink-2: #2B2823;
+  --stone: #6B6356;
+  --stone-2: #8A8174;
+  --line: #E8E1D2;
+  --line-2: #D9D0BD;
+
+  --terracotta: #C5562C;
+  --terracotta-2: #A8451F;
+  --terracotta-soft: #F1D9CC;
+  --sage: #8B9D7A;
+  --sage-soft: #DDE3D3;
+  --sage-deep: #6B7C5A;
+
+  --rose: #D88EA0;
+  --rose-2: #C77389;
+  --rose-soft: #F3DEE3;
+  --rose-blush: #FAEBEE;
+  --amber: #C58E2C;
+  --amber-2: #A6741F;
+  --amber-soft: #F2E4C7;
+
+  --gestori-accent: var(--terracotta);
+  --gestori-accent-2: var(--terracotta-2);
+  --gestori-accent-soft: var(--terracotta-soft);
+  --gestori-accent-blush: #FAEFEA;
+}
+
+@theme inline {
+  --color-cream: var(--cream);
+  --color-cream-2: var(--cream-2);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-stone: var(--stone);
+  --color-stone-2: var(--stone-2);
+  --color-terracotta: var(--terracotta);
+  --color-terracotta-2: var(--terracotta-2);
+  --color-terracotta-soft: var(--terracotta-soft);
+  --color-sage: var(--sage);
+  --color-sage-soft: var(--sage-soft);
+  --color-sage-deep: var(--sage-deep);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-rose: var(--rose);
+  --color-rose-deep: var(--rose-2);
+  --color-rose-soft: var(--rose-soft);
+  --color-rose-blush: var(--rose-blush);
+  --color-amber-brand: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-gestori-accent: var(--gestori-accent);
+  --color-gestori-accent-2: var(--gestori-accent-2);
+  --color-gestori-accent-soft: var(--gestori-accent-soft);
+  --color-gestori-accent-blush: var(--gestori-accent-blush);
+  --font-instrument: var(--font-instrument-serif);
+}
+
+/* Tipografía + helpers */
+.font-serif-it {
+  font-family: var(--font-instrument-serif), 'Instrument Serif', serif;
+  font-style: italic;
+  font-weight: 400;
+}
+.font-playfair {
+  font-family: var(--font-playfair), 'Playfair Display', 'Times New Roman', serif;
+}
+.tight { letter-spacing: -0.04em; }
+.tighter { letter-spacing: -0.05em; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Glossy dark CTA */
+.gloss-btn {
+  background: linear-gradient(180deg, #2a2622 0%, #18140f 100%);
+  box-shadow:
+    inset -4px -6px 25px 0 rgba(201, 201, 201, 0.08),
+    inset 4px 4px 10px 0 rgba(29, 29, 29, 0.24),
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 8px 20px -8px rgba(26, 24, 21, 0.4);
+  color: #FBF8F2;
+}
+.gloss-btn:hover { filter: brightness(1.08); }
+.gloss-btn:active:not(:disabled) {
+  filter: brightness(0.92);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.45),
+    0 2px 6px -4px rgba(26, 24, 21, 0.3);
+}
+
+/* CTA acento */
+.accent-btn {
+  background: linear-gradient(180deg, var(--gestori-accent) 0%, var(--gestori-accent-2) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -3px 10px rgba(0, 0, 0, 0.18),
+    0 8px 20px -8px rgba(0, 0, 0, 0.25);
+  color: #fff;
+}
+.accent-btn:hover { filter: brightness(1.05); }
+.accent-btn:active:not(:disabled) {
+  filter: brightness(0.92);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.35),
+    0 2px 6px -4px rgba(0, 0, 0, 0.2);
+}
+
+/* Tap feedback global */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+.gloss-btn,
+.accent-btn,
+.terra-btn,
+.tap {
+  -webkit-tap-highlight-color: transparent;
+  transition-property: transform, filter, background-color, color, border-color, box-shadow, opacity;
+  transition-duration: 0.18s;
+  transition-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active,
+.gloss-btn:active:not(:disabled),
+.accent-btn:active:not(:disabled),
+.terra-btn:active:not(:disabled),
+.tap:active {
+  transform: scale(0.96);
+  transition-duration: 0.06s;
+}
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active,
+  .gloss-btn:active:not(:disabled),
+  .accent-btn:active:not(:disabled),
+  .terra-btn:active:not(:disabled),
+  .tap:active {
+    transform: none;
+  }
+}
+
+/* Soft input shadow */
+.soft-input {
+  background: #fcfcfc;
+  box-shadow: 0px 10px 40px 5px rgba(194, 194, 194, 0.25);
+  border: 1px solid var(--line);
+}
+
+/* Partners — input estilizado */
+.field-input {
+  width: 100%;
+  background: #fcfcfc;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14.5px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field-input:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 4px rgba(26, 24, 21, 0.06);
+}
+.field-input::placeholder {
+  color: rgba(107, 99, 86, 0.55);
+}
+
+/* CTA terracotta */
+.terra-btn {
+  background: linear-gradient(180deg, var(--terracotta) 0%, var(--terracotta-2) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -3px 8px rgba(127, 52, 22, 0.25),
+    0 6px 16px -8px rgba(168, 69, 31, 0.45);
+  color: #FBF8F2;
+}
+.terra-btn:hover { filter: brightness(1.06); }
+
+/* Card */
+.card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.card-tight {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+/* Search shell — marketplace */
+.search-shell {
+  background: #fcfcfc;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 12px 36px -10px rgba(26, 24, 21, 0.10),
+    0 2px 6px -2px rgba(26, 24, 21, 0.06);
+  border: 1px solid var(--line);
+}
+.search-shell:focus-within {
+  border-color: var(--line-2);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 18px 50px -10px rgba(26, 24, 21, 0.16),
+    0 0 0 4px rgba(197, 86, 44, 0.07);
+}
+
+/* Card del salón */
+.salon-card {
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
+              box-shadow 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
+              border-color 0.35s ease;
+  box-shadow: 0 1px 2px rgba(26, 24, 21, 0.04);
+}
+.salon-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 18px 40px -14px rgba(26, 24, 21, 0.18),
+    0 4px 10px -3px rgba(26, 24, 21, 0.06);
+  border-color: var(--line-2);
+}
+
+/* Pill */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+}
+.pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+}
+
+/* Rule / divider */
+.rule {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--line-2), transparent);
+}
+
+.no-scroll-x::-webkit-scrollbar { display: none; }
+.no-scroll-x { scrollbar-width: none; }
+
+/* Reservamos el safe-area de la barra de estado en TODA plataforma (no solo
+   iOS): en Android el WebView también puede solaparse con la status bar, y la
+   pantalla del salón se metía debajo. env() vale 0 si no hay solape, así que es
+   seguro aplicarlo siempre. */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ============================================================
+   GONPER SOCIO — capa de identidad propia
+   ============================================================
+   La app del negocio comparte la base de marca con la de clientes (misma
+   familia, mismos componentes: .card, .field-input, .gloss-btn) pero se
+   distingue por dos cosas:
+
+   1) CROMO OSCURO. Barra de estado, splash y cabeceras en espresso. No es
+      una app "en modo oscuro": el contenido sigue siendo claro, porque con
+      luz de día en el salón la densidad de datos se lee mejor en claro, y
+      porque el panel web —que no desaparece— es claro. Dos criterios
+      visuales distintos para el mismo usuario es peor que uno.
+
+   2) ACENTO GRAFITO en vez de terracota. La terracota se reserva como marca
+      (el logo), no como color de acción, para que un dueño con las dos apps
+      instaladas note al instante en cuál está.
+   ============================================================ */
+
+:root {
+  /* Cromo. Debe coincidir con capacitor.config.json (SplashScreen y
+     StatusBar), con el theme-color de index.html y con SafeAreaTop en
+     App.jsx. Si uno se queda atrás, aparece una franja de otro color bajo la
+     muesca en el móvil real — y solo se ve al compilar, no en el navegador. */
+  --chrome: #211D17;
+  --chrome-2: #2E2820;
+  --on-chrome: #F2EDE4;
+  --on-chrome-dim: #A79E8E;
+
+  /* Acento de acción de esta app. */
+  --socio-accent: #2B2823;
+  --socio-accent-2: #1A1815;
+
+  /* La terracota pasa a ser solo marca. */
+  --brand-mark: #C5562C;
+
+  /* El acento genérico que usan los componentes heredados apunta aquí, así
+     .accent-btn y compañía se repintan solos sin tocar cada componente. */
+  --gestori-accent: var(--socio-accent);
+  --gestori-accent-2: var(--socio-accent-2);
+
+  /* Evita el destello BLANCO entre el splash y el primer pintado: el fondo
+     base era oklch(1 0 0) = blanco puro, que no es el color de ninguna
+     pantalla de la app. */
+  --background: var(--cream);
+}
+
+@theme inline {
+  --color-chrome: var(--chrome);
+  --color-chrome-2: var(--chrome-2);
+  --color-on-chrome: var(--on-chrome);
+  --color-on-chrome-dim: var(--on-chrome-dim);
+  --color-socio-accent: var(--socio-accent);
+  --color-brand-mark: var(--brand-mark);
+}
+
+/* Barra superior de la app: fondo oscuro con texto claro. */
+.chrome-bar {
+  background: var(--chrome);
+  color: var(--on-chrome);
+}
+
