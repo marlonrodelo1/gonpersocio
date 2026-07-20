@@ -27,7 +27,12 @@ import Login from './pages/Login';
 
 const Hoy = lazy(() => import('./pages/Hoy'));
 const Agenda = lazy(() => import('./pages/Agenda'));
+const CitaDetalle = lazy(() => import('./pages/CitaDetalle'));
 const Clientes = lazy(() => import('./pages/Clientes'));
+const ClienteDetalle = lazy(() => import('./pages/ClienteDetalle'));
+const Servicios = lazy(() => import('./pages/Servicios'));
+const Horario = lazy(() => import('./pages/Horario'));
+const Cierres = lazy(() => import('./pages/Cierres'));
 const Mas = lazy(() => import('./pages/Mas'));
 
 /** Franja del safe area con el color del cromo, o se ve otro color bajo la muesca. */
@@ -260,11 +265,54 @@ function Rutas() {
             </Protegida>
           }
         />
+        {/* Detalle de cita. Es el destino del aviso push: `data.url` viaja
+            como `/citas/<id>` para que la misma cadena sirva a la app, a la
+            PWA del panel y al enlace del navegador sin traducir nada. */}
+        <Route
+          path="/citas/:id"
+          element={
+            <Protegida>
+              <CitaDetalle />
+            </Protegida>
+          }
+        />
         <Route
           path="/clientes"
           element={
             <Protegida>
               <Clientes />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/clientes/:id"
+          element={
+            <Protegida>
+              <ClienteDetalle />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/servicios"
+          element={
+            <Protegida>
+              <Servicios />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/horario"
+          element={
+            <Protegida>
+              <Horario />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/cierres"
+          element={
+            <Protegida>
+              <Cierres />
             </Protegida>
           }
         />

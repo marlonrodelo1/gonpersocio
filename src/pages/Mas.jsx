@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import Pantalla from '../components/Pantalla';
 import { useAuth } from '../context/useAuth';
@@ -19,9 +20,9 @@ const SECCIONES = [
   {
     titulo: 'Tu negocio',
     items: [
-      { etiqueta: 'Servicios', destino: null, nota: 'Próximamente' },
-      { etiqueta: 'Horario', destino: null, nota: 'Próximamente' },
-      { etiqueta: 'Cierres y vacaciones', destino: null, nota: 'Próximamente' },
+      { etiqueta: 'Servicios', ruta: '/servicios', nota: 'Precios y duración' },
+      { etiqueta: 'Horario', ruta: '/horario', nota: 'Tu semana' },
+      { etiqueta: 'Cierres y vacaciones', ruta: '/cierres', nota: 'Bloquear días' },
     ],
   },
   {
@@ -81,20 +82,38 @@ export default function Mas() {
               {seccion.titulo}
             </h2>
             <div className="card divide-y divide-line overflow-hidden">
-              {seccion.items.map((item) => (
-                <button
-                  key={item.etiqueta}
-                  type="button"
-                  disabled={!item.destino}
-                  onClick={() => item.destino && abrir(item.destino)}
-                  className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left disabled:opacity-55"
-                >
-                  <span className="text-[15px] font-medium">{item.etiqueta}</span>
-                  <span className="shrink-0 text-[12.5px] text-stone">
-                    {item.nota}
-                  </span>
-                </button>
-              ))}
+              {seccion.items.map((item) =>
+                // Las pantallas nativas navegan dentro de la app; las de la
+                // columna de abajo salen al navegador con la sesión ya abierta.
+                item.ruta ? (
+                  <Link
+                    key={item.etiqueta}
+                    to={item.ruta}
+                    className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+                  >
+                    <span className="text-[15px] font-medium">
+                      {item.etiqueta}
+                    </span>
+                    <span className="shrink-0 text-[12.5px] text-stone">
+                      {item.nota}
+                    </span>
+                  </Link>
+                ) : (
+                  <button
+                    key={item.etiqueta}
+                    type="button"
+                    onClick={() => abrir(item.destino)}
+                    className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+                  >
+                    <span className="text-[15px] font-medium">
+                      {item.etiqueta}
+                    </span>
+                    <span className="shrink-0 text-[12.5px] text-stone">
+                      {item.nota}
+                    </span>
+                  </button>
+                ),
+              )}
             </div>
           </section>
         ))}
