@@ -23,6 +23,35 @@ const SECCIONES = [
       { etiqueta: 'Servicios', ruta: '/servicios', nota: 'Precios y duración' },
       { etiqueta: 'Horario', ruta: '/horario', nota: 'Tu semana' },
       { etiqueta: 'Cierres y vacaciones', ruta: '/cierres', nota: 'Bloquear días' },
+      { etiqueta: 'Números', ruta: '/numeros', nota: 'Cuánto llevas' },
+    ],
+  },
+  {
+    titulo: 'Clientes',
+    items: [
+      {
+        etiqueta: 'Conversaciones',
+        ruta: '/conversaciones',
+        nota: 'Web, WhatsApp y SMS',
+      },
+      { etiqueta: 'Reseñas', ruta: '/resenas', nota: 'Aprobar y destacar' },
+    ],
+  },
+  {
+    titulo: 'Traer clientes',
+    items: [
+      {
+        etiqueta: 'Compartir tu salón',
+        ruta: '/compartir',
+        nota: 'Enlace y código QR',
+      },
+      { etiqueta: 'Promociones', ruta: '/promociones', nota: 'Ofertas activas' },
+      { etiqueta: 'Galería', ruta: '/galeria', nota: 'Fotos de tu trabajo' },
+      {
+        etiqueta: 'Antes y después',
+        ruta: '/antes-despues',
+        nota: 'Comparativas',
+      },
     ],
   },
   {
@@ -123,10 +152,20 @@ export default function Mas() {
             Cuenta
           </h2>
           <div className="card divide-y divide-line overflow-hidden">
-            <div className="px-5 py-4">
-              <p className="text-[12.5px] text-stone">Has entrado como</p>
-              <p className="truncate text-[15px] font-medium">{user?.email}</p>
-            </div>
+            <Link
+              to="/cuenta"
+              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+            >
+              <span className="min-w-0">
+                <span className="block text-[12.5px] text-stone">
+                  Has entrado como
+                </span>
+                <span className="block truncate text-[15px] font-medium">
+                  {user?.email}
+                </span>
+              </span>
+              <span className="shrink-0 text-[12.5px] text-stone">Mi cuenta</span>
+            </Link>
             <button
               type="button"
               onClick={() => abrirExterno(`mailto:${EMAIL_SOPORTE}`)}

@@ -33,6 +33,16 @@ const ClienteDetalle = lazy(() => import('./pages/ClienteDetalle'));
 const Servicios = lazy(() => import('./pages/Servicios'));
 const Horario = lazy(() => import('./pages/Horario'));
 const Cierres = lazy(() => import('./pages/Cierres'));
+const Conversaciones = lazy(() => import('./pages/Conversaciones'));
+const ConversacionDetalle = lazy(() => import('./pages/ConversacionDetalle'));
+const Numeros = lazy(() => import('./pages/Numeros'));
+const Resenas = lazy(() => import('./pages/Resenas'));
+const Promociones = lazy(() => import('./pages/Promociones'));
+const PromocionForm = lazy(() => import('./pages/PromocionForm'));
+const Galeria = lazy(() => import('./pages/Galeria'));
+const AntesDespues = lazy(() => import('./pages/AntesDespues'));
+const Compartir = lazy(() => import('./pages/Compartir'));
+const Cuenta = lazy(() => import('./pages/Cuenta'));
 const Mas = lazy(() => import('./pages/Mas'));
 
 /** Franja del safe area con el color del cromo, o se ve otro color bajo la muesca. */
@@ -313,6 +323,96 @@ function Rutas() {
           element={
             <Protegida>
               <Cierres />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/conversaciones"
+          element={
+            <Protegida>
+              <Conversaciones />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/conversaciones/:id"
+          element={
+            <Protegida>
+              <ConversacionDetalle />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/numeros"
+          element={
+            <Protegida>
+              <Numeros />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/resenas"
+          element={
+            <Protegida>
+              <Resenas />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/promociones"
+          element={
+            <Protegida>
+              <Promociones />
+            </Protegida>
+          }
+        />
+        {/* La ruta literal va ANTES que la de :id, o "nueva" se leería como
+            el id de una promoción y la pantalla intentaría cargarla. */}
+        <Route
+          path="/promociones/nueva"
+          element={
+            <Protegida>
+              <PromocionForm />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/promociones/:id"
+          element={
+            <Protegida>
+              <PromocionForm />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/galeria"
+          element={
+            <Protegida>
+              <Galeria />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/antes-despues"
+          element={
+            <Protegida>
+              <AntesDespues />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/compartir"
+          element={
+            <Protegida>
+              <Compartir />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/cuenta"
+          element={
+            <Protegida>
+              <Cuenta />
             </Protegida>
           }
         />
