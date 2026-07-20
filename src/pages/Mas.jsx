@@ -21,6 +21,7 @@ const SECCIONES = [
     titulo: 'Tu negocio',
     items: [
       { etiqueta: 'Servicios', ruta: '/servicios', nota: 'Precios y duración' },
+      { etiqueta: 'Equipo', ruta: '/equipo', nota: 'Tus profesionales' },
       { etiqueta: 'Horario', ruta: '/horario', nota: 'Tu semana' },
       { etiqueta: 'Cierres y vacaciones', ruta: '/cierres', nota: 'Bloquear días' },
       { etiqueta: 'Números', ruta: '/numeros', nota: 'Cuánto llevas' },
@@ -55,22 +56,30 @@ const SECCIONES = [
     ],
   },
   {
-    titulo: 'Se abre en el navegador',
+    titulo: 'Ajustes',
     items: [
       {
-        etiqueta: 'Cobros y depósitos',
-        destino: '/panel/config/cobros',
-        nota: 'Stripe pide verificar tu identidad',
+        etiqueta: 'Datos del salón',
+        ruta: '/config/salon',
+        nota: 'Nombre y contacto',
       },
+      {
+        etiqueta: 'Reservas',
+        ruta: '/config/reservas',
+        nota: 'Cómo se piden horas',
+      },
+      { etiqueta: 'Cobros y depósitos', ruta: '/cobros', nota: 'Pago por adelantado' },
+      { etiqueta: 'A domicilio', ruta: '/domicilio', nota: 'Zona de reparto' },
+      { etiqueta: 'Tu asistente', ruta: '/config/agente', nota: 'Cómo atiende' },
+    ],
+  },
+  {
+    titulo: 'Se abre en el navegador',
+    items: [
       {
         etiqueta: 'Logo y portada',
         destino: '/panel/config/web',
         nota: 'Más cómodo desde el ordenador',
-      },
-      {
-        etiqueta: 'Equipo',
-        destino: '/panel/config/equipo',
-        nota: 'Ver y editar tu equipo',
       },
     ],
   },

@@ -21,6 +21,7 @@ import {
   registrarPushNativo,
 } from './lib/push';
 import BottomNav from './components/BottomNav';
+import BotonNuevaCita from './components/BotonNuevaCita';
 import ResetPasswordOverlay from './components/ResetPasswordOverlay';
 
 import Login from './pages/Login';
@@ -43,6 +44,13 @@ const Galeria = lazy(() => import('./pages/Galeria'));
 const AntesDespues = lazy(() => import('./pages/AntesDespues'));
 const Compartir = lazy(() => import('./pages/Compartir'));
 const Cuenta = lazy(() => import('./pages/Cuenta'));
+const CitaNueva = lazy(() => import('./pages/CitaNueva'));
+const ConfigSalon = lazy(() => import('./pages/ConfigSalon'));
+const ConfigReservas = lazy(() => import('./pages/ConfigReservas'));
+const ConfigAgente = lazy(() => import('./pages/ConfigAgente'));
+const Equipo = lazy(() => import('./pages/Equipo'));
+const Cobros = lazy(() => import('./pages/Cobros'));
+const Domicilio = lazy(() => import('./pages/Domicilio'));
 const Mas = lazy(() => import('./pages/Mas'));
 
 /** Franja del safe area con el color del cromo, o se ve otro color bajo la muesca. */
@@ -275,6 +283,16 @@ function Rutas() {
             </Protegida>
           }
         />
+        {/* ANTES que /citas/:id, o "nueva" se leería como el id de una cita
+            y la pantalla intentaría cargar una que no existe. */}
+        <Route
+          path="/citas/nueva"
+          element={
+            <Protegida>
+              <CitaNueva />
+            </Protegida>
+          }
+        />
         {/* Detalle de cita. Es el destino del aviso push: `data.url` viaja
             como `/citas/<id>` para que la misma cadena sirva a la app, a la
             PWA del panel y al enlace del navegador sin traducir nada. */}
@@ -417,6 +435,54 @@ function Rutas() {
           }
         />
         <Route
+          path="/config/salon"
+          element={
+            <Protegida>
+              <ConfigSalon />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/config/reservas"
+          element={
+            <Protegida>
+              <ConfigReservas />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/config/agente"
+          element={
+            <Protegida>
+              <ConfigAgente />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/equipo"
+          element={
+            <Protegida>
+              <Equipo />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/cobros"
+          element={
+            <Protegida>
+              <Cobros />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/domicilio"
+          element={
+            <Protegida>
+              <Domicilio />
+            </Protegida>
+          }
+        />
+        <Route
           path="/mas/*"
           element={
             <Protegida>
@@ -440,6 +506,7 @@ export default function App() {
         <NativeBootstrap />
         <PushRegistrar />
         <Rutas />
+        <BotonNuevaCita />
         <BottomNav />
         <ResetPasswordOverlay />
       </BrowserRouter>
