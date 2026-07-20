@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+              Deep link de vuelta. Lo usan dos flujos que salen al navegador del
+              sistema: el enlace de recuperar contraseña que manda Supabase por
+              email, y el alta de cobros de Stripe (que pide verificar identidad
+              con documento y no funciona dentro del WebView).
+
+              El esquema es el propio applicationId y tiene que coincidir con
+              DEEP_LINK_LOGIN en src/lib/identidad.js y con las Redirect URLs
+              del panel de Supabase. Junto con launchMode="singleTask" evita que
+              volver del navegador abra una segunda copia de la app.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="@string/custom_url_scheme" />
+            </intent-filter>
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+      Avisos de reserva. Desde Android 13 el permiso se pide en tiempo de
+      ejecución (lo hace registrarPushNativo en src/lib/push.js), pero sin
+      declararlo aquí el sistema ni siquiera muestra el diálogo: las
+      notificaciones quedan silenciadas sin ningún error visible. Es el motivo
+      de existir de la app, así que este permiso no es opcional.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+</manifest>

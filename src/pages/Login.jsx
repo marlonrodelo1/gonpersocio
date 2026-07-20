@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '../context/useAuth';
+import LogoGonper from '../components/LogoGonper';
 import { abrirExterno } from '../lib/puente';
 import {
   APP_NOMBRE_LARGO,
@@ -73,13 +74,24 @@ export default function Login() {
     <div className="flex min-h-screen flex-col bg-cream text-ink safe-top">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-6 px-6 py-12">
         <div className="flex flex-col items-center text-center">
-          <h1
-            className="tight font-medium text-ink"
-            style={{ fontSize: 'clamp(26px, 5vw, 32px)', lineHeight: 1.05 }}
+          <LogoGonper tamano={104} />
+
+          {/* La etiqueta distingue esta app de la de clientes, que comparte
+              logo. Es lo primero que ve alguien que tiene las dos instaladas. */}
+          <span
+            className="-mt-1 rounded-full px-3.5 py-1 text-[10.5px] font-semibold uppercase"
+            style={{
+              letterSpacing: '0.18em',
+              background: 'var(--chrome)',
+              color: 'var(--on-chrome)',
+            }}
           >
-            Gonper <span className="font-serif-it">Socio</span>
-          </h1>
-          <p className="mt-2 text-[14px] text-stone">
+            Socio
+          </span>
+
+          <h1 className="sr-only">Gonper Studio Socio</h1>
+
+          <p className="mt-4 text-[14px] text-stone">
             {modo === 'entrar'
               ? 'Entra para gestionar tu negocio.'
               : 'Te enviamos un enlace para cambiar la contraseña.'}

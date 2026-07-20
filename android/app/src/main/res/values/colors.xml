@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Capacitor no genera este archivo: sin él, colorPrimary y compañía se
+  resuelven desde node_modules/@capacitor/android y salen los azules por
+  defecto. Aquí se fijan los de Gonper Socio.
+
+  #211D17 ("espresso") tiene que coincidir con capacitor.config.json,
+  index.html (theme-color), src/index.css (--chrome) y el SafeAreaTop de
+  App.jsx. Si uno se queda atrás, en el móvil real aparece una franja de otro
+  color bajo la muesca — y eso solo se ve al compilar, no en el navegador.
+-->
+<resources>
+    <color name="colorPrimary">#211D17</color>
+    <color name="colorPrimaryDark">#211D17</color>
+    <color name="colorAccent">#2B2823</color>
+
+    <!-- Fondo del splash. Lo consume windowSplashScreenBackground en
+         styles.xml, que es lo que manda a partir de Android 12. -->
+    <color name="splash_background">#211D17</color>
+</resources>

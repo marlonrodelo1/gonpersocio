@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Gonper Socio</string>
+    <string name="title_activity_main">Gonper Socio</string>
+    <string name="package_name">shop.gonperstudio.socio</string>
+    <string name="custom_url_scheme">shop.gonperstudio.socio</string>
+</resources>
