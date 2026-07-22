@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, ChevronDown, RefreshCw } from 'lucide-react';
 
+import { Icon } from '../components/icons';
 import Pantalla from '../components/Pantalla';
 import { useAuth } from '../context/useAuth';
 import { apiGet, apiPatch } from '../lib/api';
@@ -85,7 +85,7 @@ function aFormulario(reservas) {
 
 function Cargando() {
   return (
-    <div className="flex flex-col gap-3" aria-busy="true">
+    <div className="flex flex-col gap-4" aria-busy="true">
       {[0, 1].map((i) => (
         <div
           key={i}
@@ -99,17 +99,16 @@ function Cargando() {
 
 function AvisoError({ mensaje, onReintentar }) {
   return (
-    <div className="card flex flex-col items-start gap-3 p-5">
-      <p className="text-[15px] font-medium text-ink">
+    <div className="card p-5">
+      <p className="tight text-[15px] font-medium text-ink">
         No hemos podido cargar tus reservas
       </p>
-      <p className="text-[14px] text-stone">{mensaje}</p>
+      <p className="mt-1 text-[13.5px] text-stone">{mensaje}</p>
       <button
         type="button"
         onClick={onReintentar}
-        className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+        className="gloss-btn tight mt-4 rounded-full px-5 py-2.5 text-[14px] font-medium"
       >
-        <RefreshCw size={15} />
         Reintentar
       </button>
     </div>
@@ -121,14 +120,17 @@ function AvisoError({ mensaje, onReintentar }) {
  * consecuencia. `editable` en false enseña solo la elegida: para un trabajador,
  * o para un ajuste que su cuenta no usa.
  */
-function Ajuste({ etiqueta, ayuda, valor, opciones, onChange, editable, nota }) {
+function Ajuste({ etiqueta, ayuda, valor, opciones, onChange, editable, nota, extra }) {
   const actual = opciones.find((o) => o.valor === valor);
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-[11px] uppercase tracking-[0.2em] text-stone">
-        {etiqueta}
-      </p>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5">
+        <p className="text-[11px] uppercase tracking-[0.2em] text-stone/80">
+          {etiqueta}
+        </p>
+        {extra}
+      </div>
 
       {editable ? (
         <div className="flex flex-wrap gap-2" role="group" aria-label={etiqueta}>
@@ -140,7 +142,7 @@ function Ajuste({ etiqueta, ayuda, valor, opciones, onChange, editable, nota }) 
                 type="button"
                 aria-pressed={elegida}
                 onClick={() => onChange(o.valor)}
-                className="rounded-full border px-4 py-2.5 text-[14px] font-medium"
+                className="rounded-full border px-4 py-2.5 text-[14px] font-medium transition"
                 style={
                   elegida
                     ? {
@@ -161,15 +163,17 @@ function Ajuste({ etiqueta, ayuda, valor, opciones, onChange, editable, nota }) 
           })}
         </div>
       ) : (
-        <p className="text-[15px] text-ink">{actual?.etiqueta ?? '—'}</p>
+        <div className="rounded-2xl border border-line bg-paper px-4 py-3 text-[14px] text-ink">
+          {actual?.etiqueta ?? '—'}
+        </div>
       )}
 
       {ayuda ? (
-        <p className="text-[13px] leading-relaxed text-stone">{ayuda}</p>
+        <p className="text-[12px] leading-relaxed text-stone/80">{ayuda}</p>
       ) : null}
       {nota ? (
         <p
-          className="rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed"
+          className="rounded-xl px-3.5 py-2.5 text-[12.5px] leading-relaxed"
           style={{ background: 'var(--cream-2)', color: 'var(--stone)' }}
         >
           {nota}
@@ -179,17 +183,20 @@ function Ajuste({ etiqueta, ayuda, valor, opciones, onChange, editable, nota }) 
   );
 }
 
-function Tarjeta({ titulo, descripcion, children }) {
+function Tarjeta({ eyebrow, titulo, descripcion, children }) {
   return (
-    <section className="card flex flex-col gap-5 p-5">
-      <div>
-        <h2 className="tight text-[17px] font-medium text-ink">{titulo}</h2>
-        {descripcion ? (
-          <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
-            {descripcion}
-          </p>
+    <section className="card flex flex-col gap-5 p-5 md:p-7">
+      <header className="flex flex-col gap-1">
+        {eyebrow ? (
+          <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+            {eyebrow}
+          </span>
         ) : null}
-      </div>
+        <h2 className="tight text-[19px] font-medium text-ink">{titulo}</h2>
+        {descripcion ? (
+          <p className="text-[13px] leading-relaxed text-stone">{descripcion}</p>
+        ) : null}
+      </header>
       {children}
     </section>
   );
@@ -278,7 +285,11 @@ export default function ConfigReservas() {
   };
 
   return (
-    <Pantalla titulo="Reservas" subtitulo={salon?.nombre}>
+    <Pantalla
+      titulo="Reservas"
+      subtitulo="Programación"
+      saludo={salon?.nombre ? `· ${salon.nombre}` : undefined}
+    >
       {cargando ? <Cargando /> : null}
 
       {!cargando && error ? (
@@ -287,9 +298,47 @@ export default function ConfigReservas() {
 
       {!cargando && !error && datos && form ? (
         <div className="flex flex-col gap-4">
+          {/* Banner informativo: la duración del servicio NO se configura aquí */}
+          <div
+            className="flex items-start gap-3 rounded-2xl border px-4 py-3 text-[13px]"
+            style={{
+              background: 'rgba(197,86,44,0.06)',
+              borderColor: 'rgba(197,86,44,0.25)',
+              color: '#5B3B23',
+            }}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="mt-0.5 shrink-0"
+              aria-hidden
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v4" />
+              <path d="M12 16h.01" />
+            </svg>
+            <div>
+              <strong>La duración de cada servicio</strong> (Corte 30 min, Tinte
+              90 min…) se decide en{' '}
+              <Link
+                to="/servicios"
+                className="font-medium text-terracotta underline-offset-2 hover:underline"
+              >
+                Servicios
+              </Link>
+              . Aquí solo controlas cuándo y cómo se ofrecen los huecos.
+            </div>
+          </div>
+
           {!puedeEditar ? (
             <div className="card p-5">
-              <p className="text-[14px] leading-relaxed text-stone">
+              <p className="text-[13.5px] leading-relaxed text-stone">
                 Así se ofrecen los huecos en este salón. Cambiar estas reglas lo
                 hace el dueño.
               </p>
@@ -297,6 +346,7 @@ export default function ConfigReservas() {
           ) : null}
 
           <Tarjeta
+            eyebrow="Programación"
             titulo="Cuándo pueden reservar"
             descripcion="Las tres reglas que deciden qué huecos ve un cliente al pedir hora."
           >
@@ -327,7 +377,8 @@ export default function ConfigReservas() {
           </Tarjeta>
 
           <Tarjeta
-            titulo="Avisos automáticos"
+            eyebrow="Avisos automáticos"
+            titulo="Cuándo enviar los recordatorios"
             descripcion="Cada cita dispara tres recordatorios. Decides cuánto antes sale cada uno."
           >
             <Ajuste
@@ -347,6 +398,13 @@ export default function ConfigReservas() {
               // se enseña apagado y con el motivo, en vez de dejar que el dueño
               // lo toque y crea que ha hecho algo.
               editable={puedeEditar && whatsappDisponible}
+              extra={
+                !whatsappDisponible ? (
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-terracotta/90">
+                    · Plus
+                  </span>
+                ) : null
+              }
               ayuda={
                 whatsappDisponible
                   ? 'Con botones de confirmar y cancelar. Si la cita se pide con menos de dos horas, no se manda: el email de confirmación ya lleva todo.'
@@ -378,16 +436,20 @@ export default function ConfigReservas() {
               className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
             >
               <span className="min-w-0">
-                <span className="block text-[15px] font-medium text-ink">
+                <span className="block text-[11px] uppercase tracking-[0.22em] text-stone/70">
+                  Configuración avanzada
+                </span>
+                <span className="tight mt-0.5 block text-[15px] font-medium text-ink">
                   Frecuencia de huecos
                 </span>
-                <span className="mt-0.5 block text-[13px] text-stone">
-                  Ajuste avanzado · déjalo en automático si no lo necesitas
+                <span className="mt-0.5 block text-[12.5px] text-stone">
+                  Déjalo en automático si no lo necesitas.
                 </span>
               </span>
-              <ChevronDown
-                size={18}
-                className="shrink-0 text-stone"
+              <Icon.Caret
+                width="18"
+                height="18"
+                className="shrink-0 text-stone/70"
                 style={{
                   transform: avanzado ? 'rotate(180deg)' : 'none',
                   transition: 'transform .18s',
@@ -396,7 +458,27 @@ export default function ConfigReservas() {
             </button>
 
             {avanzado ? (
-              <div className="border-t border-line px-5 py-5">
+              <div className="flex flex-col gap-4 border-t border-line px-5 py-5">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {[
+                    ['Cada 15 min', '9:00 · 9:15 · 9:30 · 9:45…'],
+                    ['Cada 30 min', '9:00 · 9:30 · 10:00 · 10:30…'],
+                    ['Cada hora', '9:00 · 10:00 · 11:00…'],
+                  ].map(([titulo, ejemplo]) => (
+                    <div
+                      key={titulo}
+                      className="rounded-xl border border-line bg-paper p-3"
+                    >
+                      <div className="text-[10.5px] uppercase tracking-[0.18em] text-stone/70">
+                        {titulo}
+                      </div>
+                      <div className="tabular mt-1 text-[12px] text-ink">
+                        {ejemplo}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 <Ajuste
                   etiqueta="Cada cuánto se ofrece un hueco"
                   valor={form.slotIntervalMin}
@@ -409,14 +491,23 @@ export default function ConfigReservas() {
             ) : null}
           </section>
 
-          <Link to="/servicios" className="card p-5 text-left">
-            <p className="text-[14.5px] font-medium text-ink">
-              ¿Buscas cuánto dura un corte?
-            </p>
-            <p className="mt-0.5 text-[13.5px] leading-relaxed text-stone">
-              La duración y el precio de cada servicio están en Servicios. Aquí
-              solo decides cuándo se pueden pedir las horas.
-            </p>
+          <Link
+            to="/servicios"
+            className="card flex items-center gap-3 p-5 text-left transition hover:border-line-2"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-cream-2 text-stone">
+              <Icon.Scissors width="18" height="18" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14.5px] font-medium text-ink">
+                ¿Buscas cuánto dura un corte?
+              </span>
+              <span className="mt-0.5 block text-[13px] leading-relaxed text-stone">
+                La duración y el precio de cada servicio están en Servicios. Aquí
+                solo decides cuándo se pueden pedir las horas.
+              </span>
+            </span>
+            <Icon.Arrow width="18" height="18" className="shrink-0 text-stone/60" />
           </Link>
 
           {puedeEditar ? (
@@ -434,7 +525,9 @@ export default function ConfigReservas() {
                       : { background: '#F1D6D6', color: '#7C2E2E' }
                   }
                 >
-                  {aviso.tipo === 'ok' ? <Check size={15} /> : null}
+                  {aviso.tipo === 'ok' ? (
+                    <Icon.Check width="15" height="15" />
+                  ) : null}
                   {aviso.texto}
                 </p>
               ) : null}

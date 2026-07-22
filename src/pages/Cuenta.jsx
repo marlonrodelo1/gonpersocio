@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { LogOut, Mail } from 'lucide-react';
 
+import { Icon } from '../components/icons';
 import Pantalla from '../components/Pantalla';
 import { useAuth } from '../context/useAuth';
 import { EMAIL_SOPORTE } from '../lib/identidad';
@@ -128,11 +128,17 @@ function estadoCuenta(salon) {
   };
 }
 
-function Dato({ etiqueta, valor }) {
+/** Fila etiqueta/valor con el look del panel: label en versalitas, valor firme. */
+function Field({ etiqueta, valor }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-5 py-3.5">
-      <span className="shrink-0 text-[12.5px] text-stone">{etiqueta}</span>
-      <span className="tight truncate text-[14.5px] font-medium text-ink">
+    <div className="flex items-center justify-between gap-3 px-4 py-3">
+      <span className="shrink-0 text-[12px] uppercase tracking-[0.16em] text-stone/70">
+        {etiqueta}
+      </span>
+      <span
+        className="tight max-w-[60%] truncate text-right text-[13.5px] font-medium text-ink"
+        title={valor}
+      >
         {valor}
       </span>
     </div>
@@ -148,6 +154,13 @@ export default function Cuenta() {
   const finPrueba =
     salon?.plan === 'trial' ? fechaCorta(salon?.trialUntil, tz) : null;
 
+  const inicial = (salon?.nombre || user?.email || 'M')
+    .trim()
+    .charAt(0)
+    .toUpperCase();
+  const nombreMostrado =
+    salon?.nombre || (user?.email ? user.email.split('@')[0] : 'Tu cuenta');
+
   async function salir() {
     setSaliendo(true);
     try {
@@ -158,60 +171,94 @@ export default function Cuenta() {
   }
 
   return (
-    <Pantalla titulo="Mi cuenta" subtitulo={salon?.nombre}>
-      <div className="flex flex-col gap-5">
-        <section>
-          <h2 className="mb-2 px-1 text-[12.5px] uppercase tracking-wide text-stone">
-            Tus datos
-          </h2>
-          <div className="card divide-y divide-line overflow-hidden">
-            <Dato etiqueta="Email" valor={user?.email ?? '—'} />
-            <Dato etiqueta="Negocio" valor={salon?.nombre ?? '—'} />
-            <Dato etiqueta="Tu rol" valor={rol ? (ROLES[rol] ?? rol) : '—'} />
+    <Pantalla
+      titulo="Tu cuenta"
+      subtitulo="Mi cuenta"
+      saludo={salon?.nombre ? `· ${salon.nombre}` : undefined}
+    >
+      <div className="flex flex-col gap-6">
+        {/* ============================================
+            PERFIL
+            ============================================ */}
+        <section className="card flex flex-col gap-5 p-5 md:p-7">
+          <header className="flex flex-col gap-1">
+            <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+              Perfil
+            </span>
+            <h2 className="tight text-[19px] font-medium text-ink">
+              Tus datos
+            </h2>
+          </header>
+
+          <div className="flex items-center gap-4">
+            <div
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-[26px] font-medium text-paper"
+              style={{
+                background:
+                  'linear-gradient(135deg, var(--terracotta), var(--terracotta-2))',
+              }}
+            >
+              {inicial}
+            </div>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <div className="tight truncate text-[18px] font-medium text-ink">
+                {nombreMostrado}
+              </div>
+              <div className="truncate text-[13px] text-stone">
+                {user?.email ?? '—'}
+              </div>
+            </div>
           </div>
-          <p className="mt-2 px-1 text-[12px] leading-relaxed text-stone/80">
+
+          <div className="card-tight flex flex-col divide-y divide-line/70 overflow-hidden p-0">
+            <Field etiqueta="Email" valor={user?.email ?? '—'} />
+            <Field etiqueta="Negocio" valor={salon?.nombre ?? '—'} />
+            <Field etiqueta="Tu rol" valor={rol ? (ROLES[rol] ?? rol) : '—'} />
+          </div>
+
+          <p className="text-[12px] text-stone/80">
             Para cambiar tu email o el nombre del negocio, escríbenos.
           </p>
         </section>
 
-        <section>
-          <h2 className="mb-2 px-1 text-[12.5px] uppercase tracking-wide text-stone">
-            Estado de la cuenta
-          </h2>
-
-          <div className="card px-5 py-4">
-            <div className="flex items-center gap-2">
+        {/* ============================================
+            ESTADO DE LA CUENTA (solo lectura, sin precio)
+            ============================================ */}
+        <section className="card flex flex-col gap-4 p-5 md:p-7">
+          <header className="flex flex-col gap-1">
+            <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+              Estado de la cuenta
+            </span>
+            <h2
+              className="tight flex items-center gap-2 text-[19px] font-medium"
+              style={{ color: estado.texto }}
+            >
               <span
-                className="size-2 shrink-0 rounded-full"
+                className="size-2.5 shrink-0 rounded-full"
                 style={{ background: estado.punto }}
                 aria-hidden
               />
-              <span
-                className="tight text-[15px] font-medium"
-                style={{ color: estado.texto }}
-              >
-                {estado.titulo}
-              </span>
-            </div>
-            <p className="mt-1 text-[13.5px] text-stone">{estado.detalle}</p>
+              {estado.titulo}
+            </h2>
+            <p className="text-[13.5px] text-stone">{estado.detalle}</p>
+          </header>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span
-                className="pill"
-                style={{ background: estado.fondo, color: estado.texto }}
-              >
-                {estado.etiqueta}
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="pill"
+              style={{ background: estado.fondo, color: estado.texto }}
+            >
+              {estado.etiqueta}
+            </span>
+            {finPrueba ? (
+              <span className="text-[12.5px] text-stone">
+                Hasta el {finPrueba}
               </span>
-              {finPrueba ? (
-                <span className="text-[12.5px] text-stone">
-                  Hasta el {finPrueba}
-                </span>
-              ) : null}
-            </div>
+            ) : null}
           </div>
 
           {!estado.activa ? (
-            <div className="card-tight mt-2.5 px-5 py-4">
+            <div className="card-tight flex flex-col gap-3 p-4">
               <p className="text-[13.5px] leading-relaxed text-stone">
                 Sigue teniendo tus datos, tu agenda y tus clientes tal cual.
                 Escríbenos y lo dejamos resuelto contigo.
@@ -219,34 +266,43 @@ export default function Cuenta() {
               <button
                 type="button"
                 onClick={() => abrirExterno(`mailto:${EMAIL_SOPORTE}`)}
-                className="gloss-btn tight mt-3 flex w-full items-center justify-center gap-2 rounded-full py-3 text-[14.5px] font-medium"
+                className="gloss-btn tight flex w-full items-center justify-center gap-2 rounded-full py-3 text-[14.5px] font-medium"
               >
-                <Mail className="size-4" aria-hidden />
+                <Icon.Send width="16" height="16" aria-hidden />
                 Escribir a soporte
               </button>
             </div>
           ) : null}
         </section>
 
-        <section>
-          <h2 className="mb-2 px-1 text-[12.5px] uppercase tracking-wide text-stone">
-            Sesión
-          </h2>
-          <div className="card overflow-hidden">
-            <button
-              type="button"
-              onClick={salir}
-              disabled={saliendo}
-              className="flex w-full items-center gap-2 px-5 py-4 text-left text-[15px] font-medium disabled:opacity-60"
-              style={{ color: '#A8451F' }}
-            >
-              <LogOut className="size-4" aria-hidden />
-              {saliendo ? 'Cerrando sesión…' : 'Cerrar sesión'}
-            </button>
-          </div>
-          <p className="mt-2 px-1 text-[12px] text-stone/80">
-            Dejarás de recibir avisos en este móvil hasta que vuelvas a entrar.
-          </p>
+        {/* ============================================
+            SESIÓN
+            ============================================ */}
+        <section className="card flex flex-col gap-3 p-5 md:p-7">
+          <header className="flex flex-col gap-1">
+            <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+              Sesión
+            </span>
+            <h2 className="tight text-[18px] font-medium text-ink">
+              Cerrar sesión
+            </h2>
+            <p className="text-[13px] text-stone">
+              Dejarás de recibir avisos en este móvil hasta que vuelvas a entrar.
+            </p>
+          </header>
+          <button
+            type="button"
+            onClick={salir}
+            disabled={saliendo}
+            className="tight inline-flex items-center gap-2 self-start rounded-full border px-4 py-2 text-[13.5px] font-medium transition disabled:opacity-60"
+            style={{
+              borderColor: 'rgba(177,72,72,0.4)',
+              color: '#7C2E2E',
+              background: '#F1D6D6',
+            }}
+          >
+            {saliendo ? 'Cerrando sesión…' : 'Cerrar sesión'}
+          </button>
         </section>
       </div>
     </Pantalla>

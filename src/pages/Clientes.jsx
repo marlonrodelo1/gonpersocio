@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Search, X } from 'lucide-react';
 
+import { Icon } from '../components/icons';
 import Pantalla from '../components/Pantalla';
 import { useAuth } from '../context/useAuth';
 import { apiGet } from '../lib/api';
@@ -61,47 +61,41 @@ function FichaCliente({ cliente, tz }) {
   return (
     <Link
       to={`/clientes/${cliente.id}`}
-      className="card-tight flex items-center gap-3 px-3.5 py-3"
+      className="grid grid-cols-[44px_1fr_150px_84px_130px] items-center gap-3 border-l-2 border-l-transparent px-5 py-4 transition hover:border-l-terracotta hover:bg-paper/60"
     >
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-cream-2 text-[13px] font-medium text-ink/80">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-cream-2 text-[12px] font-medium text-ink/80">
         {iniciales(cliente.nombre) || '·'}
-      </span>
-
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-2">
-          <span className="tight truncate text-[15px] font-medium text-ink">
-            {cliente.nombre}
-          </span>
+      </div>
+      <div className="min-w-0">
+        <div className="tight flex items-center gap-2 truncate text-[14.5px] font-medium text-ink">
+          <span className="truncate">{cliente.nombre}</span>
           {cliente.requiereDeposito ? (
             <span
-              className="pill shrink-0"
-              style={{ background: 'rgba(197,142,44,0.16)', color: '#7A5A1B' }}
+              className="shrink-0 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
+              style={{ background: 'rgba(197,142,44,0.12)', color: '#C58E2C' }}
             >
               Depósito
             </span>
           ) : null}
-        </span>
-        <span className="mt-0.5 block truncate text-[13px] text-stone">
-          {cliente.telefono || cliente.email || 'Sin contacto'}
-        </span>
-        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-stone">
-          <span className="tabular">
-            {cliente.totalCitas} {cliente.totalCitas === 1 ? 'cita' : 'citas'}
-          </span>
-          <span aria-hidden>·</span>
-          <span>{fmtUltimaVisita(cliente.ultimaVisita, tz)}</span>
           {cliente.totalNoShows >= 2 ? (
             <span
-              className="pill tabular"
-              style={{ background: 'rgba(177,72,72,0.12)', color: '#7C2E2E' }}
+              className="shrink-0 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
+              style={{ background: 'rgba(177,72,72,0.10)', color: '#B14848' }}
             >
               {cliente.totalNoShows} plantones
             </span>
           ) : null}
-        </span>
-      </span>
-
-      <ChevronRight size={18} className="shrink-0 text-stone/60" aria-hidden />
+        </div>
+      </div>
+      <div className="truncate text-[13px] text-stone">
+        {cliente.telefono || cliente.email || '—'}
+      </div>
+      <div className="tabular text-[13px] text-ink">
+        {cliente.totalCitas} {cliente.totalCitas === 1 ? 'cita' : 'citas'}
+      </div>
+      <div className="text-[13px] text-stone">
+        {fmtUltimaVisita(cliente.ultimaVisita, tz)}
+      </div>
     </Link>
   );
 }
@@ -202,7 +196,7 @@ export default function Clientes() {
       }
     >
       <div className="search-shell mb-4 flex items-center gap-2 rounded-full px-4 py-2.5">
-        <Search size={17} className="shrink-0 text-stone/70" aria-hidden />
+        <Icon.Search width="17" height="17" className="shrink-0 text-stone/70" />
         <input
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
@@ -220,7 +214,7 @@ export default function Clientes() {
             aria-label="Limpiar búsqueda"
             className="shrink-0 text-stone/70"
           >
-            <X size={17} />
+            <Icon.X width="17" height="17" />
           </button>
         ) : null}
       </div>
@@ -254,13 +248,22 @@ export default function Clientes() {
         </div>
       ) : (
         <>
-          <ul className="flex flex-col gap-2.5">
-            {lista.map((c) => (
-              <li key={c.id}>
-                <FichaCliente cliente={c} tz={tz} />
-              </li>
-            ))}
-          </ul>
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <div className="grid min-w-[640px] grid-cols-[44px_1fr_150px_84px_130px] gap-3 border-b border-line bg-cream/40 px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-stone/70">
+                <div />
+                <div>Cliente</div>
+                <div>Contacto</div>
+                <div>Citas</div>
+                <div>Última</div>
+              </div>
+              <div className="min-w-[640px] divide-y divide-line/70">
+                {lista.map((c) => (
+                  <FichaCliente key={c.id} cliente={c} tz={tz} />
+                ))}
+              </div>
+            </div>
+          </div>
 
           {errorMas ? (
             <p className="mt-3 text-center text-[13px] text-stone">

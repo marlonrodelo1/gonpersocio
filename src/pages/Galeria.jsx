@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, EyeOff, ImageIcon, RefreshCw, Trash2 } from 'lucide-react';
 
 import Pantalla from '../components/Pantalla';
+import { Icon } from '../components/icons';
 import { BarraProgreso, BotonesFoto } from '../components/galeria/ControlesFoto';
 import {
   excedeLimite,
@@ -20,10 +20,10 @@ import { apiDelete, apiGet } from '../lib/api';
  * Ese paso intermedio es donde las galerías se quedan vacías para siempre.
  * Aquí se hace la foto y ya está publicada.
  *
- * La rejilla es de dos columnas y crece hacia abajo. Nada de carrusel lateral:
- * un carrusel esconde la mitad de las fotos detrás de un gesto que hay que
- * descubrir, y aquí lo que se quiere ver de un vistazo es cuántas hay y cuáles
- * son.
+ * La rejilla imita la del panel (`panel/galeria`): tarjetas `.card` con la foto
+ * en 4:3 arriba, la etiqueta "Oculta" superpuesta y, debajo, título + estado.
+ * Nada de carrusel lateral: aquí lo que se quiere ver de un vistazo es cuántas
+ * fotos hay y cuáles son.
  *
  * El listado se guarda junto a la CLAVE de la petición que lo produjo, y
  * "cargando" se deduce de comparar esa clave con la actual. Es el patrón de
@@ -33,13 +33,19 @@ import { apiDelete, apiGet } from '../lib/api';
 
 function Esqueleto() {
   return (
-    <div className="grid grid-cols-2 gap-3" aria-busy="true">
+    <div className="grid grid-cols-2 gap-4" aria-busy="true">
       {[0, 1, 2, 3].map((i) => (
         <div
           key={i}
-          className="aspect-square animate-pulse rounded-2xl bg-cream-2"
-          style={{ opacity: 1 - i * 0.15 }}
-        />
+          className="card overflow-hidden"
+          style={{ opacity: 1 - i * 0.12 }}
+        >
+          <div className="aspect-[4/3] w-full animate-pulse bg-cream-2" />
+          <div className="flex flex-col gap-2 p-3">
+            <div className="h-3.5 w-3/5 animate-pulse rounded bg-cream-2" />
+            <div className="h-3 w-2/5 animate-pulse rounded bg-cream-2" />
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -49,27 +55,36 @@ function Foto({ imagen, puedeEditar, borrando, confirmando, onPreguntar, onBorra
   const preguntando = confirmando === imagen.id;
 
   return (
-    <figure className="card-tight relative overflow-hidden">
-      <img
-        src={imagen.url}
-        alt={imagen.alt || imagen.titulo || 'Foto del salón'}
-        loading="lazy"
-        className="aspect-square w-full object-cover"
-        style={{ opacity: imagen.activa ? 1 : 0.55 }}
-      />
+    <div className="card group relative flex flex-col overflow-hidden">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-cream-2">
+        <img
+          src={imagen.url}
+          alt={imagen.alt || imagen.titulo || 'Foto del salón'}
+          loading="lazy"
+          className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+          style={{ opacity: imagen.activa ? 1 : 0.6 }}
+        />
 
-      {!imagen.activa ? (
-        <figcaption
-          className="pill absolute left-2 top-2"
-          style={{ background: 'rgba(255,255,255,0.9)', color: '#6B6356' }}
-        >
-          <EyeOff size={11} />
-          Oculta
-        </figcaption>
-      ) : null}
+        <div className="absolute left-2 top-2 flex flex-wrap items-center gap-1.5">
+          {imagen.tag ? (
+            <span
+              className="rounded-full px-2 py-0.5 text-[10.5px] font-medium backdrop-blur"
+              style={{ background: 'rgba(255,255,255,0.85)', color: '#7A5A1B' }}
+            >
+              {imagen.tag}
+            </span>
+          ) : null}
+          {!imagen.activa ? (
+            <span
+              className="rounded-full px-2 py-0.5 text-[10.5px] font-medium backdrop-blur"
+              style={{ background: 'rgba(107,99,86,0.85)', color: '#FFF' }}
+            >
+              Oculta
+            </span>
+          ) : null}
+        </div>
 
-      {puedeEditar ? (
-        preguntando ? (
+        {puedeEditar && preguntando ? (
           <div
             className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 text-center"
             style={{ background: 'rgba(28,26,23,0.82)' }}
@@ -97,19 +112,49 @@ function Foto({ imagen, puedeEditar, borrando, confirmando, onPreguntar, onBorra
               </button>
             </div>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onPreguntar(imagen.id)}
-            aria-label="Borrar esta foto"
-            className="absolute right-2 top-2 flex size-9 items-center justify-center rounded-full backdrop-blur"
-            style={{ background: 'rgba(255,255,255,0.88)', color: '#7C2E2E' }}
-          >
-            <Trash2 size={15} />
-          </button>
-        )
-      ) : null}
-    </figure>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-2 p-3">
+        <div className="min-w-0">
+          <div className="tight truncate text-[13.5px] font-medium text-ink">
+            {imagen.titulo || <span className="text-stone/60">Sin título</span>}
+          </div>
+          {imagen.alt ? (
+            <div className="truncate text-[11.5px] text-stone">{imagen.alt}</div>
+          ) : null}
+        </div>
+        <div className="flex items-center justify-between gap-1.5">
+          {imagen.activa ? (
+            <span
+              className="pill"
+              style={{ background: 'rgba(139,157,122,0.15)', color: '#5A6B4D' }}
+            >
+              <span className="pill-dot" style={{ background: '#8B9D7A' }} />
+              Activa
+            </span>
+          ) : (
+            <span
+              className="pill"
+              style={{ background: 'rgba(107,99,86,0.10)', color: '#6B6356' }}
+            >
+              <span className="pill-dot" style={{ background: '#8A8174' }} />
+              Oculta
+            </span>
+          )}
+          {puedeEditar ? (
+            <button
+              type="button"
+              onClick={() => onPreguntar(imagen.id)}
+              className="tight inline-flex h-7 shrink-0 items-center justify-center rounded-full border border-line bg-paper px-3 text-[12px] font-medium transition hover:bg-cream"
+              style={{ color: '#B14848' }}
+            >
+              Borrar
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -204,17 +249,16 @@ export default function Galeria() {
   return (
     <Pantalla titulo="Galería" subtitulo={subtitulo}>
       {error ? (
-        <div className="card flex flex-col items-start gap-3 p-5">
+        <div className="card p-5">
           <p className="tight text-[15px] font-medium text-ink">
             No hemos podido cargar tus fotos
           </p>
-          <p className="text-[14px] text-stone">{error.message}</p>
+          <p className="mt-1 text-[13.5px] text-stone">{error.message}</p>
           <button
             type="button"
             onClick={refrescar}
-            className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+            className="gloss-btn tight mt-4 rounded-full px-5 py-2.5 text-[14px] font-medium"
           >
-            <RefreshCw size={15} />
             Reintentar
           </button>
         </div>
@@ -264,11 +308,10 @@ export default function Galeria() {
           )}
 
           {imagenes.length === 0 ? (
-            <div className="card flex flex-col items-center gap-2 p-8 text-center">
-              <ImageIcon size={22} className="text-stone" />
-              <p className="text-[15px] font-medium text-ink">
+            <div className="card flex flex-col items-center justify-center gap-3 p-10 text-center">
+              <h2 className="tight text-[18px] font-medium text-ink">
                 Tu galería está vacía
-              </p>
+              </h2>
               <p className="max-w-xs text-[13.5px] leading-relaxed text-stone">
                 {puedeEditar
                   ? 'Quien entra en tu web decide si reserva por lo que ve. Empieza por el próximo trabajo que termines: una foto basta.'
@@ -276,7 +319,7 @@ export default function Galeria() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               {imagenes.map((img) => (
                 <Foto
                   key={img.id}
@@ -291,7 +334,10 @@ export default function Galeria() {
             </div>
           )}
 
-          <Link to="/antes-despues" className="card flex items-center gap-3 p-5">
+          <Link
+            to="/antes-despues"
+            className="card flex items-center gap-3 p-5 transition hover:bg-paper/60"
+          >
             <span className="min-w-0 flex-1">
               <span className="block text-[14.5px] font-medium text-ink">
                 Antes y después
@@ -300,7 +346,12 @@ export default function Galeria() {
                 Los pares de fotos que enseñan el cambio. Es lo que más convence.
               </span>
             </span>
-            <ChevronRight size={18} className="shrink-0 text-stone/60" aria-hidden />
+            <Icon.Arrow
+              width="18"
+              height="18"
+              className="shrink-0 text-stone/60"
+              aria-hidden
+            />
           </Link>
 
           {puedeEditar && imagenes.length > 0 ? (

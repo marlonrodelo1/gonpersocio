@@ -12,6 +12,7 @@
     "sync": "vite build && cap sync",
     "sync:android": "vite build && cap sync android",
     "open:android": "cap open android",
+    "aab": "vite build && cap sync android && cd android && gradlew.bat bundleRelease",
     "assets": "capacitor-assets generate"
   },
   "dependencies": {

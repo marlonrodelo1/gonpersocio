@@ -212,7 +212,11 @@ export default function Agenda() {
     (datos?.citas?.length ?? 0) > 0 || (datos?.cierres?.length ?? 0) > 0;
 
   return (
-    <Pantalla titulo="Agenda" subtitulo={salon?.nombre}>
+    <Pantalla
+      titulo={tituloRango(vista, inicio, fin)}
+      subtitulo="Agenda"
+      saludo={salon?.nombre ? `· ${salon.nombre}` : undefined}
+    >
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
           <nav className="flex items-center gap-2">

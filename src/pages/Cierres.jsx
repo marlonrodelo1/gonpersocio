@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarClock, Check, RefreshCw, X } from 'lucide-react';
 
 import Pantalla from '../components/Pantalla';
+import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 
@@ -268,17 +268,16 @@ export default function Cierres() {
       ) : null}
 
       {!cargando && error ? (
-        <div className="card flex flex-col items-start gap-3 p-5">
-          <p className="text-[15px] font-medium text-ink">
+        <div className="card flex flex-col items-start gap-3 p-5 md:p-8">
+          <p className="tight text-[15px] font-medium text-ink">
             No hemos podido cargar tus cierres
           </p>
-          <p className="text-[14px] text-stone">{error}</p>
+          <p className="text-[13px] text-stone">{error}</p>
           <button
             type="button"
             onClick={reintentar}
             className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
           >
-            <RefreshCw size={15} />
             Reintentar
           </button>
         </div>
@@ -288,16 +287,19 @@ export default function Cierres() {
         <div className="flex flex-col gap-5">
           {/* ---------- crear ---------- */}
           {puedeEditar ? (
-            <section className="card flex flex-col gap-4 p-5">
-              <div>
-                <h2 className="tight text-[17px] font-medium text-ink">
+            <section className="card flex flex-col gap-5 p-5 md:p-8">
+              <header className="flex flex-col gap-1.5">
+                <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+                  Cierres y vacaciones
+                </span>
+                <h2 className="tight text-[20px] font-medium text-ink">
                   Cerrar el salón
                 </h2>
-                <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
+                <p className="text-[13px] leading-relaxed text-stone">
                   Toca una opción y listo. Los clientes dejarán de ver esos
                   huecos al instante.
                 </p>
-              </div>
+              </header>
 
               <div className="grid grid-cols-2 gap-2">
                 {PRESETS.map((p) => (
@@ -309,12 +311,12 @@ export default function Cierres() {
                       const [desde, hasta] = p.compute();
                       crear(desde, hasta);
                     }}
-                    className="card-tight flex flex-col items-start gap-0.5 px-3.5 py-3 text-left disabled:opacity-50"
+                    className="tight flex flex-col items-start gap-0.5 rounded-xl border border-line bg-paper px-3.5 py-3 text-left transition hover:bg-cream disabled:opacity-50"
                   >
-                    <span className="tight text-[14px] font-medium leading-snug text-ink">
+                    <span className="text-[14px] font-medium leading-snug text-ink">
                       {p.label}
                     </span>
-                    <span className="text-[12px] leading-snug text-stone">
+                    <span className="text-[12px] leading-snug text-stone/70">
                       {p.hint}
                     </span>
                   </button>
@@ -324,7 +326,7 @@ export default function Cierres() {
               <div className="flex flex-col gap-1.5">
                 <label
                   htmlFor="cierre_motivo"
-                  className="text-[11px] uppercase tracking-[0.2em] text-stone"
+                  className="text-[11px] uppercase tracking-[0.2em] text-stone/80"
                 >
                   Motivo (opcional)
                 </label>
@@ -342,7 +344,7 @@ export default function Cierres() {
 
               {/* Vacaciones y festivos: no caben en un preset, pero tampoco
                   necesitan horas. Dos fechas y fuera. */}
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 border-t border-line pt-4">
                 <button
                   type="button"
                   onClick={() => setAbiertoOtras((v) => !v)}
@@ -357,7 +359,7 @@ export default function Cierres() {
                       <div className="flex flex-col gap-1.5">
                         <label
                           htmlFor="cierre_desde"
-                          className="text-[11px] uppercase tracking-[0.2em] text-stone"
+                          className="text-[11px] uppercase tracking-[0.2em] text-stone/80"
                         >
                           Desde
                         </label>
@@ -378,7 +380,7 @@ export default function Cierres() {
                       <div className="flex flex-col gap-1.5">
                         <label
                           htmlFor="cierre_hasta"
-                          className="text-[11px] uppercase tracking-[0.2em] text-stone"
+                          className="text-[11px] uppercase tracking-[0.2em] text-stone/80"
                         >
                           Hasta (incluido)
                         </label>
@@ -428,8 +430,8 @@ export default function Cierres() {
               ) : null}
             </section>
           ) : (
-            <div className="card p-5">
-              <p className="text-[14px] leading-relaxed text-stone">
+            <div className="card p-5 md:p-8">
+              <p className="text-[13px] leading-relaxed text-stone">
                 Aquí ves cuándo está cerrado el salón. Añadir o quitar cierres lo
                 hace el dueño.
               </p>
@@ -438,17 +440,17 @@ export default function Cierres() {
 
           {/* ---------- listado ---------- */}
           <section className="flex flex-col gap-3">
-            <h2 className="tight text-[17px] font-medium text-ink">
+            <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
               Próximos cierres
-            </h2>
+            </span>
 
             {datos.cierres.length === 0 ? (
-              <div className="card flex flex-col items-center gap-2 p-8 text-center">
-                <CalendarClock size={22} className="text-stone" />
-                <p className="text-[15px] font-medium text-ink">
+              <div className="card-tight flex flex-col items-center justify-center gap-2 border-dashed p-10 text-center">
+                <Icon.Cal width="22" height="22" className="text-stone/60" />
+                <p className="tight text-[15px] font-medium text-ink">
                   No tienes ningún cierre puesto
                 </p>
-                <p className="max-w-xs text-[13.5px] leading-relaxed text-stone">
+                <p className="max-w-xs text-[12.5px] leading-relaxed text-stone">
                   Tu salón acepta reservas en todo tu horario. Cuando cierres un
                   día o una tarde, aparecerá aquí.
                 </p>
@@ -460,17 +462,20 @@ export default function Cierres() {
                   const activo = enCurso(c.desde, c.hasta);
                   const preguntando = confirmando === c.id;
                   return (
-                    <div key={c.id} className="card flex flex-col gap-2 p-4">
+                    <div
+                      key={c.id}
+                      className="card flex flex-col gap-2 border-l-2 border-l-transparent p-4 transition hover:border-l-terracotta hover:bg-paper/60"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="tight text-[15px] font-medium text-ink">
                             {titulo}
                           </p>
-                          <p className="tabular mt-0.5 text-[13.5px] text-stone">
+                          <p className="tabular mt-0.5 text-[13px] text-stone">
                             {detalle}
                           </p>
                           {c.motivo ? (
-                            <p className="mt-1 break-words text-[13.5px] text-stone">
+                            <p className="mt-1 break-words text-[13px] text-stone">
                               {c.motivo}
                             </p>
                           ) : null}
@@ -490,7 +495,7 @@ export default function Cierres() {
 
                       {puedeEditar ? (
                         preguntando ? (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 border-t border-line pt-2">
                             <button
                               type="button"
                               disabled={borrando === c.id}
@@ -498,7 +503,7 @@ export default function Cierres() {
                               className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium disabled:opacity-50"
                               style={{ background: '#F1D6D6', color: '#7C2E2E' }}
                             >
-                              <Check size={14} />
+                              <Icon.Check width="14" height="14" />
                               {borrando === c.id ? 'Quitando…' : 'Sí, abrir'}
                             </button>
                             <button
@@ -507,7 +512,7 @@ export default function Cierres() {
                               onClick={() => setConfirmando(null)}
                               className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium text-stone disabled:opacity-50"
                             >
-                              <X size={14} />
+                              <Icon.X width="14" height="14" />
                               No
                             </button>
                           </div>
@@ -515,7 +520,8 @@ export default function Cierres() {
                           <button
                             type="button"
                             onClick={() => setConfirmando(c.id)}
-                            className="card-tight self-start rounded-full px-3.5 py-2 text-[13px] font-medium text-ink"
+                            className="self-start rounded-full border bg-paper px-3.5 py-1.5 text-[12.5px] tight text-[#7C2E2E] transition hover:bg-[#F1D6D6]/40"
+                            style={{ borderColor: 'rgba(177,72,72,0.35)' }}
                           >
                             Quitar cierre
                           </button>
@@ -528,13 +534,19 @@ export default function Cierres() {
             )}
           </section>
 
-          <Link to="/horario" className="card p-5 text-left">
-            <p className="text-[14.5px] font-medium text-ink">
-              Ver mi horario semanal
-            </p>
-            <p className="mt-0.5 text-[13.5px] leading-relaxed text-stone">
-              Los cierres son excepciones. Tu horario de siempre está aparte.
-            </p>
+          <Link
+            to="/horario"
+            className="card flex items-center justify-between gap-3 p-5 text-left transition hover:bg-paper/60"
+          >
+            <div className="min-w-0">
+              <p className="tight text-[14.5px] font-medium text-ink">
+                Ver mi horario semanal
+              </p>
+              <p className="mt-0.5 text-[13px] leading-relaxed text-stone">
+                Los cierres son excepciones. Tu horario de siempre está aparte.
+              </p>
+            </div>
+            <Icon.Arrow width="18" height="18" className="shrink-0 text-stone/60" />
           </Link>
         </div>
       ) : null}

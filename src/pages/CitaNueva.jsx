@@ -1,17 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Check,
-  ChevronLeft,
-  Clock,
-  Layers,
-  RefreshCw,
-  Search,
-  UserPlus,
-  X,
-} from 'lucide-react';
 
 import Pantalla from '../components/Pantalla';
+import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
 import { apiGet, apiPost } from '../lib/api';
 
@@ -115,7 +106,6 @@ function AvisoError({ titulo, mensaje, onReintentar }) {
           onClick={onReintentar}
           className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
         >
-          <RefreshCw size={15} />
           Reintentar
         </button>
       ) : null}
@@ -511,7 +501,7 @@ export default function CitaNueva() {
       className="-mr-1 shrink-0 rounded-full p-2"
       style={{ color: 'var(--on-chrome)' }}
     >
-      <ChevronLeft size={22} />
+      <Icon.Arrow width="22" height="22" style={{ transform: 'rotate(180deg)' }} />
     </button>
   );
 
@@ -563,7 +553,7 @@ export default function CitaNueva() {
                       color: 'var(--paper)',
                     }}
                   >
-                    <Check size={18} />
+                    <Icon.Check width="18" height="18" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="tight block truncate text-[15.5px] font-medium text-ink">
@@ -663,8 +653,9 @@ export default function CitaNueva() {
               ) : (
                 <>
                   <div className="search-shell flex items-center gap-2 rounded-full px-4 py-2.5">
-                    <Search
-                      size={17}
+                    <Icon.Search
+                      width="17"
+                      height="17"
                       className="shrink-0 text-stone/70"
                       aria-hidden
                     />
@@ -685,7 +676,7 @@ export default function CitaNueva() {
                         aria-label="Limpiar búsqueda"
                         className="shrink-0 text-stone/70"
                       >
-                        <X size={17} />
+                        <Icon.X width="17" height="17" />
                       </button>
                     ) : null}
                   </div>
@@ -700,7 +691,7 @@ export default function CitaNueva() {
                     className="card-tight flex items-center gap-3 px-4 py-3.5 text-left"
                   >
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-cream-2 text-ink">
-                      <UserPlus size={17} />
+                      <Icon.Plus width="17" height="17" />
                     </span>
                     <span className="tight text-[14.5px] font-medium text-ink">
                       Cliente nuevo
@@ -802,9 +793,10 @@ export default function CitaNueva() {
                           </span>
                         </span>
                         {s.multiSeccion ? (
-                          <Layers
-                            size={16}
-                            className="shrink-0 text-stone/70"
+                          <Icon.Sparkle
+                            width="15"
+                            height="15"
+                            className="shrink-0 text-stone/60"
                             aria-hidden
                           />
                         ) : null}
@@ -861,7 +853,9 @@ export default function CitaNueva() {
                                   color: 'var(--paper)',
                                 }}
                               >
-                                {marcada ? <Check size={13} /> : null}
+                                {marcada ? (
+                                  <Icon.Check width="13" height="13" />
+                                ) : null}
                               </span>
                               <span className="tight min-w-0 flex-1 truncate text-[14.5px] text-ink">
                                 {p.nombre}
@@ -1004,6 +998,7 @@ export default function CitaNueva() {
                     );
                     const elegido = fechaSel === ymd;
                     const bloqueado = pasado || cerrado;
+                    const disponible = !bloqueado && !elegido;
                     return (
                       <button
                         key={ymd}
@@ -1012,7 +1007,7 @@ export default function CitaNueva() {
                         onClick={() => elegirDia(ymd)}
                         aria-label={fechaLarga(ymd)}
                         aria-pressed={elegido}
-                        className="tabular aspect-square rounded-xl text-[13.5px] transition"
+                        className="tabular relative aspect-square rounded-xl text-[13.5px] transition"
                         style={
                           elegido
                             ? { background: 'var(--ink)', color: 'var(--paper)' }
@@ -1028,9 +1023,30 @@ export default function CitaNueva() {
                         }
                       >
                         {dia}
+                        {disponible ? (
+                          <span
+                            className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full"
+                            style={{ background: 'var(--sage)' }}
+                            aria-hidden
+                          />
+                        ) : null}
                       </button>
                     );
                   })}
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] text-stone">
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ background: 'var(--sage)' }}
+                    />
+                    Disponible
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-stone/40" />
+                    Cerrado
+                  </span>
                 </div>
               </div>
 
@@ -1115,7 +1131,11 @@ export default function CitaNueva() {
 
               <div className="card flex flex-col gap-3 p-4">
                 <div className="flex items-start gap-3">
-                  <Clock size={17} className="mt-0.5 shrink-0 text-stone" />
+                  <Icon.Cal
+                    width="17"
+                    height="17"
+                    className="mt-0.5 shrink-0 text-stone"
+                  />
                   <div className="min-w-0">
                     <p className="tight text-[15.5px] font-medium text-ink">
                       {fechaLarga(fechaSel)}

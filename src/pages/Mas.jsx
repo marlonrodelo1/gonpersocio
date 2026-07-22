@@ -9,11 +9,11 @@ import { EMAIL_SOPORTE, URL_PRIVACIDAD, URL_TERMINOS } from '../lib/identidad';
 /**
  * "Más": todo lo que no es la operación del día.
  *
- * REGLA DE TIENDA, no negociable: aquí NO puede aparecer ningún enlace a la
- * suscripción, ni el precio de ningún plan, ni un botón para invitar a un
- * trabajador (invitar factura un asiento de 5 €/mes). Si algo de eso hace
- * falta, se resuelve por email o desde el ordenador. Un solo botón de compra
- * en este binario es motivo de rechazo directo en la App Store.
+ * La suscripción/plan SÍ aparece aquí (decisión de producto de Marlon): abre el
+ * panel de suscripción en el NAVEGADOR del sistema, con Stripe Checkout
+ * hospedado — no un formulario de pago dentro del binario. Es la vía de menor
+ * riesgo, pero sigue siendo un botón de compra en la app: riesgo de rechazo en
+ * tiendas asumido. Invitar a un trabajador (factura un asiento) se resuelve fuera.
  */
 
 const SECCIONES = [
@@ -76,6 +76,11 @@ const SECCIONES = [
   {
     titulo: 'Se abre en el navegador',
     items: [
+      {
+        etiqueta: 'Suscripción y plan',
+        destino: '/panel/config/suscripcion',
+        nota: 'Plan, pago y facturas',
+      },
       {
         etiqueta: 'Logo y portada',
         destino: '/panel/config/web',

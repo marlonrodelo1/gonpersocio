@@ -1,36 +1,44 @@
+import TrialBanner from './TrialBanner';
+
 /**
- * Envoltorio de pantalla: cabecera con el cromo oscuro + contenido claro.
- *
- * Es lo que da a la app su identidad frente a la de clientes (terracota sobre
- * crema) sin volverla una app oscura: el contenido sigue siendo claro porque
- * con luz de día en el salón la densidad de datos se lee mejor así.
+ * Envoltorio de pantalla. CLON del topbar del panel web (`panel-topbar.tsx`):
+ * barra superior cream sticky con eyebrow (subtítulo) + H1, y el saludo en serif
+ * itálica. La barra lateral es global (App.jsx). `pl-14` deja hueco a la
+ * hamburguesa en móvil; `accion` es el CTA/volver de cada pantalla, a la derecha.
  */
-export default function Pantalla({ titulo, subtitulo, accion, children }) {
+export default function Pantalla({ titulo, subtitulo, saludo, accion, children }) {
   return (
     <div className="min-h-screen bg-cream text-ink">
-      <header
-        className="safe-top px-5 pb-5 pt-4"
-        style={{ background: 'var(--chrome)', color: 'var(--on-chrome)' }}
+      <div
+        className="sticky top-0 z-30 border-b border-line bg-cream/85 backdrop-blur-md"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
-        <div className="mx-auto flex w-full max-w-2xl items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="tight text-[22px] font-medium leading-tight">
-              {titulo}
-            </h1>
+        <div className="flex items-center gap-3 px-4 py-3 pl-14 md:gap-6 md:px-8 md:py-4 md:pl-8">
+          <div className="flex min-w-0 flex-col">
             {subtitulo ? (
-              <p
-                className="mt-1 truncate text-[13px]"
-                style={{ color: 'var(--on-chrome-dim)' }}
-              >
+              <div className="truncate text-[11px] uppercase tracking-[0.22em] text-stone/70">
                 {subtitulo}
-              </p>
+              </div>
             ) : null}
+            <h1 className="tight truncate text-[20px] font-medium leading-tight text-ink md:text-[26px]">
+              {titulo}
+              {saludo ? (
+                <>
+                  {' '}
+                  <span className="font-serif-it text-stone/70">{saludo}</span>
+                </>
+              ) : null}
+            </h1>
           </div>
+          <div className="flex-1" />
           {accion ?? null}
         </div>
-      </header>
+      </div>
 
-      <main className="mx-auto w-full max-w-2xl px-5 py-5">{children}</main>
+      <main className="mx-auto w-full max-w-2xl px-4 py-6 md:px-8">
+        <TrialBanner />
+        {children}
+      </main>
     </div>
   );
 }

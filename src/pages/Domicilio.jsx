@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, MapPin, Plus, RefreshCw, X } from 'lucide-react';
 
 import Pantalla from '../components/Pantalla';
+import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
 import { apiGet, apiPatch } from '../lib/api';
 
@@ -34,8 +34,8 @@ const ATAJOS_RADIO = [5, 10, 20, 50];
 const MODOS = [
   {
     id: 'radio',
-    titulo: 'Por distancia',
-    pista: 'Kilómetros desde tu salón',
+    titulo: 'Por radio (km)',
+    pista: 'Distancia desde la dirección del salón',
   },
   {
     id: 'cp',
@@ -44,7 +44,27 @@ const MODOS = [
   },
 ];
 
-/** Interruptor accesible, gemelo del de Servicios pero en tamaño de portada. */
+/** Icono ubicación (trazo 1.5, gemelo de los de components/icons). */
+function IconoPin(p) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+/** Icono refrescar (trazo 1.5). */
+function IconoRefrescar(p) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+      <polyline points="21 3 21 9 15 9" />
+    </svg>
+  );
+}
+
+/** Interruptor accesible con el acento terracota del panel. */
 function InterruptorGrande({ activo, ocupado, onCambiar, etiqueta }) {
   return (
     <button
@@ -56,8 +76,8 @@ function InterruptorGrande({ activo, ocupado, onCambiar, etiqueta }) {
       onClick={onCambiar}
       className="relative h-[34px] w-[58px] shrink-0 rounded-full border transition disabled:opacity-50"
       style={{
-        background: activo ? 'var(--socio-accent)' : 'var(--cream-2)',
-        borderColor: activo ? 'var(--socio-accent)' : 'var(--line-2)',
+        background: activo ? 'var(--terracotta)' : 'var(--cream-2)',
+        borderColor: activo ? 'var(--terracotta)' : 'var(--line-2)',
       }}
     >
       <span
@@ -70,10 +90,10 @@ function InterruptorGrande({ activo, ocupado, onCambiar, etiqueta }) {
 
 function Cargando() {
   return (
-    <div className="flex flex-col gap-3" aria-busy="true">
-      <div className="card h-[104px] animate-pulse" />
-      <div className="card h-[180px] animate-pulse" style={{ opacity: 0.8 }} />
-      <div className="card h-[92px] animate-pulse" style={{ opacity: 0.6 }} />
+    <div className="flex flex-col gap-4" aria-busy="true">
+      <div className="card h-[108px] animate-pulse" />
+      <div className="card h-[196px] animate-pulse" style={{ opacity: 0.8 }} />
+      <div className="card h-[96px] animate-pulse" style={{ opacity: 0.6 }} />
     </div>
   );
 }
@@ -81,7 +101,7 @@ function Cargando() {
 function AvisoError({ mensaje, onReintentar }) {
   return (
     <div className="card flex flex-col items-start gap-3 p-5">
-      <p className="text-[15px] font-medium text-ink">
+      <p className="tight text-[15px] font-medium text-ink">
         No hemos podido cargar tu zona de domicilio
       </p>
       <p className="text-[14px] text-stone">{mensaje}</p>
@@ -90,7 +110,7 @@ function AvisoError({ mensaje, onReintentar }) {
         onClick={onReintentar}
         className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
       >
-        <RefreshCw size={15} />
+        <IconoRefrescar width="15" height="15" />
         Reintentar
       </button>
     </div>
@@ -111,9 +131,9 @@ function ResumenServicios({ activos, total }) {
         </p>
         <Link
           to="/servicios"
-          className="tight self-start text-[13.5px] font-medium text-ink underline underline-offset-4"
+          className="tight self-start text-[13.5px] font-medium text-terracotta hover:text-terracotta-2"
         >
-          Ir a Servicios
+          Ir a Servicios →
         </Link>
       </div>
     );
@@ -245,13 +265,8 @@ export default function Domicilio() {
   return (
     <Pantalla
       titulo="A domicilio"
-      subtitulo={
-        datos
-          ? activo
-            ? 'Te desplazas a casa del cliente'
-            : 'Solo atiendes en el local'
-          : salon?.nombre
-      }
+      subtitulo="Configuración"
+      saludo={salon?.nombre ? `· ${salon.nombre}` : undefined}
     >
       {cargando ? <Cargando /> : null}
 
@@ -261,6 +276,19 @@ export default function Domicilio() {
 
       {!cargando && !error && datos ? (
         <div className="flex flex-col gap-4">
+          {/* ---------- intro (eco del header del panel) ---------- */}
+          <p className="px-1 text-[13.5px] leading-relaxed text-stone">
+            Si te desplazas a casa del cliente, actívalo y define tu zona. En
+            cada servicio eliges si es «En el local», «A domicilio» o «Ambos»
+            desde{' '}
+            <Link
+              to="/servicios"
+              className="font-medium text-terracotta hover:text-terracotta-2"
+            >
+              Servicios →
+            </Link>
+          </p>
+
           {/* ---------- interruptor principal ---------- */}
           <section className="card flex items-start gap-4 p-5">
             <div className="min-w-0 flex-1">
@@ -289,8 +317,8 @@ export default function Domicilio() {
                 className="pill shrink-0"
                 style={
                   activo
-                    ? { background: 'rgba(139,157,122,0.15)', color: '#5A6B4D' }
-                    : { background: 'rgba(107,99,86,0.10)', color: '#6B6356' }
+                    ? { background: 'var(--sage-soft)', color: 'var(--sage-deep)' }
+                    : { background: 'rgba(107,99,86,0.10)', color: 'var(--stone)' }
                 }
               >
                 {activo ? 'Activo' : 'Apagado'}
@@ -300,7 +328,7 @@ export default function Domicilio() {
 
           {/* ---------- zona ---------- */}
           {activo ? (
-            <section className="card flex flex-col gap-4 p-5">
+            <section className="card flex flex-col gap-5 p-5">
               <div>
                 <h2 className="tight text-[15px] font-medium text-ink">
                   Hasta dónde llegas
@@ -310,60 +338,53 @@ export default function Domicilio() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                {MODOS.map((m) => {
-                  const elegido = modo === m.id;
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      disabled={!puedeEditar || guardando}
-                      aria-pressed={elegido}
-                      onClick={() => {
-                        setModo(m.id);
-                        setAviso(null);
-                      }}
-                      className="tight rounded-2xl border px-3.5 py-3 text-left transition disabled:opacity-60"
-                      style={
-                        elegido
-                          ? {
-                              background: 'var(--socio-accent)',
-                              borderColor: 'var(--socio-accent)',
-                              color: 'var(--on-chrome)',
-                            }
-                          : {
-                              background: 'var(--paper)',
-                              borderColor: 'var(--line)',
-                              color: 'var(--ink)',
-                            }
-                      }
-                    >
-                      <span className="block text-[14px] font-medium leading-snug">
-                        {m.titulo}
-                      </span>
-                      <span
-                        className="mt-0.5 block text-[12px] leading-snug"
-                        style={{
-                          color: elegido
-                            ? 'var(--on-chrome-dim)'
-                            : 'var(--stone)',
+              <div className="flex flex-col gap-2">
+                <span className="text-[11px] uppercase tracking-[0.2em] text-stone/80">
+                  Zona de cobertura
+                </span>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {MODOS.map((m) => {
+                    const elegido = modo === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        disabled={!puedeEditar || guardando}
+                        aria-pressed={elegido}
+                        onClick={() => {
+                          setModo(m.id);
+                          setAviso(null);
                         }}
+                        className={`tight rounded-2xl border px-4 py-3 text-left transition disabled:opacity-60 ${
+                          elegido
+                            ? 'border-ink bg-ink text-cream'
+                            : 'border-line bg-paper text-ink hover:border-line-2'
+                        }`}
                       >
-                        {m.pista}
-                      </span>
-                    </button>
-                  );
-                })}
+                        <span className="block text-[13.5px] font-medium leading-snug">
+                          {m.titulo}
+                        </span>
+                        <span
+                          className={`mt-0.5 block text-[12px] leading-snug ${
+                            elegido ? 'text-cream/75' : 'text-stone/80'
+                          }`}
+                        >
+                          {m.pista}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {modo === 'radio' ? (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 rounded-2xl border border-line bg-cream/40 p-4">
                   <div className="flex items-baseline justify-between gap-3">
                     <label
                       htmlFor="domicilio_radio"
-                      className="text-[11px] uppercase tracking-[0.2em] text-stone"
+                      className="text-[11px] uppercase tracking-[0.2em] text-stone/80"
                     >
-                      Radio
+                      Radio en kilómetros
                     </label>
                     <span className="tabular tight text-[22px] font-medium text-ink">
                       {radioKm} km
@@ -384,7 +405,7 @@ export default function Domicilio() {
                       setAviso(null);
                     }}
                     className="h-9 w-full disabled:opacity-60"
-                    style={{ accentColor: 'var(--socio-accent)' }}
+                    style={{ accentColor: 'var(--terracotta)' }}
                   />
 
                   <div className="flex flex-wrap gap-2">
@@ -398,12 +419,11 @@ export default function Domicilio() {
                           setRadioOriginal(null);
                           setAviso(null);
                         }}
-                        className="tabular rounded-full border border-line bg-paper px-3.5 py-1.5 text-[13px] font-medium text-ink disabled:opacity-60"
-                        style={
-                          radioKm === km
-                            ? { borderColor: 'var(--ink)' }
-                            : undefined
-                        }
+                        className="tabular rounded-full border bg-paper px-3.5 py-1.5 text-[13px] font-medium text-ink disabled:opacity-60"
+                        style={{
+                          borderColor:
+                            radioKm === km ? 'var(--ink)' : 'var(--line)',
+                        }}
                       >
                         {km} km
                       </button>
@@ -427,26 +447,45 @@ export default function Domicilio() {
                   ) : null}
 
                   {sinUbicacion ? (
-                    <p
-                      className="rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed"
+                    <div
+                      className="flex items-start gap-3 rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed"
                       style={{
-                        background: 'rgba(197,86,44,0.08)',
+                        background: 'rgba(197,86,44,0.06)',
                         color: '#5B3B23',
                       }}
                     >
-                      El radio se mide desde la dirección de tu salón y todavía
-                      no la tienes puesta en el mapa. Configúrala desde el
-                      ordenador o usa la zona por códigos postales.
-                    </p>
+                      <svg
+                        viewBox="0 0 24 24"
+                        width="18"
+                        height="18"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mt-0.5 shrink-0"
+                        aria-hidden
+                      >
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 8v4" />
+                        <path d="M12 16h.01" />
+                      </svg>
+                      <span>
+                        El radio se mide desde la{' '}
+                        <strong>dirección de tu salón</strong> y todavía no la
+                        tienes puesta en el mapa. Configúrala desde el ordenador
+                        o usa la zona por códigos postales.
+                      </span>
+                    </div>
                   ) : (
-                    <p className="text-[13px] leading-relaxed text-stone">
+                    <p className="text-[12px] leading-relaxed text-stone/80">
                       Se mide en línea recta desde la dirección de tu salón.
                     </p>
                   )}
                 </div>
               ) : (
-                <div className="flex flex-col gap-3">
-                  <span className="text-[11px] uppercase tracking-[0.2em] text-stone">
+                <div className="flex flex-col gap-3 rounded-2xl border border-line bg-cream/40 p-4">
+                  <span className="text-[11px] uppercase tracking-[0.2em] text-stone/80">
                     Códigos postales
                   </span>
 
@@ -468,7 +507,7 @@ export default function Domicilio() {
                               className="tabular inline-flex items-center gap-1.5 rounded-full border border-line bg-paper py-2 pl-3.5 pr-2.5 text-[14px] font-medium text-ink disabled:opacity-60"
                             >
                               {cp}
-                              <X size={14} className="text-stone" aria-hidden />
+                              <Icon.X width="14" height="14" className="text-stone" aria-hidden />
                             </button>
                           ) : (
                             <span className="tabular inline-flex items-center rounded-full border border-line bg-paper px-3.5 py-2 text-[14px] font-medium text-ink">
@@ -509,13 +548,13 @@ export default function Domicilio() {
                         disabled={guardando || !cpNuevoValido}
                         className="gloss-btn tight inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-3 text-[14px] font-medium disabled:opacity-50"
                       >
-                        <Plus size={15} />
+                        <Icon.Plus width="15" height="15" />
                         Añadir
                       </button>
                     </div>
                   ) : null}
 
-                  <p className="text-[13px] leading-relaxed text-stone">
+                  <p className="text-[12px] leading-relaxed text-stone/80">
                     Solo aceptarás reservas a domicilio en estos códigos
                     postales.
                   </p>
@@ -524,7 +563,7 @@ export default function Domicilio() {
             </section>
           ) : (
             <section className="card flex items-start gap-3 p-5">
-              <MapPin size={18} className="mt-0.5 shrink-0 text-stone" aria-hidden />
+              <IconoPin width="18" height="18" className="mt-0.5 shrink-0 text-stone" aria-hidden />
               <p className="text-[13.5px] leading-relaxed text-stone">
                 Ahora mismo solo atiendes en el local. Enciende el interruptor
                 para elegir hasta dónde te desplazas.
@@ -556,7 +595,7 @@ export default function Domicilio() {
                 >
                   {aviso.tipo === 'ok' ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <Check size={14} />
+                      <Icon.Check width="14" height="14" />
                       {aviso.texto}
                     </span>
                   ) : (

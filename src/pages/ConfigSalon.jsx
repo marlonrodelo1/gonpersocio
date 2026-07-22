@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Check, MapPin, RefreshCw } from 'lucide-react';
 
+import { Icon } from '../components/icons';
 import Pantalla from '../components/Pantalla';
 import { useAuth } from '../context/useAuth';
 import { apiGet, apiPatch } from '../lib/api';
@@ -8,18 +8,18 @@ import { apiGet, apiPatch } from '../lib/api';
 /**
  * Datos del salón: lo que ve el cliente cuando busca al negocio.
  *
- * El panel web resuelve esto con un formulario de dos columnas y el
- * autocompletado de Google para la dirección. Aquí la dirección es TEXTO PLANO
- * a propósito: el pin del mapa se coloca arrastrándolo, y eso pide pantalla
- * grande y calma. El backend tampoco toca las coordenadas por esta vía, así que
- * corregir una errata en el nombre de la calle no puede dejar al salón fuera de
- * las búsquedas "cerca de ti". Si el negocio se muda de verdad, el aviso de esta
- * pantalla manda al ordenador.
+ * El panel web resuelve esto con un formulario en tarjetas y el autocompletado
+ * de Google para la dirección. Aquí la dirección es TEXTO PLANO a propósito: el
+ * pin del mapa se coloca arrastrándolo, y eso pide pantalla grande y calma. El
+ * backend tampoco toca las coordenadas por esta vía, así que corregir una errata
+ * en el nombre de la calle no puede dejar al salón fuera de las búsquedas "cerca
+ * de ti". Si el negocio se muda de verdad, el aviso de esta pantalla manda al
+ * ordenador.
  *
- * Un trabajador lo ve todo pero no escribe nada: los campos se pintan como
- * texto en vez de deshabilitados, que es más honesto que un formulario que
- * parece editable y no lo es. Quién puede escribir lo dice el servidor
- * (`puedeEditar`), no el rol que la app crea tener.
+ * Un trabajador lo ve todo pero no escribe nada: los campos se pintan como texto
+ * en vez de deshabilitados, que es más honesto que un formulario que parece
+ * editable y no lo es. Quién puede escribir lo dice el servidor (`puedeEditar`),
+ * no el rol que la app crea tener.
  */
 
 const TIPOS_NEGOCIO = [
@@ -55,6 +55,13 @@ const CAMPOS = [
   'tiktok',
 ];
 
+/** Clases calcadas del panel web (config/page.tsx) para que se vea idéntico. */
+const inputClass =
+  'w-full bg-paper border border-line rounded-2xl px-5 py-3.5 text-[14.5px] text-ink placeholder:text-stone/50 focus:outline-none focus:border-line-2';
+const selectClass =
+  'w-full bg-paper border border-line rounded-2xl px-5 py-3.5 text-[14.5px] text-ink focus:outline-none focus:border-line-2 appearance-none';
+const labelClass = 'text-[11px] uppercase tracking-[0.2em] text-stone/80';
+
 /** La respuesta trae null donde no hay dato; un `<input>` necesita cadena. */
 function aFormulario(salon) {
   const f = {};
@@ -64,11 +71,11 @@ function aFormulario(salon) {
 
 function Cargando() {
   return (
-    <div className="flex flex-col gap-3" aria-busy="true">
+    <div className="flex flex-col gap-5" aria-busy="true">
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="card h-[180px] animate-pulse"
+          className="card h-[200px] animate-pulse"
           style={{ opacity: 1 - i * 0.15 }}
         />
       ))}
@@ -78,31 +85,19 @@ function Cargando() {
 
 function AvisoError({ mensaje, onReintentar }) {
   return (
-    <div className="card flex flex-col items-start gap-3 p-5">
-      <p className="text-[15px] font-medium text-ink">
+    <div className="card flex flex-col items-start gap-3 p-5 md:p-8">
+      <p className="tight text-[15px] font-medium text-ink">
         No hemos podido cargar los datos de tu salón
       </p>
-      <p className="text-[14px] text-stone">{mensaje}</p>
+      <p className="text-[13.5px] text-stone">{mensaje}</p>
       <button
         type="button"
         onClick={onReintentar}
-        className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+        className="gloss-btn tight mt-1 rounded-full px-5 py-2.5 text-[14px] font-medium"
       >
-        <RefreshCw size={15} />
         Reintentar
       </button>
     </div>
-  );
-}
-
-function Etiqueta({ htmlFor, children }) {
-  return (
-    <label
-      htmlFor={htmlFor}
-      className="text-[11px] uppercase tracking-[0.2em] text-stone"
-    >
-      {children}
-    </label>
   );
 }
 
@@ -122,7 +117,9 @@ function Campo({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Etiqueta htmlFor={id}>{etiqueta}</Etiqueta>
+      <label htmlFor={id} className={labelClass}>
+        {etiqueta}
+      </label>
       {editable ? (
         <input
           id={id}
@@ -133,16 +130,14 @@ function Campo({
           maxLength={maxLength}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
-          className="field-input"
+          className={inputClass}
         />
       ) : (
-        <p className="text-[15px] text-ink">
+        <p className="text-[14.5px] text-ink">
           {valor || <span className="text-stone">Sin rellenar</span>}
         </p>
       )}
-      {ayuda ? (
-        <p className="text-[12.5px] leading-relaxed text-stone">{ayuda}</p>
-      ) : null}
+      {ayuda ? <p className="text-[12px] leading-relaxed text-stone">{ayuda}</p> : null}
     </div>
   );
 }
@@ -152,13 +147,15 @@ function Desplegable({ id, etiqueta, valor, opciones, onChange, editable, ayuda 
   const actual = opciones.find((o) => o.valor === valor);
   return (
     <div className="flex flex-col gap-1.5">
-      <Etiqueta htmlFor={id}>{etiqueta}</Etiqueta>
+      <label htmlFor={id} className={labelClass}>
+        {etiqueta}
+      </label>
       {editable ? (
         <select
           id={id}
           value={valor}
           onChange={(e) => onChange(e.target.value)}
-          className="field-input appearance-none"
+          className={selectClass}
         >
           {/* Un valor guardado que ya no está en la lista no puede desaparecer
               en silencio: se añade para que el desplegable no lo reescriba. */}
@@ -170,26 +167,25 @@ function Desplegable({ id, etiqueta, valor, opciones, onChange, editable, ayuda 
           ))}
         </select>
       ) : (
-        <p className="text-[15px] text-ink">{actual?.etiqueta ?? valor ?? '—'}</p>
+        <p className="text-[14.5px] text-ink">{actual?.etiqueta ?? valor ?? '—'}</p>
       )}
-      {ayuda ? (
-        <p className="text-[12.5px] leading-relaxed text-stone">{ayuda}</p>
-      ) : null}
+      {ayuda ? <p className="text-[12px] leading-relaxed text-stone">{ayuda}</p> : null}
     </div>
   );
 }
 
-function Tarjeta({ titulo, descripcion, children }) {
+function Tarjeta({ eyebrow, titulo, descripcion, children }) {
   return (
-    <section className="card flex flex-col gap-4 p-5">
-      <div>
-        <h2 className="tight text-[17px] font-medium text-ink">{titulo}</h2>
-        {descripcion ? (
-          <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
-            {descripcion}
-          </p>
+    <section className="card flex flex-col gap-5 p-5 md:p-8">
+      <header className="flex flex-col gap-1.5">
+        {eyebrow ? (
+          <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+            {eyebrow}
+          </span>
         ) : null}
-      </div>
+        <h2 className="tight text-[20px] font-medium text-ink">{titulo}</h2>
+        {descripcion ? <p className="text-[13px] text-stone">{descripcion}</p> : null}
+      </header>
       {children}
     </section>
   );
@@ -277,7 +273,7 @@ export default function ConfigSalon() {
         setDatos((prev) => ({ ...prev, salon: res.salon }));
         setForm(aFormulario(res.salon));
       }
-      setAviso({ tipo: 'ok', texto: 'Guardado.' });
+      setAviso({ tipo: 'ok', texto: 'Cambios guardados correctamente.' });
     } catch (e) {
       setAviso({
         tipo: 'error',
@@ -297,22 +293,21 @@ export default function ConfigSalon() {
       ) : null}
 
       {!cargando && !error && datos && form ? (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           {!puedeEditar ? (
-            <div className="card p-5">
-              <p className="text-[14px] leading-relaxed text-stone">
-                Estos son los datos del salón. Cambiarlos lo hace el dueño.
-              </p>
+            <div className="flex items-center gap-2 rounded-xl border border-line bg-cream-2 px-4 py-3 text-[13px] text-stone">
+              Estos son los datos del salón. Cambiarlos lo hace el dueño.
             </div>
           ) : null}
 
           <Tarjeta
+            eyebrow="Datos generales"
             titulo="Tu negocio"
             descripcion="El nombre con el que apareces en el buscador y en los avisos a tus clientes."
           >
             <Campo
               id="salon_nombre"
-              etiqueta="Nombre"
+              etiqueta="Nombre del salón"
               valor={form.nombre}
               onChange={escribir('nombre')}
               editable={puedeEditar}
@@ -331,7 +326,8 @@ export default function ConfigSalon() {
           </Tarjeta>
 
           <Tarjeta
-            titulo="Contacto"
+            eyebrow="Contacto"
+            titulo="Cómo te localizan"
             descripcion="Por aquí te escriben y te llaman tus clientes."
           >
             <Campo
@@ -348,7 +344,7 @@ export default function ConfigSalon() {
             />
             <Campo
               id="salon_email"
-              etiqueta="Email"
+              etiqueta="Email de contacto"
               valor={form.email}
               onChange={escribir('email')}
               editable={puedeEditar}
@@ -362,6 +358,7 @@ export default function ConfigSalon() {
           </Tarjeta>
 
           <Tarjeta
+            eyebrow="Ubicación"
             titulo="Dónde estás"
             descripcion="La dirección que se enseña en tu ficha y en los recordatorios de cita."
           >
@@ -389,15 +386,27 @@ export default function ConfigSalon() {
             {/* El punto del mapa NO se mueve desde aquí. Decirlo evita el peor
                 caso: cambiar la calle, ver el texto correcto y que el mapa siga
                 llevando a los clientes al local antiguo sin que nadie se entere. */}
-            <div
-              className="flex items-start gap-2.5 rounded-2xl border px-4 py-3"
-              style={{
-                background: 'var(--cream-2)',
-                borderColor: 'var(--line-2)',
-              }}
-            >
-              <MapPin size={16} className="mt-0.5 shrink-0 text-stone" />
-              <p className="text-[13px] leading-relaxed text-stone">
+            <div className="flex flex-wrap items-center gap-2">
+              {datos.salon.tieneUbicacion ? (
+                <span
+                  className="pill"
+                  style={{ background: 'rgba(139,157,122,0.15)', color: '#5A6B4D' }}
+                >
+                  <span className="pill-dot" style={{ background: '#8B9D7A' }} />
+                  Ubicación exacta guardada
+                </span>
+              ) : (
+                <span
+                  className="pill"
+                  style={{ background: 'rgba(197,142,44,0.15)', color: '#7A5A1B' }}
+                >
+                  <span className="pill-dot" style={{ background: '#C58E2C' }} />
+                  Sin punto en el mapa
+                </span>
+              )}
+            </div>
+            <div className="rounded-2xl border border-line-2 bg-cream-2 px-4 py-3">
+              <p className="text-[12.5px] leading-relaxed text-stone">
                 {datos.salon.tieneUbicacion
                   ? 'Aquí cambias el texto de la dirección, pero el punto del mapa se queda donde está. Si te has mudado, muévelo desde el ordenador (Configuración → Datos del salón).'
                   : 'Tu salón todavía no tiene punto en el mapa, así que no sale en las búsquedas por cercanía. Se coloca desde el ordenador, en Configuración → Datos del salón.'}
@@ -416,8 +425,9 @@ export default function ConfigSalon() {
           </Tarjeta>
 
           <Tarjeta
-            titulo="Redes sociales"
-            descripcion="Salen como botones en tu ficha. Puedes escribir tu usuario o pegar el enlace entero."
+            eyebrow="Redes sociales"
+            titulo="Tus perfiles"
+            descripcion="Aparecen como botones en tu ficha pública. Pega el enlace o tu usuario; deja en blanco las que no uses."
           >
             <Campo
               id="salon_instagram"
@@ -451,31 +461,35 @@ export default function ConfigSalon() {
           {puedeEditar ? (
             <div className="flex flex-col gap-3">
               {aviso ? (
-                <p
-                  role="status"
-                  className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-[13.5px]"
-                  style={
-                    aviso.tipo === 'ok'
-                      ? {
-                          background: 'var(--sage-soft)',
-                          color: 'var(--sage-deep)',
-                        }
-                      : { background: '#F1D6D6', color: '#7C2E2E' }
-                  }
-                >
-                  {aviso.tipo === 'ok' ? <Check size={15} /> : null}
-                  {aviso.texto}
-                </p>
+                aviso.tipo === 'ok' ? (
+                  <div
+                    role="status"
+                    className="flex items-center gap-2 rounded-xl border border-sage/40 bg-sage-soft px-4 py-3 text-[13px] text-sage-deep"
+                  >
+                    <Icon.Check width="14" height="14" />
+                    {aviso.texto}
+                  </div>
+                ) : (
+                  <div
+                    role="status"
+                    className="rounded-xl border bg-[#F1D6D6] px-4 py-3 text-[13px] text-[#7C2E2E]"
+                    style={{ borderColor: 'rgba(177,72,72,0.4)' }}
+                  >
+                    {aviso.texto}
+                  </div>
+                )
               ) : null}
 
-              <button
-                type="button"
-                onClick={guardar}
-                disabled={guardando}
-                className="gloss-btn tight rounded-full px-5 py-3.5 text-[15px] font-medium disabled:opacity-60"
-              >
-                {guardando ? 'Guardando…' : 'Guardar cambios'}
-              </button>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={guardar}
+                  disabled={guardando}
+                  className="gloss-btn tight rounded-full px-5 py-3 text-[13.5px] font-medium disabled:opacity-60"
+                >
+                  {guardando ? 'Guardando…' : 'Guardar cambios'}
+                </button>
+              </div>
             </div>
           ) : null}
         </div>

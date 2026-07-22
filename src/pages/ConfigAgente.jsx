@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, ExternalLink, RefreshCw, Sparkles } from 'lucide-react';
 
 import Pantalla from '../components/Pantalla';
+import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
 import { apiGet, apiPatch } from '../lib/api';
 import { abrirEnWeb } from '../lib/puente';
@@ -155,10 +155,28 @@ function Etiqueta({ children, htmlFor }) {
   return (
     <label
       htmlFor={htmlFor}
-      className="text-[11px] uppercase tracking-[0.2em] text-stone"
+      className="text-[11px] uppercase tracking-[0.2em] text-stone/80"
     >
       {children}
     </label>
+  );
+}
+
+/** Cabecera de sección clonada del panel: eyebrow + título + descripción. */
+function Cabecera({ eyebrow, titulo, desc, accion }) {
+  return (
+    <header className="flex items-start justify-between gap-2">
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+          {eyebrow}
+        </span>
+        <h2 className="tight text-[20px] font-medium text-ink">{titulo}</h2>
+        {desc ? (
+          <p className="text-[13px] leading-relaxed text-stone">{desc}</p>
+        ) : null}
+      </div>
+      {accion ?? null}
+    </header>
   );
 }
 
@@ -434,7 +452,7 @@ export default function ConfigAgente() {
             }}
             className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium"
           >
-            <RefreshCw size={15} />
+            <Icon.Arrow width="15" height="15" />
             Reintentar
           </button>
         </div>
@@ -455,10 +473,22 @@ export default function ConfigAgente() {
     <Pantalla titulo="Tu agente" subtitulo={datos.salon?.nombre || salon?.nombre}>
       <div className="flex flex-col gap-4">
         {/* ---------- vista previa del saludo ---------- */}
-        <section className="card flex flex-col gap-3 p-5">
-          <h2 className="tight text-[17px] font-medium text-ink">
-            Así saluda a tus clientes
-          </h2>
+        <section className="card flex flex-col gap-4 p-5 md:p-6">
+          <Cabecera
+            eyebrow="Vista previa"
+            titulo="Así saluda a tus clientes"
+            accion={
+              campos.bienvenida.trim() ? (
+                <span
+                  className="pill"
+                  style={{ background: 'rgba(197,86,44,0.12)', color: '#A8451F' }}
+                >
+                  <span className="pill-dot" style={{ background: '#C5562C' }} />
+                  Personalizado
+                </span>
+              ) : null
+            }
+          />
           <div className="flex items-end gap-2.5">
             <Avatar url={datos.agente.avatarUrl} nombre={nombreMostrado} tam={40} />
             <p className="card-tight max-w-[85%] whitespace-pre-wrap rounded-bl-sm px-3.5 py-2.5 text-[14px] leading-relaxed text-ink">
@@ -479,7 +509,12 @@ export default function ConfigAgente() {
         {puedeEditar ? (
           <>
             {/* ---------- nombre ---------- */}
-            <section className="card flex flex-col gap-4 p-5">
+            <section className="card flex flex-col gap-5 p-5 md:p-6">
+              <Cabecera
+                eyebrow="Personalidad"
+                titulo="Cómo se presenta tu agente"
+                desc="Personaliza el nombre, el género y el tono."
+              />
               <div className="flex flex-col gap-1.5">
                 <Etiqueta htmlFor="agente_nombre">Nombre</Etiqueta>
                 <input
@@ -515,16 +550,12 @@ export default function ConfigAgente() {
             </section>
 
             {/* ---------- plantillas ---------- */}
-            <section className="card flex flex-col gap-3 p-5">
-              <div>
-                <h2 className="tight text-[17px] font-medium text-ink">
-                  Plantillas
-                </h2>
-                <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
-                  Textos ya escritos para tu tipo de negocio. Tocas una, rellena
-                  el saludo y las instrucciones, y luego cambias lo que quieras.
-                </p>
-              </div>
+            <section className="card flex flex-col gap-4 p-5 md:p-6">
+              <Cabecera
+                eyebrow="Plantillas"
+                titulo="Textos listos para empezar"
+                desc="Textos ya escritos para tu tipo de negocio. Tocas una, rellena el saludo y las instrucciones, y luego cambias lo que quieras."
+              />
 
               {verPlantillas ? (
                 <div className="flex flex-col gap-2">
@@ -536,7 +567,12 @@ export default function ConfigAgente() {
                       onClick={() => aplicarPlantilla(p)}
                       className="card-tight flex items-center gap-2.5 px-4 py-3 text-left disabled:opacity-50"
                     >
-                      <Sparkles size={16} className="shrink-0 text-stone" aria-hidden />
+                      <Icon.Sparkle
+                        width="16"
+                        height="16"
+                        className="shrink-0 text-terracotta"
+                        aria-hidden
+                      />
                       <span className="tight text-[14.5px] font-medium text-ink">
                         {p.label}
                       </span>
@@ -556,14 +592,18 @@ export default function ConfigAgente() {
                   onClick={() => setVerPlantillas(true)}
                   className="card-tight tight inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[14px] font-medium text-ink"
                 >
-                  <Sparkles size={15} aria-hidden />
+                  <Icon.Sparkle width="15" height="15" aria-hidden />
                   Ver plantillas ({plantillas.length})
                 </button>
               )}
             </section>
 
             {/* ---------- textos ---------- */}
-            <section className="card flex flex-col gap-5 p-5">
+            <section className="card flex flex-col gap-5 p-5 md:p-6">
+              <Cabecera
+                eyebrow="Instrucciones"
+                titulo="Cómo habla y qué sabe"
+              />
               <AreaTexto
                 id="agente_bienvenida"
                 etiqueta="Mensaje de bienvenida"
@@ -619,7 +659,7 @@ export default function ConfigAgente() {
                   'Guardar cambios'
                 ) : (
                   <>
-                    <Check size={16} aria-hidden />
+                    <Icon.Check width="16" height="16" aria-hidden />
                     Todo guardado
                   </>
                 )}
@@ -627,7 +667,7 @@ export default function ConfigAgente() {
             </div>
 
             {/* ---------- avatar (solo lectura) ---------- */}
-            <section className="card flex flex-col gap-3 p-5">
+            <section className="card flex flex-col gap-4 p-5 md:p-6">
               <div className="flex items-center gap-3">
                 <Avatar url={datos.agente.avatarUrl} nombre={nombreMostrado} />
                 <div className="min-w-0">
@@ -647,7 +687,7 @@ export default function ConfigAgente() {
                 disabled={abriendoWeb}
                 className="card-tight tight inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[13.5px] font-medium text-ink disabled:opacity-50"
               >
-                <ExternalLink size={15} aria-hidden />
+                <Icon.Share width="15" height="15" aria-hidden />
                 {abriendoWeb ? 'Abriendo…' : 'Abrir en el ordenador'}
               </button>
             </section>
@@ -656,21 +696,17 @@ export default function ConfigAgente() {
 
         {/* ---------- reglas absolutas ---------- */}
         {datos.reglasAbsolutas?.length ? (
-          <section className="card flex flex-col gap-3 p-5">
-            <div>
-              <h2 className="tight text-[17px] font-medium text-ink">
-                Reglas que siempre cumple
-              </h2>
-              <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
-                Pase lo que pase en las instrucciones, esto no se lo salta.
-              </p>
-            </div>
-            <ul className="flex flex-col gap-2">
+          <section className="card flex flex-col gap-4 p-5 md:p-6">
+            <Cabecera
+              eyebrow="Reglas absolutas"
+              titulo="No negociables"
+              desc="Pase lo que pase en las instrucciones, esto no se lo salta."
+            />
+            <ul className="flex flex-col gap-2 text-[13.5px] text-ink/85">
               {datos.reglasAbsolutas.map((regla) => (
-                <li key={regla} className="flex gap-2.5 text-[13.5px] text-ink/85">
+                <li key={regla} className="flex gap-2.5">
                   <span
-                    className="mt-[7px] size-1.5 shrink-0 rounded-full"
-                    style={{ background: 'var(--brand-mark)' }}
+                    className="mt-[7px] size-1.5 shrink-0 rounded-full bg-terracotta"
                     aria-hidden
                   />
                   <span className="leading-relaxed">{regla}</span>

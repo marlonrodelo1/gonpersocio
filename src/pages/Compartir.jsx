@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Check, Copy, Printer, Share2 } from 'lucide-react';
 
 import Pantalla from '../components/Pantalla';
+import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
 import { apiGet } from '../lib/api';
 import { API_BASE } from '../lib/identidad';
@@ -12,8 +12,8 @@ import { abrirExterno } from '../lib/puente';
  *
  * Es la única pantalla de la app que TRAE clientes en vez de gestionarlos, así
  * que está construida al revés que las demás: no hay densidad de datos, hay una
- * cosa grande —el QR— y dos botones. El dueño la abre con el móvil en la mano y
- * alguien delante preguntando "¿cómo pido cita?".
+ * cosa grande —el QR— y unos pocos botones. El dueño la abre con el móvil en la
+ * mano y alguien delante preguntando "¿cómo pido cita?".
  *
  * El QR viene del generador público del backend (`/api/v1/qr`), no de una
  * librería empaquetada: son ~50 KB menos de binario y el PNG lo cachea el
@@ -24,6 +24,8 @@ import { abrirExterno } from '../lib/puente';
  * que la produjo: "cargando" se deduce de comparar claves, sin poner estado de
  * forma síncrona dentro del efecto.
  */
+
+const EYEBROW = 'text-[11px] uppercase tracking-[0.22em] text-stone/70';
 
 function mensajeWhatsapp(nombre, url) {
   return `¡Hola! Te dejo el enlace para reservar tu cita en ${nombre}: ${url}\n\nEliges servicio, día y hora. Tardas menos de un minuto.`;
@@ -37,12 +39,19 @@ function urlBonita(url) {
 function Esqueleto() {
   return (
     <div className="flex flex-col gap-4" aria-busy="true">
-      <div className="card flex flex-col items-center gap-4 px-5 py-7">
-        <div className="size-[220px] animate-pulse rounded-2xl bg-cream-2" />
-        <div className="h-4 w-3/5 animate-pulse rounded bg-cream-2" />
+      <div className="card p-5">
+        <div className="h-3 w-28 animate-pulse rounded bg-cream-2" />
+        <div className="mt-3 h-11 animate-pulse rounded-xl bg-cream-2" />
       </div>
-      <div className="card h-[56px] animate-pulse" />
-      <div className="card h-[56px] animate-pulse" />
+      <div className="card p-5">
+        <div className="h-3 w-36 animate-pulse rounded bg-cream-2" />
+        <div className="mt-4 h-16 animate-pulse rounded-xl bg-cream-2" />
+      </div>
+      <div className="card flex flex-col items-center gap-4 p-5">
+        <div className="size-[228px] animate-pulse rounded-2xl bg-cream-2" />
+        <div className="h-4 w-3/5 animate-pulse rounded bg-cream-2" />
+        <div className="h-10 w-40 animate-pulse rounded-full bg-cream-2" />
+      </div>
     </div>
   );
 }
@@ -109,7 +118,11 @@ export default function Compartir() {
   }, [copiar, nombre, url]);
 
   return (
-    <Pantalla titulo="Compartir" subtitulo="Tu enlace para recibir reservas">
+    <Pantalla
+      titulo="Compartir tu tienda"
+      subtitulo="Web del salón"
+      saludo="· llena tu agenda"
+    >
       {error ? (
         <div className="card p-5">
           <p className="tight text-[15px] font-medium text-ink">
@@ -138,16 +151,82 @@ export default function Compartir() {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {/* El QR, protagonista: es lo que se enseña girando el móvil. */}
-          <div className="card flex flex-col items-center gap-4 px-5 py-6">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-stone">
-              Apunta con la cámara
-            </span>
+          {/* Tu enlace público: el dato que se copia y se dicta. */}
+          <div className="card p-5">
+            <div className={EYEBROW}>Tu enlace público</div>
+            <div className="mt-3 flex flex-col gap-3">
+              <code className="truncate rounded-xl border border-line bg-cream-2 px-4 py-3 text-[13.5px] text-ink">
+                {urlBonita(url)}
+              </code>
+              <button
+                type="button"
+                onClick={() => copiar(url, 'enlace')}
+                className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-[14px] font-medium"
+              >
+                {copiado === 'enlace' ? (
+                  <>
+                    <Icon.Check width="15" height="15" />
+                    Enlace copiado
+                  </>
+                ) : (
+                  <>
+                    <Icon.Sparkle width="15" height="15" />
+                    Copiar enlace
+                  </>
+                )}
+              </button>
+            </div>
+            <p className="mt-3 text-[12px] text-stone">
+              Pégalo en la bio de Instagram, en tu ficha de Google o donde
+              quieras. Quien lo abra reserva en 30 segundos.
+            </p>
+          </div>
 
-            <div className="rounded-2xl border border-line bg-paper p-3">
+          {/* Compartir directo. Es lo que se hace nueve de cada diez veces: la
+              hoja nativa lleva a WhatsApp en un toque. */}
+          <div className="card p-5">
+            <div className={EYEBROW}>Compartir con un cliente</div>
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={compartir}
+                className="tight flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-paper px-4 py-4 text-left transition hover:border-line-2 hover:bg-cream"
+              >
+                <span className="flex items-center gap-3">
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-cream"
+                    aria-hidden
+                  >
+                    <Icon.Share width="18" height="18" />
+                  </span>
+                  <span className="flex flex-col text-left">
+                    <span className="text-[14.5px] font-medium text-ink">
+                      {copiado === 'mensaje'
+                        ? 'Mensaje copiado al portapapeles'
+                        : 'Compartir con un cliente'}
+                    </span>
+                    <span className="text-[12px] text-stone">
+                      Se abre WhatsApp, Instagram o quien quieras
+                    </span>
+                  </span>
+                </span>
+                {copiado === 'mensaje' ? (
+                  <Icon.Check width="16" height="16" className="text-sage" />
+                ) : (
+                  <Icon.Arrow width="14" height="14" className="text-stone" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* El QR, protagonista: es lo que se enseña girando el móvil. */}
+          <div className="card flex flex-col items-center gap-4 p-5 text-center">
+            <div className={EYEBROW}>Código QR de tu salón</div>
+
+            <div className="rounded-2xl border border-line bg-paper p-4">
               {qrRoto ? (
                 <div className="flex size-[228px] items-center justify-center px-4 text-center text-[13px] text-stone">
-                  No se ha podido cargar el código. El enlace de abajo funciona
+                  No se ha podido cargar el código. El enlace de arriba funciona
                   igual.
                 </div>
               ) : (
@@ -162,68 +241,33 @@ export default function Compartir() {
               )}
             </div>
 
-            <div className="flex flex-col items-center gap-1 text-center">
-              <p className="tight text-[16px] font-medium text-ink">{nombre}</p>
-              <p className="break-all text-[13px] text-stone">
+            <div className="flex flex-col items-center gap-1">
+              <p className="tight text-[15px] font-medium text-ink">{nombre}</p>
+              <p className="break-all text-[12px] text-stone">
                 {urlBonita(url)}
               </p>
             </div>
-          </div>
-
-          {/* Acciones. Compartir primero: es lo que se hace nueve de cada diez
-              veces, y la hoja nativa lleva a WhatsApp en un toque. */}
-          <div className="flex flex-col gap-2.5">
-            <button
-              type="button"
-              onClick={compartir}
-              className="gloss-btn tight flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-medium"
-            >
-              {copiado === 'mensaje' ? (
-                <>
-                  <Check className="size-4" aria-hidden />
-                  Mensaje copiado
-                </>
-              ) : (
-                <>
-                  <Share2 className="size-4" aria-hidden />
-                  Compartir con un cliente
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => copiar(url, 'enlace')}
-              className="tight flex w-full items-center justify-center gap-2 rounded-full border border-line bg-paper py-3.5 text-[15px] font-medium text-ink"
-            >
-              {copiado === 'enlace' ? (
-                <>
-                  <Check className="size-4" aria-hidden />
-                  Enlace copiado
-                </>
-              ) : (
-                <>
-                  <Copy className="size-4" aria-hidden />
-                  Copiar enlace
-                </>
-              )}
-            </button>
 
             <button
               type="button"
               onClick={() => abrirExterno(`${API_BASE}${datos.qrPathImpresion}`)}
-              className="tight flex w-full items-center justify-center gap-2 rounded-full border border-line bg-paper py-3.5 text-[15px] font-medium text-ink"
+              className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[14px] font-medium"
             >
-              <Printer className="size-4" aria-hidden />
+              <Icon.Arrow width="14" height="14" />
               Abrir QR para imprimir
             </button>
+
+            <p className="max-w-xs text-[12px] text-stone">
+              Imprímelo en el mostrador, escaparate o cartas. Quien lo escanea
+              con el móvil entra directo a tu web para reservar.
+            </p>
           </div>
 
-          <div className="card px-5 py-4">
-            <p className="tight text-[14px] font-medium text-ink">
-              Dónde ponerlo
-            </p>
-            <ul className="mt-2 flex flex-col gap-1.5 text-[13px] leading-relaxed text-stone">
+          {/* Dónde ponerlo: la parte útil para el dueño que no sabe por dónde
+              empezar a repartirlo. */}
+          <div className="card p-5">
+            <div className={EYEBROW}>Dónde ponerlo</div>
+            <ul className="mt-3 flex flex-col gap-1.5 text-[13px] leading-relaxed text-stone">
               <li>En la bio de Instagram y en tu ficha de Google.</li>
               <li>El QR impreso en el mostrador y en el escaparate.</li>
               <li>
@@ -231,7 +275,7 @@ export default function Compartir() {
                 llenar.
               </li>
             </ul>
-            <p className="mt-3 text-[12.5px] text-stone/80">
+            <p className="mt-3 text-[12px] text-stone/80">
               Quien lo abra elige servicio, día y hora, y la cita entra sola en
               tu agenda.
             </p>

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, RefreshCw } from 'lucide-react';
 
 import Pantalla from '../components/Pantalla';
 import { useAuth } from '../context/useAuth';
@@ -71,15 +70,12 @@ function hoyEnZona(tz) {
 
 function Campo({ id, etiqueta, ayuda, children }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label
-        htmlFor={id}
-        className="text-[11px] uppercase tracking-[0.2em] text-stone"
-      >
+    <div className="space-y-2">
+      <label htmlFor={id} className="block text-[12.5px] text-stone">
         {etiqueta}
       </label>
       {children}
-      {ayuda ? <p className="text-[12.5px] text-stone">{ayuda}</p> : null}
+      {ayuda ? <p className="text-[12px] text-stone/80">{ayuda}</p> : null}
     </div>
   );
 }
@@ -203,7 +199,7 @@ export default function PromocionForm() {
       className="tight -mr-1 inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[13.5px] font-medium"
       style={{ background: 'var(--chrome-2)', color: 'var(--on-chrome)' }}
     >
-      <ChevronLeft size={16} aria-hidden />
+      <span aria-hidden>←</span>
       Promociones
     </Link>
   );
@@ -213,11 +209,7 @@ export default function PromocionForm() {
   if (cargando) {
     return (
       <Pantalla titulo={titulo} subtitulo="Cargando…" accion={volver}>
-        <div className="flex flex-col gap-2.5" aria-busy="true">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="card h-[140px] animate-pulse" />
-          ))}
-        </div>
+        <div className="card h-[520px] animate-pulse" aria-busy="true" />
       </Pantalla>
     );
   }
@@ -226,7 +218,7 @@ export default function PromocionForm() {
     const noExiste = errorCarga.status === 404;
     return (
       <Pantalla titulo={titulo} subtitulo={salon?.nombre} accion={volver}>
-        <div className="card flex flex-col items-start gap-3 p-5">
+        <div className="card flex flex-col items-start gap-3 p-6">
           <p className="tight text-[15px] font-medium text-ink">
             {noExiste
               ? 'Esta promoción ya no existe'
@@ -254,7 +246,6 @@ export default function PromocionForm() {
               }}
               className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium"
             >
-              <RefreshCw size={15} />
               Reintentar
             </button>
           )}
@@ -266,7 +257,7 @@ export default function PromocionForm() {
   if (!esDueno) {
     return (
       <Pantalla titulo={titulo} subtitulo={salon?.nombre} accion={volver}>
-        <div className="card p-5">
+        <div className="card p-6">
           <p className="text-[15px] font-medium text-ink">
             Esto lo cambia el dueño
           </p>
@@ -283,30 +274,17 @@ export default function PromocionForm() {
 
   return (
     <Pantalla titulo={titulo} subtitulo={salon?.nombre} accion={volver}>
-      <div className="flex flex-col gap-4">
+      <p className="mb-4 text-[13.5px] text-stone">
+        Aparecerá en la web pública de tu salón cuando esté activa.
+      </p>
+
+      <div className="card flex flex-col gap-5 p-6">
         {/* ---------- qué anuncias ---------- */}
-        <section className="card flex flex-col gap-4 p-5">
-          <h2 className="tight text-[17px] font-medium text-ink">
-            Qué anuncias
-          </h2>
-
-          <Campo id="promo_titulo" etiqueta="Título">
-            <input
-              id="promo_titulo"
-              type="text"
-              value={campos.titulo}
-              onChange={(e) => set('titulo', e.target.value)}
-              maxLength={120}
-              disabled={guardando}
-              placeholder="Pack lavar + cortar + peinar"
-              className="field-input"
-            />
-          </Campo>
-
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[140px_1fr]">
           <Campo
             id="promo_tag"
             etiqueta="Etiqueta (opcional)"
-            ayuda="Una palabra que la encabeza: Verano, Nuevo, Solo hoy…"
+            ayuda="Una palabra que la encabeza."
           >
             <input
               id="promo_tag"
@@ -319,31 +297,35 @@ export default function PromocionForm() {
               className="field-input"
             />
           </Campo>
-
-          <Campo id="promo_descripcion" etiqueta="Descripción (opcional)">
-            <textarea
-              id="promo_descripcion"
-              rows={3}
-              value={campos.descripcion}
-              onChange={(e) => set('descripcion', e.target.value)}
-              maxLength={500}
+          <Campo id="promo_titulo" etiqueta="Título">
+            <input
+              id="promo_titulo"
+              type="text"
+              value={campos.titulo}
+              onChange={(e) => set('titulo', e.target.value)}
+              maxLength={120}
               disabled={guardando}
-              placeholder="Lo que incluye, condiciones, para quién es…"
+              placeholder="Pack lavar + cortar + peinar"
               className="field-input"
             />
           </Campo>
-        </section>
+        </div>
+
+        <Campo id="promo_descripcion" etiqueta="Descripción (opcional)">
+          <textarea
+            id="promo_descripcion"
+            rows={3}
+            value={campos.descripcion}
+            onChange={(e) => set('descripcion', e.target.value)}
+            maxLength={500}
+            disabled={guardando}
+            placeholder="Lo que incluye, condiciones, para quién es…"
+            className="field-input"
+          />
+        </Campo>
 
         {/* ---------- el gancho ---------- */}
-        <section className="card flex flex-col gap-4 p-5">
-          <div>
-            <h2 className="tight text-[17px] font-medium text-ink">El gancho</h2>
-            <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
-              Todo esto es opcional. Si pones los dos precios, el anterior sale
-              tachado al lado del nuevo.
-            </p>
-          </div>
-
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Campo id="promo_descuento" etiqueta="Descuento">
             <input
               id="promo_descuento"
@@ -352,45 +334,42 @@ export default function PromocionForm() {
               onChange={(e) => set('descuentoLabel', e.target.value)}
               maxLength={20}
               disabled={guardando}
-              placeholder="-20 %, 2x1, Gratis…"
+              placeholder="-20 % / 2x1"
               className="field-input"
             />
           </Campo>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Campo id="promo_precio" etiqueta="Precio (€)">
-              <input
-                id="promo_precio"
-                type="text"
-                inputMode="decimal"
-                value={campos.precioEur}
-                onChange={(e) => set('precioEur', e.target.value)}
-                disabled={guardando}
-                placeholder="25"
-                className="field-input tabular"
-              />
-            </Campo>
-            <Campo id="promo_precio_antes" etiqueta="Antes (€)">
-              <input
-                id="promo_precio_antes"
-                type="text"
-                inputMode="decimal"
-                value={campos.precioAnteriorEur}
-                onChange={(e) => set('precioAnteriorEur', e.target.value)}
-                disabled={guardando}
-                placeholder="35"
-                className="field-input tabular"
-              />
-            </Campo>
-          </div>
-        </section>
+          <Campo id="promo_precio" etiqueta="Precio (€)">
+            <input
+              id="promo_precio"
+              type="text"
+              inputMode="decimal"
+              value={campos.precioEur}
+              onChange={(e) => set('precioEur', e.target.value)}
+              disabled={guardando}
+              placeholder="25"
+              className="field-input tabular"
+            />
+          </Campo>
+          <Campo id="promo_precio_antes" etiqueta="Precio anterior (€)">
+            <input
+              id="promo_precio_antes"
+              type="text"
+              inputMode="decimal"
+              value={campos.precioAnteriorEur}
+              onChange={(e) => set('precioAnteriorEur', e.target.value)}
+              disabled={guardando}
+              placeholder="35"
+              className="field-input tabular"
+            />
+          </Campo>
+        </div>
+        <p className="-mt-2 text-[12.5px] leading-relaxed text-stone/80">
+          Todo el gancho es opcional. Si pones los dos precios, el anterior sale
+          tachado al lado del nuevo.
+        </p>
 
         {/* ---------- vigencia ---------- */}
-        <section className="card flex flex-col gap-4 p-5">
-          <h2 className="tight text-[17px] font-medium text-ink">
-            Hasta cuándo
-          </h2>
-
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Campo
             id="promo_hasta"
             etiqueta="Válida hasta (opcional)"
@@ -405,53 +384,10 @@ export default function PromocionForm() {
               className="field-input"
             />
           </Campo>
-
-          {caducaEnPasado ? (
-            <p
-              className="rounded-xl px-3.5 py-2.5 text-[13px]"
-              style={{ background: '#F6E7CF', color: '#7A5A1B' }}
-            >
-              Esa fecha ya ha pasado: puedes guardarla, pero la promoción no
-              aparecerá en tu web.
-            </p>
-          ) : null}
-
-          {campos.validaHasta ? (
-            <button
-              type="button"
-              onClick={() => set('validaHasta', '')}
-              disabled={guardando}
-              className="tight self-start text-[13.5px] font-medium text-ink underline underline-offset-4"
-            >
-              Quitar la fecha (sin fin)
-            </button>
-          ) : null}
-
-          <label className="flex items-center gap-3 border-t border-line pt-4">
-            <input
-              type="checkbox"
-              checked={campos.activa}
-              onChange={(e) => set('activa', e.target.checked)}
-              disabled={guardando}
-              className="size-[18px] shrink-0 rounded border-line"
-            />
-            <span className="min-w-0">
-              <span className="block text-[14.5px] font-medium text-ink">
-                Enseñarla en mi web
-              </span>
-              <span className="block text-[13px] leading-relaxed text-stone">
-                Puedes apagarla cuando quieras sin borrarla.
-              </span>
-            </span>
-          </label>
-        </section>
-
-        {/* ---------- orden ---------- */}
-        <section className="card flex flex-col gap-3 p-5">
           <Campo
             id="promo_orden"
             etiqueta="Orden"
-            ayuda="Cuanto más bajo, más arriba sale. Si todas van a 0, mandan las más antiguas."
+            ayuda="Cuanto más bajo, más arriba sale."
           >
             <input
               id="promo_orden"
@@ -463,34 +399,78 @@ export default function PromocionForm() {
               className="field-input tabular"
             />
           </Campo>
-        </section>
+        </div>
+
+        {caducaEnPasado ? (
+          <p
+            className="rounded-xl px-3.5 py-2.5 text-[13px]"
+            style={{ background: '#F6E7CF', color: '#7A5A1B' }}
+          >
+            Esa fecha ya ha pasado: puedes guardarla, pero la promoción no
+            aparecerá en tu web.
+          </p>
+        ) : null}
+
+        {campos.validaHasta ? (
+          <button
+            type="button"
+            onClick={() => set('validaHasta', '')}
+            disabled={guardando}
+            className="tight -mt-2 self-start text-[13px] font-medium text-ink underline underline-offset-4"
+          >
+            Quitar la fecha (sin fin)
+          </button>
+        ) : null}
+
+        {/* ---------- visibilidad ---------- */}
+        <label className="flex items-center gap-3 border-t border-line pt-4">
+          <input
+            type="checkbox"
+            checked={campos.activa}
+            onChange={(e) => set('activa', e.target.checked)}
+            disabled={guardando}
+            className="size-[18px] shrink-0 rounded border-line"
+          />
+          <span className="min-w-0">
+            <span className="block text-[14px] font-medium text-ink">
+              Activa (visible en la web)
+            </span>
+            <span className="block text-[12.5px] leading-relaxed text-stone">
+              Puedes apagarla cuando quieras sin borrarla.
+            </span>
+          </span>
+        </label>
 
         {aviso ? (
           <p
             role="status"
-            className="rounded-xl px-3.5 py-2.5 text-[13.5px]"
-            style={{ background: '#F1D6D6', color: '#7C2E2E' }}
+            className="rounded-xl border px-4 py-3 text-[13.5px]"
+            style={{
+              background: '#F1D6D6',
+              borderColor: 'rgba(177,72,72,0.4)',
+              color: '#7C2E2E',
+            }}
           >
             {aviso.texto}
           </p>
         ) : null}
 
-        <div className="flex items-center gap-2 pb-2">
+        <div className="flex items-center gap-3 border-t border-line pt-4">
           <button
             type="button"
             onClick={guardar}
             disabled={guardando}
-            className="gloss-btn tight flex-1 rounded-full px-5 py-3.5 text-[15px] font-medium disabled:opacity-60"
+            className="gloss-btn tight inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13.5px] font-medium disabled:opacity-60"
           >
             {guardando
               ? 'Guardando…'
               : editando
                 ? 'Guardar cambios'
-                : 'Publicar promoción'}
+                : 'Crear promoción'}
           </button>
           <Link
             to="/promociones"
-            className="rounded-full border border-line bg-paper px-5 py-3.5 text-[15px] font-medium text-stone"
+            className="tight text-[13.5px] text-stone hover:text-ink"
           >
             Cancelar
           </Link>

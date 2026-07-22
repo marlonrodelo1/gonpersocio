@@ -1,46 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Ban, ChevronRight, Home, Phone } from 'lucide-react';
 
 import { apiGet } from '../lib/api';
 import { useAuth } from '../context/useAuth';
 import Pantalla from '../components/Pantalla';
+import CitaFila from '../components/CitaFila';
 
 /**
- * Pantalla de inicio: la agenda del día de un vistazo.
- *
- * Es la traducción a móvil de `/panel/hoy`. En la web esa pantalla es una tabla
- * de siete columnas con 760 px de ancho mínimo; aquí cada cita es una TARJETA.
- * No es una preferencia estética: una tabla con scroll horizontal obliga a
- * arrastrar para leer el precio, y esto se consulta de pie, con una mano y un
- * cliente delante.
- *
- * Todo el formateo (horas, euros, fecha) se hace aquí con la zona que manda el
- * backend, porque el móvil del dueño puede estar en otro huso —de vacaciones,
- * de viaje— y las horas del salón no deben moverse por eso.
+ * Inicio. Maquetado como `/panel/hoy` del panel web: topbar con saludo serif,
+ * 3 KPIs (Citas hoy / Facturado hoy / Esta semana), tarjeta de próxima cita, y
+ * la agenda del día como TABLA con scroll horizontal (igual que en la web).
  */
 
-const ESTADOS = {
-  confirmada: { etiqueta: 'Confirmada', punto: '#6F8460', texto: '#4A5A3D' },
-  completada: { etiqueta: 'Completada', punto: '#4A5A3D', texto: '#3F4D34' },
-  pendiente: { etiqueta: 'Pendiente', punto: '#C58E2C', texto: '#7A5A1B' },
-  nuevo: { etiqueta: 'Sin confirmar', punto: '#C58E2C', texto: '#7A5A1B' },
-  pendiente_pago: {
-    etiqueta: 'Esperando pago',
-    punto: '#8A8174',
-    texto: '#6B6356',
-  },
-  cancelada: { etiqueta: 'Cancelada', punto: '#B14848', texto: '#7C2E2E' },
-  no_show: { etiqueta: 'No-show', punto: '#2B2823', texto: '#2B2823' },
-};
-
-const ESTADO_DESCONOCIDO = { etiqueta: '—', punto: '#8A8174', texto: '#6B6356' };
-
-function metaEstado(estado) {
-  return ESTADOS[estado] ?? ESTADO_DESCONOCIDO;
-}
-
-function hora(iso, tz) {
+function horaDe(iso, tz) {
   return new Intl.DateTimeFormat('es-ES', {
     hour: '2-digit',
     minute: '2-digit',
@@ -50,7 +22,7 @@ function hora(iso, tz) {
 }
 
 function fechaLarga(fechaIso, tz) {
-  // Mediodía UTC para que el día no se desplace al formatear en la zona.
+  if (!fechaIso) return '';
   const texto = new Intl.DateTimeFormat('es-ES', {
     weekday: 'long',
     day: 'numeric',
@@ -60,136 +32,50 @@ function fechaLarga(fechaIso, tz) {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-/** Día del salón ('YYYY-MM-DD') al que pertenece un instante ISO. */
-function diaDeSalon(iso, tz) {
-  return new Intl.DateTimeFormat('en-CA', {
+function saludoPorHora(tz) {
+  const h = parseInt(
+    new Intl.DateTimeFormat('es-ES', { hour: '2-digit', hour12: false, timeZone: tz }).format(new Date()),
+    10,
+  );
+  if (h >= 6 && h < 13) return 'Buenos días';
+  if (h >= 13 && h < 21) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
+function euros0(n) {
+  return `${Math.round(Number(n ?? 0))} €`;
+}
+
+function diaRelativo(iso, tz, fechaHoy) {
+  const dia = new Intl.DateTimeFormat('en-CA', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     timeZone: tz,
   }).format(new Date(iso));
-}
-
-/** "Hoy", "Mañana" o el día corto. La próxima cita puede no ser de hoy. */
-function diaRelativo(iso, tz, fechaHoy) {
-  const dia = diaDeSalon(iso, tz);
   if (dia === fechaHoy) return 'Hoy';
   const manana = new Date(`${fechaHoy}T00:00:00.000Z`);
   manana.setUTCDate(manana.getUTCDate() + 1);
   if (dia === manana.toISOString().slice(0, 10)) return 'Mañana';
-  const texto = new Intl.DateTimeFormat('es-ES', {
+  const t = new Intl.DateTimeFormat('es-ES', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
     timeZone: tz,
   }).format(new Date(iso));
-  return texto.charAt(0).toUpperCase() + texto.slice(1);
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-function euros(n) {
-  const v = Number(n ?? 0);
-  return `${Number.isInteger(v) ? v : v.toFixed(2)} €`;
-}
-
-/**
- * Texto del precio. Un servicio "a valoración" no tiene precio hasta que el
- * dueño lo cierra: poner "0 €" ahí sería mentir sobre la caja del día.
- */
-function precioTexto(cita) {
-  if (cita.precioModo === 'valoracion' && !cita.precio) return 'A valorar';
-  if (cita.precioModo === 'desde') return `Desde ${euros(cita.precio)}`;
-  return euros(cita.precio);
-}
-
-function franjaBloqueo(b, tz) {
-  const fmtLargo = new Intl.DateTimeFormat('es-ES', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: tz,
-  });
-  const mismoDia = diaDeSalon(b.inicio, tz) === diaDeSalon(b.fin, tz);
-  const desde = fmtLargo.format(new Date(b.inicio));
-  const hasta = mismoDia ? hora(b.fin, tz) : fmtLargo.format(new Date(b.fin));
-  return `${desde} – ${hasta}`;
-}
-
-function Kpi({ etiqueta, valor }) {
+function KpiCard({ label, value }) {
   return (
-    <div className="card-tight flex flex-col gap-0.5 px-3 py-3">
-      <span className="text-[10px] uppercase tracking-[0.16em] text-stone">
-        {etiqueta}
+    <div className="card flex flex-col gap-1 px-3 py-3 md:px-4 md:py-4">
+      <span className="text-[10px] uppercase tracking-[0.18em] text-stone/70 md:text-[11px]">
+        {label}
       </span>
-      <span className="tight tabular text-[20px] font-medium text-ink">
-        {valor}
+      <span className="tight text-[20px] font-medium text-ink md:text-[24px]">
+        {value}
       </span>
     </div>
-  );
-}
-
-function TarjetaCita({ cita, tz }) {
-  const meta = metaEstado(cita.estado);
-  const apagada = cita.estado === 'cancelada' || cita.estado === 'no_show';
-
-  return (
-    <Link
-      to={`/citas/${cita.id}`}
-      className="card flex items-stretch gap-3 px-4 py-3.5"
-      style={{ opacity: apagada ? 0.6 : 1 }}
-    >
-      <div className="flex w-[48px] shrink-0 flex-col justify-center">
-        <span className="tight tabular text-[19px] font-medium leading-none text-ink">
-          {hora(cita.inicio, tz)}
-        </span>
-        <span className="tabular mt-1 text-[11px] text-stone">
-          {hora(cita.fin, tz)}
-        </span>
-      </div>
-
-      <div
-        className="w-px shrink-0"
-        style={{ background: 'var(--line)' }}
-        aria-hidden
-      />
-
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span
-            className="size-2 shrink-0 rounded-full"
-            style={{ background: meta.punto }}
-            aria-hidden
-          />
-          <span className="tight truncate text-[15px] font-medium text-ink">
-            {cita.cliente?.nombre ?? 'Sin nombre'}
-          </span>
-        </div>
-        <p className="mt-1 truncate text-[13px] text-stone">
-          {cita.servicio?.nombre}
-          {cita.profesional?.nombre ? ` · ${cita.profesional.nombre}` : ''}
-        </p>
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-[11.5px]" style={{ color: meta.texto }}>
-            {meta.etiqueta}
-          </span>
-          {cita.esDomicilio ? (
-            <span className="inline-flex items-center gap-1 text-[11.5px] text-stone">
-              <Home className="size-3" aria-hidden />A domicilio
-            </span>
-          ) : null}
-          {cita.depositoPagado ? (
-            <span className="text-[11.5px] text-stone">Depósito pagado</span>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="flex shrink-0 items-center gap-1">
-        <span className="tight tabular text-[14.5px] font-medium text-ink">
-          {precioTexto(cita)}
-        </span>
-        <ChevronRight className="size-4 text-stone" aria-hidden />
-      </div>
-    </Link>
   );
 }
 
@@ -198,10 +84,6 @@ export default function Hoy() {
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(true);
-  // Bumpear este contador es lo que dispara una recarga. Es preferible a
-  // llamar a una función `cargar()` desde el efecto: esa función pone el
-  // estado de carga de forma síncrona dentro del efecto, que es justo lo que
-  // provoca el render en cascada que avisa react-hooks.
   const [intento, setIntento] = useState(0);
 
   useEffect(() => {
@@ -230,18 +112,21 @@ export default function Hoy() {
   }, []);
 
   const tz = datos?.timezone ?? salon?.timezone ?? 'Europe/Madrid';
+  const ownerName = (salon?.nombre ?? 'tu salón').split(' ')[0] || 'tu salón';
+  const saludo = `${saludoPorHora(tz)}, ${ownerName}.`;
+  const fechaTxt = fechaLarga(datos?.fecha, tz);
 
   if (cargando && !datos) {
     return (
-      <Pantalla titulo="Hoy" subtitulo={salon?.nombre ?? ''}>
-        <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-3 gap-2">
+      <Pantalla titulo="Hoy." saludo={saludo} subtitulo={fechaTxt}>
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-3 gap-3">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="card-tight h-[68px] animate-pulse" />
+              <div key={i} className="card h-[72px] animate-pulse" />
             ))}
           </div>
           <div className="card h-[84px] animate-pulse" />
-          <div className="card h-[84px] animate-pulse" />
+          <div className="card h-[200px] animate-pulse" />
         </div>
       </Pantalla>
     );
@@ -249,8 +134,8 @@ export default function Hoy() {
 
   if (error) {
     return (
-      <Pantalla titulo="Hoy" subtitulo={salon?.nombre ?? ''}>
-        <div className="card p-5 text-center">
+      <Pantalla titulo="Hoy." saludo={saludo} subtitulo={fechaTxt}>
+        <div className="card p-6 text-center">
           <p className="tight text-[15px] font-medium text-ink">
             No se ha podido cargar el día
           </p>
@@ -268,110 +153,141 @@ export default function Hoy() {
   }
 
   const { kpis, citas = [], bloqueos = [], proxima, fecha } = datos ?? {};
+  const total = kpis?.total ?? citas.length;
+  const atendidas = kpis?.atendidas ?? 0;
+  const restantes = kpis?.restantes ?? 0;
+  const noShows = kpis?.noShows ?? 0;
 
   return (
-    <Pantalla titulo="Hoy" subtitulo={fechaLarga(fecha, tz)}>
-      <div className="flex flex-col gap-4">
-        {bloqueos.length > 0 ? (
-          <div
-            className="card-tight flex flex-col gap-2 px-4 py-3"
-            style={{
-              background: 'rgba(197,142,44,0.10)',
-              borderColor: 'rgba(197,142,44,0.35)',
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <Ban className="size-4" style={{ color: '#7A5A1B' }} aria-hidden />
-              <span
-                className="tight text-[13.5px] font-medium"
-                style={{ color: '#7A5A1B' }}
-              >
-                {bloqueos.length === 1
-                  ? 'Tienes una franja bloqueada'
-                  : `Tienes ${bloqueos.length} franjas bloqueadas`}
-              </span>
-            </div>
-            <ul className="flex flex-col gap-1">
-              {bloqueos.map((b) => (
-                <li key={b.id} className="text-[12.5px] text-stone">
-                  <span className="tabular">{franjaBloqueo(b, tz)}</span>
-                  {b.motivo ? ` · ${b.motivo}` : ''}
-                  {b.activo ? ' · activo ahora' : ''}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
-        <div className="grid grid-cols-3 gap-2">
-          <Kpi etiqueta="Citas" valor={String(kpis?.total ?? 0)} />
-          <Kpi etiqueta="Confirmadas" valor={String(kpis?.confirmadas ?? 0)} />
-          <Kpi etiqueta="Facturado" valor={euros(kpis?.facturadoEur)} />
+    <Pantalla titulo="Hoy." saludo={saludo} subtitulo={fechaTxt}>
+      <div className="flex flex-col gap-6">
+        {/* KPIs */}
+        <div className="grid grid-cols-3 gap-3">
+          <KpiCard label="Citas hoy" value={String(total)} />
+          <KpiCard label="Facturado hoy" value={euros0(kpis?.facturadoEur)} />
+          <KpiCard label="Esta semana" value={String(kpis?.reservasSemana ?? 0)} />
         </div>
 
-        {kpis?.pendientes > 0 ? (
-          <p className="-mt-2 text-[12.5px] text-stone">
-            {kpis.pendientes === 1
-              ? '1 cita sin confirmar todavía.'
-              : `${kpis.pendientes} citas sin confirmar todavía.`}
-          </p>
-        ) : null}
-
+        {/* Próxima cita */}
         {proxima ? (
-          <Link to={`/citas/${proxima.id}`} className="card px-4 py-4">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-stone">
-              Próxima cita
-            </span>
-            <div className="tight mt-1 flex items-baseline gap-2">
-              <span className="tabular text-[22px] font-medium text-ink">
-                {hora(proxima.inicio, tz)}
+          <Link
+            to={`/citas/${proxima.id}`}
+            className="card flex items-center justify-between gap-3 px-5 py-4 transition hover:border-stone/40"
+          >
+            <div className="flex min-w-0 flex-col">
+              <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+                Próxima cita
               </span>
-              <span className="text-[13px] text-stone">
-                {diaRelativo(proxima.inicio, tz, fecha)}
+              <span className="tight mt-0.5 truncate text-[15px] font-medium text-ink">
+                {diaRelativo(proxima.inicio, tz, fecha)} · {horaDe(proxima.inicio, tz)} ·{' '}
+                {proxima.cliente?.nombre ?? 'Sin nombre'}
+              </span>
+              <span className="truncate text-[12.5px] text-stone">
+                {proxima.servicio?.nombre}
+                {proxima.profesional?.nombre ? ` con ${proxima.profesional.nombre}` : ''}
               </span>
             </div>
-            <p className="tight mt-1 truncate text-[15px] font-medium text-ink">
-              {proxima.cliente?.nombre ?? 'Sin nombre'}
-            </p>
-            <p className="mt-0.5 truncate text-[13px] text-stone">
-              {proxima.servicio?.nombre}
-              {proxima.profesional?.nombre
-                ? ` con ${proxima.profesional.nombre}`
-                : ''}
-            </p>
-            {proxima.cliente?.telefono ? (
-              <span className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] text-stone">
-                <Phone className="size-3.5" aria-hidden />
-                {proxima.cliente.telefono}
-              </span>
-            ) : null}
+            <span className="shrink-0 text-stone/60">→</span>
           </Link>
         ) : null}
 
-        <div className="flex flex-col gap-2">
-          <h2 className="text-[10px] uppercase tracking-[0.18em] text-stone">
-            Agenda del día
-          </h2>
+        {/* Franjas bloqueadas */}
+        {bloqueos.length > 0 ? (
+          <div
+            className="card-tight flex flex-col gap-2 px-4 py-3"
+            style={{ background: 'rgba(197,142,44,0.10)', borderColor: 'rgba(197,142,44,0.35)' }}
+          >
+            <span className="tight text-[13.5px] font-medium" style={{ color: '#7A5A1B' }}>
+              {bloqueos.length === 1
+                ? 'Tienes una franja bloqueada'
+                : `Tienes ${bloqueos.length} franjas bloqueadas`}
+            </span>
+          </div>
+        ) : null}
 
-          {citas.length === 0 ? (
-            <div className="card px-5 py-8 text-center">
-              <p className="tight text-[15px] font-medium text-ink">
-                Hoy no tienes citas
-              </p>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-stone">
+        {/* Agenda del día */}
+        <div className="card flex flex-col overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+                  Agenda del día
+                </div>
+                <div className="tight mt-0.5 text-[18px] font-medium text-ink">
+                  {total} cita{total === 1 ? '' : 's'} · {fechaTxt.toLowerCase()}
+                </div>
+              </div>
+              <Link
+                to="/cierres"
+                className="tight inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[12.5px] text-stone transition hover:text-ink"
+              >
+                Bloquear franja
+              </Link>
+            </div>
+            {total > 0 ? (
+              <div className="tabular flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-stone">
+                <span>
+                  <span className="font-medium text-ink">{atendidas}</span> atendida
+                  {atendidas === 1 ? '' : 's'}
+                </span>
+                <span className="text-line-2">·</span>
+                <span>
+                  <span className="font-medium text-ink">{restantes}</span> restante
+                  {restantes === 1 ? '' : 's'}
+                </span>
+                <span className="text-line-2">·</span>
+                <span>
+                  <span className="font-medium text-ink">{euros0(kpis?.facturadoEur)}</span> facturado
+                </span>
+                {noShows > 0 ? (
+                  <>
+                    <span className="text-line-2">·</span>
+                    <span style={{ color: '#7C2E2E' }}>
+                      <span className="font-medium">{noShows}</span> no-show
+                      {noShows === 1 ? '' : 's'}
+                    </span>
+                  </>
+                ) : null}
+                <span className="text-line-2">·</span>
+                <Link to="/numeros" className="text-stone/70 hover:text-ink">
+                  Ver métricas →
+                </Link>
+              </div>
+            ) : null}
+          </div>
+
+          {total === 0 ? (
+            <div className="px-5 py-12 text-center">
+              <p className="tight text-[16px] font-medium text-ink">No hay citas hoy</p>
+              <p className="mt-1 text-[13px] text-stone">
                 {proxima
-                  ? `Tu próxima cita es ${diaRelativo(
-                      proxima.inicio,
-                      tz,
-                      fecha,
-                    ).toLowerCase()} a las ${hora(proxima.inicio, tz)}, con ${
-                      proxima.cliente?.nombre ?? 'un cliente'
-                    }.`
-                  : 'Cuando entre una reserva te avisamos.'}
+                  ? `Tu próxima cita es ${diaRelativo(proxima.inicio, tz, fecha).toLowerCase()} a las ${horaDe(proxima.inicio, tz)} · ${proxima.cliente?.nombre ?? 'un cliente'}.`
+                  : 'Cuando se reserven citas para hoy aparecerán aquí.'}
               </p>
+              <Link
+                to="/compartir"
+                className="tight mt-4 inline-flex rounded-full bg-ink px-4 py-2 text-[13px] font-medium text-cream hover:bg-ink/90"
+              >
+                Comparte tu web para recibir reservas
+              </Link>
             </div>
           ) : (
-            citas.map((c) => <TarjetaCita key={c.id} cita={c} tz={tz} />)
+            <div className="overflow-x-auto">
+              <div className="grid min-w-[760px] grid-cols-[80px_44px_1fr_140px_120px_92px_28px] gap-3 border-b border-line bg-cream/40 px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-stone/70">
+                <div>Hora</div>
+                <div />
+                <div>Cliente</div>
+                <div>Servicio</div>
+                <div>Profesional</div>
+                <div>Estado</div>
+                <div className="text-right">€</div>
+              </div>
+              <div className="min-w-[760px] divide-y divide-line/70">
+                {citas.map((c) => (
+                  <CitaFila key={c.id} cita={c} tz={tz} />
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>

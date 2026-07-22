@@ -1,36 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ChevronLeft, MessageCircle, Phone } from 'lucide-react';
 
 import Pantalla from '../components/Pantalla';
+import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
 import { apiGet } from '../lib/api';
+import { metaEstado } from '../lib/estado-cita';
 
 /**
  * Ficha del cliente.
  *
- * La web reparte esto en dos columnas; en el móvil va apilado en el orden en
- * que se necesita: primero cómo llamarle (que es a lo que se abre la ficha con
- * el cliente al teléfono), después qué tiene reservado, después qué ha hecho.
+ * Reproduce las secciones del panel web (clientes/[id]) apiladas para móvil:
+ * cabecera con avatar y resumen, datos de contacto con badges de icono,
+ * métricas grandes, análisis Plus y el historial de citas como tarjeta con
+ * filas divididas —el mismo lenguaje visual que la tabla del panel.
  *
  * El análisis de 30 días solo llega si el plan del salón lo incluye. Cuando no,
  * se dice en una frase y punto: la app no puede mostrar precios de plan ni
  * botones de contratar, así que aquí no hay ninguna invitación a comprar.
  */
-
-const ESTADO_META = {
-  pendiente: { label: 'Pendiente', bg: 'rgba(197,142,44,0.16)', fg: '#7A5A1B', dot: '#C58E2C' },
-  confirmada: { label: 'Confirmada', bg: 'rgba(139,157,122,0.20)', fg: '#4A5940', dot: '#6B7C5A' },
-  completada: { label: 'Completada', bg: 'rgba(139,157,122,0.20)', fg: '#4A5940', dot: '#6B7C5A' },
-  cancelada: { label: 'Cancelada', bg: 'rgba(177,72,72,0.12)', fg: '#7C2E2E', dot: '#B14848' },
-  no_show: { label: 'No vino', bg: 'rgba(26,24,21,0.10)', fg: '#1A1815', dot: '#1A1815' },
-  pendiente_pago: { label: 'Pendiente de pago', bg: 'rgba(197,142,44,0.16)', fg: '#7A5A1B', dot: '#C58E2C' },
-  nuevo: { label: 'Nuevo', bg: 'rgba(26,24,21,0.08)', fg: '#2B2823', dot: '#6B6356' },
-};
-
-function metaEstado(estado) {
-  return ESTADO_META[estado] || ESTADO_META.pendiente;
-}
 
 function iniciales(nombre) {
   return (nombre || '')
@@ -48,6 +36,15 @@ function fmtFecha(iso, tz) {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+    timeZone: tz,
+  }).format(new Date(iso));
+}
+
+function fmtFechaCorta(iso, tz) {
+  if (!iso) return '—';
+  return new Intl.DateTimeFormat('es-ES', {
+    day: 'numeric',
+    month: 'short',
     timeZone: tz,
   }).format(new Date(iso));
 }
@@ -87,28 +84,45 @@ function paraWhatsapp(telefono) {
   return limpio || null;
 }
 
-function Dato({ etiqueta, valor }) {
+// Métrica grande, igual que el `Stat` del panel web.
+function Stat({ label, value }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] uppercase tracking-[0.2em] text-stone/70">
-        {etiqueta}
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] uppercase tracking-[0.22em] text-stone/70">
+        {label}
       </span>
-      <span className="tight tabular text-[20px] font-medium text-ink">
-        {valor}
+      <span className="tight tabular text-[24px] font-medium text-ink">
+        {value}
       </span>
     </div>
   );
 }
 
-function TarjetaCita({ cita, tz, destacada }) {
-  const m = metaEstado(cita.estado);
+// Fila de contacto con badge de icono, como en el panel.
+function FilaContacto({ badge, valor, vacio }) {
   return (
-    <div
-      className="card-tight px-3.5 py-3"
-      style={destacada ? { borderColor: 'var(--line-2)' } : undefined}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <span className="tight tabular text-[14.5px] font-medium text-ink">
+    <div className="flex items-center gap-3">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cream-2 text-stone">
+        {badge}
+      </span>
+      {valor ? (
+        <span className="truncate text-[14px] text-ink">{valor}</span>
+      ) : (
+        <span className="text-[14px] text-stone">{vacio}</span>
+      )}
+    </div>
+  );
+}
+
+// Fila de cita con el mismo lenguaje que el historial del panel: fecha·hora,
+// estado, y una segunda línea servicio · profesional · precio. Enlaza a la
+// cita cuando hay id, igual que hace la tabla de la web.
+function FilaCita({ cita, tz }) {
+  const m = metaEstado(cita.estado);
+  const cuerpo = (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <span className="tight tabular text-[13.5px] font-medium text-ink">
           {fmtFechaHora(cita.inicio, tz)}
         </span>
         <span className="pill shrink-0" style={{ background: m.bg, color: m.fg }}>
@@ -116,7 +130,7 @@ function TarjetaCita({ cita, tz, destacada }) {
           {m.label}
         </span>
       </div>
-      <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-stone">
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-stone">
         <span className="text-ink">{cita.servicio}</span>
         <span aria-hidden>·</span>
         <span className="inline-flex items-center gap-1.5">
@@ -128,17 +142,27 @@ function TarjetaCita({ cita, tz, destacada }) {
           {cita.profesional}
         </span>
         <span aria-hidden>·</span>
-        <span className="tabular font-medium text-ink">
-          {euros(cita.precioEur)}
-        </span>
+        <span className="tabular font-medium text-ink">{euros(cita.precioEur)}</span>
       </div>
       {cita.notas ? (
-        <p className="mt-2 whitespace-pre-wrap rounded-lg bg-cream px-3 py-2 text-[13px] leading-relaxed text-ink">
+        <p className="mt-2 whitespace-pre-wrap rounded-lg bg-cream px-3 py-2 text-[12.5px] leading-relaxed text-ink">
           {cita.notas}
         </p>
       ) : null}
-    </div>
+    </>
   );
+
+  if (cita.id) {
+    return (
+      <Link
+        to={`/citas/${cita.id}`}
+        className="block border-l-2 border-l-transparent px-5 py-3.5 transition hover:border-l-terracotta hover:bg-paper/60"
+      >
+        {cuerpo}
+      </Link>
+    );
+  }
+  return <div className="px-5 py-3.5">{cuerpo}</div>;
 }
 
 export default function ClienteDetalle() {
@@ -184,7 +208,7 @@ export default function ClienteDetalle() {
       className="tight -mr-1 inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[13.5px] font-medium"
       style={{ background: 'var(--chrome-2)', color: 'var(--on-chrome)' }}
     >
-      <ChevronLeft size={16} aria-hidden />
+      <span aria-hidden className="text-[15px] leading-none">←</span>
       Clientes
     </Link>
   );
@@ -235,28 +259,36 @@ export default function ClienteDetalle() {
   const { cliente, historial, historialPro, proximaCita, stats } = datos;
   const telefono = cliente.telefono || cliente.whatsappPhone;
   const wa = paraWhatsapp(cliente.whatsappPhone || cliente.telefono);
+  const totalFacturado = euros(cliente.totalFacturadoEur);
 
   return (
     <Pantalla titulo={cliente.nombre} subtitulo={salon?.nombre} accion={volver}>
-      <section className="card p-5">
-        <div className="flex items-center gap-3.5">
+      {/* Cabecera: avatar + resumen en una línea, como el header del panel. */}
+      <header className="card p-5">
+        <div className="flex items-center gap-4">
           <span className="flex size-14 shrink-0 items-center justify-center rounded-full border border-line bg-cream-2 text-[16px] font-medium text-ink/80">
             {iniciales(cliente.nombre) || '·'}
           </span>
           <div className="min-w-0">
-            <h2 className="tight truncate text-[19px] font-medium text-ink">
+            <h2 className="tight truncate text-[20px] font-medium text-ink">
               {cliente.nombre}
             </h2>
-            <p className="mt-0.5 text-[13px] text-stone">
-              Cliente desde {fmtFecha(cliente.creadoAt, tz)}
+            <p className="mt-1 text-[13px] text-stone">
+              <span className="font-serif-it">con</span>{' '}
+              <span className="tabular text-ink">{cliente.totalCitas}</span>{' '}
+              visita{cliente.totalCitas === 1 ? '' : 's'},{' '}
+              <span className="tabular text-ink">{totalFacturado}</span> totales
+              <span className="font-serif-it text-stone/70">
+                {' '}· cliente desde {fmtFecha(cliente.creadoAt, tz)}
+              </span>
             </p>
             {cliente.requiereDeposito ? (
               <span
-                className="pill mt-1.5"
-                style={{ background: 'rgba(197,142,44,0.16)', color: '#7A5A1B' }}
+                className="pill mt-2"
+                style={{ background: 'rgba(197,142,44,0.14)', color: '#7A5A1B' }}
               >
                 <span className="pill-dot" style={{ background: '#C58E2C' }} />
-                Se le pide depósito
+                Depósito requerido
               </span>
             ) : null}
           </div>
@@ -268,7 +300,7 @@ export default function ClienteDetalle() {
               href={`tel:${String(telefono).replace(/\s/g, '')}`}
               className="gloss-btn tight flex items-center justify-center gap-2 rounded-full py-3 text-[14px] font-medium"
             >
-              <Phone size={16} aria-hidden />
+              <Icon.Phone width="16" height="16" aria-hidden />
               Llamar
             </a>
           ) : null}
@@ -279,7 +311,7 @@ export default function ClienteDetalle() {
               rel="noreferrer"
               className="tight flex items-center justify-center gap-2 rounded-full border border-line bg-paper py-3 text-[14px] font-medium text-ink"
             >
-              <MessageCircle size={16} aria-hidden />
+              <Icon.Chat width="16" height="16" aria-hidden />
               WhatsApp
             </a>
           ) : null}
@@ -290,120 +322,118 @@ export default function ClienteDetalle() {
             última cita para ver por dónde te escribió.
           </p>
         ) : null}
+      </header>
 
-        <div className="rule my-4" />
-
-        <dl className="flex flex-col gap-2 text-[14px]">
-          <div className="flex justify-between gap-4">
-            <dt className="text-stone">Teléfono</dt>
-            <dd className="truncate font-medium text-ink">
-              {cliente.telefono || '—'}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-stone">Email</dt>
-            <dd className="truncate font-medium text-ink">
-              {cliente.email || '—'}
-            </dd>
-          </div>
+      {/* Datos de contacto: filas con badge de icono, igual que el panel. */}
+      <section className="card mt-5 p-5">
+        <div className="mb-4 text-[10px] uppercase tracking-[0.22em] text-stone/70">
+          Datos de contacto
+        </div>
+        <div className="flex flex-col gap-3">
+          <FilaContacto
+            badge={<Icon.Phone width="13" height="13" />}
+            valor={cliente.telefono}
+            vacio="— sin teléfono"
+          />
+          <FilaContacto
+            badge={<span className="text-[12px]">@</span>}
+            valor={cliente.email}
+            vacio="— sin email"
+          />
           {cliente.whatsappPhone ? (
-            <div className="flex justify-between gap-4">
-              <dt className="text-stone">WhatsApp</dt>
-              <dd className="truncate font-medium text-ink">
-                {cliente.whatsappPhone}
-              </dd>
-            </div>
+            <FilaContacto
+              badge={<span className="text-[11px]">WA</span>}
+              valor={cliente.whatsappPhone}
+            />
           ) : null}
-        </dl>
+        </div>
 
         {cliente.notasPrivadas ? (
           <>
-            <div className="rule my-4" />
-            <p className="text-[10px] uppercase tracking-[0.2em] text-stone/70">
+            <div className="rule my-5" />
+            <div className="mb-2 text-[10px] uppercase tracking-[0.22em] text-stone/70">
               Notas privadas
-            </p>
-            <p className="mt-1.5 whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink">
+            </div>
+            <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink">
               {cliente.notasPrivadas}
             </p>
           </>
-        ) : null}
+        ) : (
+          <>
+            <div className="rule my-5" />
+            <p className="font-serif-it text-[13px] text-stone/70">
+              Sin notas. Edita el cliente desde el panel para añadir información
+              interna.
+            </p>
+          </>
+        )}
       </section>
 
-      <section className="card mt-3.5 p-5">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-stone/70">
-          Resumen
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-4">
-          <Dato etiqueta="Citas" valor={String(cliente.totalCitas)} />
-          <Dato etiqueta="Plantones" valor={String(cliente.totalNoShows)} />
-          <Dato etiqueta="Facturado" valor={euros(cliente.totalFacturadoEur)} />
-          <Dato
-            etiqueta="Última visita"
-            valor={
+      {/* Métricas grandes. */}
+      <section className="card mt-5 p-5">
+        <div className="mb-4 text-[10px] uppercase tracking-[0.22em] text-stone/70">
+          Métricas
+        </div>
+        <div className="grid grid-cols-2 gap-5">
+          <Stat label="Total citas" value={String(cliente.totalCitas)} />
+          <Stat label="No-shows" value={String(cliente.totalNoShows)} />
+          <Stat label="Total facturado" value={totalFacturado} />
+          <Stat
+            label="Última visita"
+            value={
               cliente.ultimaVisita
-                ? new Intl.DateTimeFormat('es-ES', {
-                    day: 'numeric',
-                    month: 'short',
-                    timeZone: tz,
-                  }).format(new Date(cliente.ultimaVisita))
+                ? fmtFechaCorta(cliente.ultimaVisita, tz)
                 : '—'
             }
           />
         </div>
       </section>
 
-      <section className="mt-5">
-        <h3 className="tight mb-2.5 text-[15px] font-medium text-ink">
-          Próxima cita
-        </h3>
-        {proximaCita ? (
-          <TarjetaCita cita={proximaCita} tz={tz} destacada />
-        ) : (
-          <div className="card-tight px-3.5 py-4">
-            <p className="text-[13.5px] leading-relaxed text-stone">
-              No tiene nada reservado. Si suele venir cada pocas semanas, es buen
-              momento para escribirle.
-            </p>
-          </div>
-        )}
-      </section>
-
+      {/* Análisis Plus (solo si el plan lo incluye). */}
       {stats ? (
         <section className="card mt-5 p-5">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-stone/70">
-            Últimos 30 días
-          </p>
-          <div className="mt-3 grid grid-cols-2 gap-4">
-            <Dato
-              etiqueta="Citas"
-              valor={`${stats.citas30d} ${stats.citas30d === 1 ? 'cita' : 'citas'}`}
+          <div className="mb-4 flex items-center justify-between">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-stone/70">
+              Análisis del cliente
+            </div>
+            <span
+              className="pill"
+              style={{ background: 'rgba(177,142,72,0.18)', color: '#7A5A1B' }}
+            >
+              Plan Plus
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-5">
+            <Stat
+              label="Últimos 30 días"
+              value={`${stats.citas30d} ${stats.citas30d === 1 ? 'cita' : 'citas'}`}
             />
-            <Dato etiqueta="Gasto" valor={euros(stats.gasto30dEur)} />
+            <Stat label="Gasto últimos 30d" value={euros(stats.gasto30dEur)} />
           </div>
 
           {stats.servicioFavorito ? (
             <>
-              <div className="rule my-4" />
-              <p className="text-[10px] uppercase tracking-[0.2em] text-stone/70">
+              <div className="rule my-5" />
+              <div className="mb-1.5 text-[10px] uppercase tracking-[0.22em] text-stone/70">
                 Habitualmente pide
-              </p>
-              <p className="tight mt-1 text-[15px] font-medium text-ink">
+              </div>
+              <div className="tight text-[15px] font-medium text-ink">
                 {stats.servicioFavorito.nombre}{' '}
                 <span className="font-serif-it text-stone/70">
                   ({stats.servicioFavorito.veces}{' '}
                   {stats.servicioFavorito.veces === 1 ? 'vez' : 'veces'})
                 </span>
-              </p>
+              </div>
             </>
           ) : null}
 
           {stats.acumuladoPorServicio.length > 1 ? (
             <>
-              <div className="rule my-4" />
-              <p className="text-[10px] uppercase tracking-[0.2em] text-stone/70">
+              <div className="rule my-5" />
+              <div className="mb-3 text-[10px] uppercase tracking-[0.22em] text-stone/70">
                 Acumulado por servicio
-              </p>
-              <ul className="mt-2 flex flex-col gap-1.5">
+              </div>
+              <ul className="flex flex-col gap-2">
                 {stats.acumuladoPorServicio.map((s) => (
                   <li
                     key={s.servicioId}
@@ -421,34 +451,71 @@ export default function ClienteDetalle() {
         </section>
       ) : null}
 
-      <section className="mt-5">
-        <h3 className="tight mb-2.5 text-[15px] font-medium text-ink">
-          Historial
-        </h3>
-        {historial.length === 0 ? (
-          <div className="card-tight px-3.5 py-4">
-            <p className="text-[13.5px] leading-relaxed text-stone">
-              Todavía no ha venido. En cuanto pase por el salón, cada visita se
-              irá guardando aquí.
+      {/* Próxima cita. */}
+      <section className="card mt-5 overflow-hidden">
+        <div className="border-b border-line px-5 py-4 text-[10px] uppercase tracking-[0.22em] text-stone/70">
+          Próxima cita
+        </div>
+        {proximaCita ? (
+          <FilaCita cita={proximaCita} tz={tz} />
+        ) : (
+          <p className="px-5 py-6 text-[13.5px] leading-relaxed text-stone">
+            No tiene nada reservado. Si suele venir cada pocas semanas, es buen
+            momento para escribirle.
+          </p>
+        )}
+      </section>
+
+      {/* Historial de citas, como tarjeta con filas divididas del panel. */}
+      <section className="card mt-5 overflow-hidden">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.22em] text-stone/70">
+              Historial de citas
+            </div>
+            <div className="tight mt-0.5 text-[16px] font-medium text-ink">
+              {!historialPro
+                ? 'Plan Plus'
+                : historial.length === 0
+                  ? 'Sin historial'
+                  : `${historial.length} ${historial.length === 1 ? 'cita' : 'citas'}`}
+            </div>
+          </div>
+        </div>
+
+        {!historialPro ? (
+          <div className="px-5 py-12 text-center">
+            <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#F3E3C7] text-[18px]">
+              🔒
+            </div>
+            <p className="tight text-[15px] font-medium text-ink">
+              Historial detallado del cliente
+            </p>
+            <p className="mx-auto mt-2 max-w-sm text-[12.5px] leading-relaxed text-stone">
+              Con tu plan actual se ven las últimas visitas y el resumen. El
+              historial completo, las notas por cita y el análisis de gasto están
+              disponibles en el plan superior; puedes cambiarlo desde el panel
+              web.
+            </p>
+          </div>
+        ) : historial.length === 0 ? (
+          <div className="px-5 py-12 text-center">
+            <p className="tight text-[15px] font-medium text-ink">
+              Todavía no ha venido
+            </p>
+            <p className="mt-1.5 text-[12.5px] leading-relaxed text-stone">
+              En cuanto pase por el salón, cada visita se irá guardando aquí.
             </p>
           </div>
         ) : (
-          <ul className="flex flex-col gap-2.5">
+          <ul className="divide-y divide-line/70">
             {historial.map((c) => (
               <li key={c.id}>
-                <TarjetaCita cita={c} tz={tz} />
+                <FilaCita cita={c} tz={tz} />
               </li>
             ))}
           </ul>
         )}
-
-        {!historialPro ? (
-          <p className="mt-3 rounded-xl bg-cream px-3.5 py-3 text-[12.5px] leading-relaxed text-stone">
-            Con tu plan actual se ven las últimas visitas y el resumen. El
-            historial completo, las notas por cita y el análisis de gasto están
-            disponibles en el plan superior; puedes cambiarlo desde el panel web.
-          </p>
-        ) : null}
       </section>
     </Pantalla>
   );

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Check, CreditCard, ExternalLink, RefreshCw } from 'lucide-react';
 
+import { Icon } from '../components/icons';
 import Pantalla from '../components/Pantalla';
 import { useAuth } from '../context/useAuth';
 import { apiGet, apiPatch } from '../lib/api';
@@ -40,6 +40,10 @@ const MODOS = [
   },
 ];
 
+// Verde y neutro del panel para el pill de estado.
+const PILL_OK = { background: 'rgba(139,157,122,0.15)', color: '#5A6B4D' };
+const PILL_NEUTRO = { background: 'rgba(107,99,86,0.10)', color: '#6B6356' };
+
 function euros(n) {
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
@@ -60,53 +64,9 @@ function resumen(modo, pct) {
 
 function Cargando() {
   return (
-    <div className="flex flex-col gap-3" aria-busy="true">
-      <div className="card h-[132px] animate-pulse" />
-      <div className="card h-[240px] animate-pulse" style={{ opacity: 0.75 }} />
-    </div>
-  );
-}
-
-/** Cabecera de estado: lo primero y lo más grande de la pantalla. */
-function Estado({ cobrosActivos, cuentaConectada }) {
-  const activo = cobrosActivos;
-  const pendiente = !cobrosActivos && cuentaConectada;
-
-  const texto = activo
-    ? 'Cobros activos'
-    : pendiente
-      ? 'Verificación a medias'
-      : 'Sin configurar';
-
-  const colores = activo
-    ? { fondo: 'rgba(139,157,122,0.15)', tinta: '#5A6B4D', punto: '#8B9D7A' }
-    : { fondo: 'rgba(107,99,86,0.10)', tinta: '#6B6356', punto: '#8A8174' };
-
-  return (
-    <div className="flex items-center gap-3.5">
-      <span
-        className="flex size-12 shrink-0 items-center justify-center rounded-full"
-        style={{ background: colores.fondo, color: colores.tinta }}
-        aria-hidden
-      >
-        <CreditCard size={21} />
-      </span>
-      <div className="min-w-0">
-        <p className="tight text-[19px] font-medium leading-snug text-ink">
-          {texto}
-        </p>
-        <span
-          className="pill mt-1"
-          style={{ background: colores.fondo, color: colores.tinta }}
-        >
-          <span className="pill-dot" style={{ background: colores.punto }} />
-          {activo
-            ? 'Puedes cobrar al reservar'
-            : pendiente
-              ? 'Stripe te pide algo más'
-              : 'Aún no puedes cobrar online'}
-        </span>
-      </div>
+    <div className="flex flex-col gap-4" aria-busy="true">
+      <div className="card h-[128px] animate-pulse" />
+      <div className="card h-[300px] animate-pulse" style={{ opacity: 0.75 }} />
     </div>
   );
 }
@@ -181,6 +141,7 @@ export default function Cobros() {
   };
 
   const cobrosActivos = datos?.cobrosActivos === true;
+  const cuentaConectada = datos?.cuentaConectada === true;
   const puedeEditar = datos?.puedeEditar === true;
   const editable = puedeEditar && cobrosActivos;
 
@@ -211,8 +172,19 @@ export default function Cobros() {
     }
   };
 
+  // Estado de la cuenta de cobros, traducido al pill del panel.
+  const pillEstado = cobrosActivos
+    ? { texto: 'Activa', estilo: PILL_OK, punto: '#8B9D7A' }
+    : cuentaConectada
+      ? { texto: 'Pendiente', estilo: PILL_NEUTRO, punto: '#8A8174' }
+      : { texto: 'Sin conectar', estilo: PILL_NEUTRO, punto: '#8A8174' };
+
   return (
-    <Pantalla titulo="Cobros" subtitulo={salon?.nombre}>
+    <Pantalla
+      titulo="Cobros"
+      subtitulo="Cobros online"
+      saludo={salon?.nombre ? `· ${salon.nombre}` : null}
+    >
       {cargando ? <Cargando /> : null}
 
       {!cargando && error ? (
@@ -226,30 +198,47 @@ export default function Cobros() {
             onClick={reintentar}
             className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
           >
-            <RefreshCw size={15} />
             Reintentar
           </button>
         </div>
       ) : null}
 
       {!cargando && !error && datos ? (
-        <div className="flex flex-col gap-4">
-          {/* ---------- estado ---------- */}
-          <section className="card flex flex-col gap-4 p-5">
-            <Estado
-              cobrosActivos={cobrosActivos}
-              cuentaConectada={datos.cuentaConectada === true}
-            />
+        <div className="flex flex-col gap-6">
+          <p className="text-[13.5px] leading-relaxed text-stone">
+            Cobra un depósito al reservar para reducir las ausencias
+            (no-shows).
+          </p>
+
+          {/* ---------- 1. Cuenta de cobros ---------- */}
+          <section className="card flex flex-col gap-4 p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[14.5px] font-medium text-ink">
+                  Cuenta de cobros
+                </p>
+                <p className="mt-0.5 text-[13px] leading-relaxed text-stone">
+                  El dinero del depósito llega directamente a tu cuenta. Lo
+                  gestiona Stripe.
+                </p>
+              </div>
+              <span className="pill shrink-0" style={pillEstado.estilo}>
+                <span
+                  className="pill-dot"
+                  style={{ background: pillEstado.punto }}
+                />
+                {pillEstado.texto}
+              </span>
+            </div>
 
             {cobrosActivos ? (
-              <p className="text-[13.5px] leading-relaxed text-stone">
-                El dinero de cada cobro va directo a tu cuenta bancaria. Lo
-                gestiona Stripe.
+              <p className="text-[13px] leading-relaxed text-stone">
+                Tu cuenta está lista para cobrar depósitos al reservar.
               </p>
             ) : (
               <div className="flex flex-col gap-3">
-                <p className="text-[13.5px] leading-relaxed text-stone">
-                  {datos.cuentaConectada
+                <p className="text-[13px] leading-relaxed text-stone">
+                  {cuentaConectada
                     ? 'Empezaste el alta pero falta algún dato. Termínala y podrás cobrar al reservar.'
                     : 'Para cobrar al reservar necesitas dar de alta tu cuenta de cobros.'}{' '}
                   Stripe necesita verificar tu identidad, y eso se hace en el
@@ -264,8 +253,12 @@ export default function Cobros() {
                       disabled={abriendoWeb}
                       className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
                     >
-                      <ExternalLink size={15} />
-                      {abriendoWeb ? 'Abriendo…' : 'Configurar cobros'}
+                      <Icon.Share width="15" height="15" />
+                      {abriendoWeb
+                        ? 'Abriendo…'
+                        : cuentaConectada
+                          ? 'Continuar conexión con Stripe'
+                          : 'Conectar cuenta de cobros'}
                     </button>
                     <button
                       type="button"
@@ -273,7 +266,6 @@ export default function Cobros() {
                       disabled={comprobando}
                       className="tight inline-flex items-center justify-center gap-2 rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-ink disabled:opacity-60"
                     >
-                      <RefreshCw size={15} />
                       {comprobando ? 'Comprobando…' : 'Ya lo he hecho'}
                     </button>
                     <p className="px-1 text-[12.5px] leading-relaxed text-stone">
@@ -282,7 +274,7 @@ export default function Cobros() {
                     </p>
                   </div>
                 ) : (
-                  <p className="text-[13.5px] leading-relaxed text-stone">
+                  <p className="text-[13px] leading-relaxed text-stone">
                     Esto lo configura el dueño del salón.
                   </p>
                 )}
@@ -290,78 +282,70 @@ export default function Cobros() {
             )}
           </section>
 
-          {/* ---------- modo de cobro ---------- */}
-          <section
-            className="card flex flex-col gap-4 p-5"
-            style={{ opacity: editable ? 1 : 0.72 }}
-          >
-            <div>
-              <h2 className="tight text-[17px] font-medium text-ink">
-                Al reservar
-              </h2>
-              <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
-                {editable
-                  ? 'Elige qué pasa cuando alguien pide cita por internet.'
-                  : cobrosActivos
-                    ? 'Así cobra tu salón al reservar. Lo cambia el dueño.'
-                    : 'Podrás elegirlo en cuanto tu cuenta de cobros esté activa.'}
+          {/* ---------- 2. Modo de cobro ---------- */}
+          <section className="card flex flex-col gap-5 p-6">
+            <div className="space-y-2">
+              <p className="text-[12.5px] text-stone">
+                ¿Cómo cobras al reservar?
               </p>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              {MODOS.map((o) => {
-                const elegido = modo === o.v;
-                return (
-                  <button
-                    key={o.v}
-                    type="button"
-                    role="radio"
-                    aria-checked={elegido}
-                    disabled={!editable || guardando}
-                    onClick={() => {
-                      setModo(o.v);
-                      setAviso(null);
-                    }}
-                    className="flex items-start gap-3 rounded-2xl border px-4 py-3.5 text-left transition disabled:cursor-not-allowed"
-                    style={{
-                      borderColor: elegido ? 'var(--socio-accent)' : 'var(--line)',
-                      background: elegido ? 'var(--cream-2)' : 'var(--paper)',
-                    }}
-                  >
-                    <span
-                      className="mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full border"
-                      style={{
-                        borderColor: elegido
-                          ? 'var(--socio-accent)'
-                          : 'var(--line-2)',
-                        background: elegido ? 'var(--socio-accent)' : 'transparent',
+              <div className="flex flex-col gap-2">
+                {MODOS.map((o) => {
+                  const elegido = modo === o.v;
+                  const deshabilitado = !editable || guardando;
+                  return (
+                    <button
+                      key={o.v}
+                      type="button"
+                      role="radio"
+                      aria-checked={elegido}
+                      disabled={deshabilitado}
+                      onClick={() => {
+                        setModo(o.v);
+                        setAviso(null);
                       }}
-                      aria-hidden
+                      className={`tight flex items-start gap-3 rounded-2xl border px-4 py-3 text-left transition disabled:cursor-not-allowed ${
+                        elegido
+                          ? 'border-ink bg-cream'
+                          : 'border-line bg-paper'
+                      } ${!editable ? 'opacity-40' : ''}`}
                     >
-                      {elegido ? (
-                        <Check size={12} style={{ color: 'var(--paper)' }} />
-                      ) : null}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="tight block text-[15px] font-medium leading-snug text-ink">
-                        {o.titulo}
+                      <span
+                        className={`mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full border ${
+                          elegido
+                            ? 'border-ink bg-ink'
+                            : 'border-line-2 bg-transparent'
+                        }`}
+                        aria-hidden
+                      >
+                        {elegido ? (
+                          <Icon.Check
+                            width="11"
+                            height="11"
+                            className="text-cream"
+                          />
+                        ) : null}
                       </span>
-                      <span className="mt-0.5 block text-[13px] leading-relaxed text-stone">
-                        {o.detalle}
+                      <span className="min-w-0">
+                        <span className="block text-[14px] font-medium leading-snug text-ink">
+                          {o.titulo}
+                        </span>
+                        <span className="mt-0.5 block text-[12.5px] leading-relaxed text-stone">
+                          {o.detalle}
+                        </span>
                       </span>
-                    </span>
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* ---------- porcentaje ---------- */}
             <div
-              className="flex flex-col gap-2"
+              className="space-y-2"
               style={{ opacity: modo === 'off' ? 0.45 : 1 }}
             >
-              <p className="text-[11px] uppercase tracking-[0.2em] text-stone">
-                Cuánto se paga
+              <p className="text-[12.5px] text-stone">
+                Porcentaje a cobrar online (depósito / pago anticipado)
               </p>
               <div className="grid grid-cols-4 gap-2">
                 {(datos.pctsDisponibles ?? [10, 30, 50, 100]).map((p) => {
@@ -377,16 +361,11 @@ export default function Cobros() {
                         setPct(p);
                         setAviso(null);
                       }}
-                      className="tabular rounded-full border py-3 text-[14px] font-medium transition disabled:cursor-not-allowed"
-                      style={{
-                        borderColor: elegido
-                          ? 'var(--socio-accent)'
-                          : 'var(--line)',
-                        background: elegido
-                          ? 'var(--socio-accent)'
-                          : 'var(--paper)',
-                        color: elegido ? 'var(--on-chrome)' : 'var(--ink)',
-                      }}
+                      className={`tabular tight rounded-2xl border py-3 text-[14px] font-medium transition disabled:cursor-not-allowed ${
+                        elegido
+                          ? 'border-ink bg-ink text-cream'
+                          : 'border-line bg-paper text-ink'
+                      }`}
                     >
                       {p} %
                     </button>
@@ -401,23 +380,31 @@ export default function Cobros() {
             </div>
 
             {datos.comision ? (
-              <p className="rounded-xl border border-line bg-cream/60 px-3.5 py-3 text-[12.5px] leading-relaxed text-stone">
-                De cada pago online, Gonper retiene{' '}
-                <span className="tabular font-medium text-ink">
+              <div className="rounded-xl border border-line bg-cream/40 px-4 py-3 text-[12.5px] leading-relaxed text-stone">
+                Comisión de Gonper sobre cada pago online:{' '}
+                <strong className="tabular text-ink">
                   {datos.comision.pct} % + {euros(datos.comision.fijoEur)}
-                </span>
-                . El resto llega a tu cuenta.
-              </p>
+                </strong>
+                . Se descuenta del depósito; el resto llega a tu cuenta.
+              </div>
             ) : null}
 
             {aviso ? (
               <p
                 role="status"
-                className="rounded-xl px-3.5 py-2.5 text-[13.5px]"
+                className="rounded-xl border px-4 py-3 text-[13.5px]"
                 style={
                   aviso.tipo === 'ok'
-                    ? { background: 'var(--sage-soft)', color: 'var(--sage-deep)' }
-                    : { background: '#F1D6D6', color: '#7C2E2E' }
+                    ? {
+                        background: 'rgba(139,157,122,0.15)',
+                        borderColor: 'rgba(90,107,77,0.4)',
+                        color: '#5A6B4D',
+                      }
+                    : {
+                        background: '#F1D6D6',
+                        borderColor: 'rgba(177,72,72,0.4)',
+                        color: '#7C2E2E',
+                      }
                 }
               >
                 {aviso.texto}
@@ -429,11 +416,17 @@ export default function Cobros() {
                 type="button"
                 onClick={guardar}
                 disabled={guardando || !hayCambios}
-                className="gloss-btn tight rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-50"
+                className="gloss-btn tight inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13.5px] font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {guardando ? 'Guardando…' : 'Guardar'}
               </button>
-            ) : null}
+            ) : (
+              <p className="text-[12.5px] leading-relaxed text-stone">
+                {cobrosActivos
+                  ? 'Así cobra tu salón al reservar. Lo cambia el dueño.'
+                  : 'Conecta tu cuenta de cobros para poder activar el depósito.'}
+              </p>
+            )}
           </section>
 
           <p className="px-1 text-[13px] leading-relaxed text-stone">

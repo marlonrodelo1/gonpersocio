@@ -16,6 +16,14 @@ let registrando = false;
 let tapHandlerListo = false;
 
 /**
+ * Token FCM de ESTE dispositivo. Lo guardamos al recibirlo para poder dar de baja
+ * solo esta instalación al cerrar sesión: si mandáramos el DELETE sin token, el
+ * backend borraría todos los tokens del dueño y su móvil personal dejaría de
+ * recibir avisos al cerrar sesión en la tablet del mostrador.
+ */
+let tokenDispositivo = null;
+
+/**
  * Ruta pendiente de un tap en la notificación.
  *
  * Esto arregla un fallo real de `gonper-app`: `pushNotificationActionPerformed`
@@ -47,6 +55,7 @@ async function asegurarListeners(PushNotifications) {
   // que si en el móvil del mostrador cierra sesión A y entra B, el token pasa a
   // B y A deja de recibir los avisos de ese salón.
   await PushNotifications.addListener('registration', async (token) => {
+    tokenDispositivo = token.value;
     try {
       await apiPost('/push/fcm', {
         token: token.value,
@@ -99,7 +108,18 @@ export async function darDeBajaPushNativo() {
     const { PushNotifications } = await import('@capacitor/push-notifications');
     await PushNotifications.removeAllListeners().catch(() => {});
     listenersListos = false;
-    await apiDelete('/push/fcm').catch(() => {});
+    // removeAllListeners() se lleva también el listener del tap. Reseteamos el
+    // guard para que initPushTapHandler pueda re-armarlo en el próximo login;
+    // sin esto, tras cerrar y volver a entrar sin reiniciar, tocar un aviso ya
+    // no navegaba a la cita.
+    tapHandlerListo = false;
+    // Baja SOLO de este dispositivo. Si no tenemos su token (raro), el backend
+    // cae a borrar todos los del usuario en el salón: peor, pero seguro (nunca
+    // dejar avisos vivos tras salir).
+    await apiDelete(
+      '/push/fcm',
+      tokenDispositivo ? { token: tokenDispositivo } : undefined,
+    ).catch(() => {});
   } catch (e) {
     console.error('[push] darDeBajaPushNativo', e);
   }

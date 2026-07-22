@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Phone } from 'lucide-react';
 
+import { Icon } from '../components/icons';
 import Pantalla from '../components/Pantalla';
 import { useAuth } from '../context/useAuth';
 import { apiGet } from '../lib/api';
@@ -18,6 +18,10 @@ import { apiGet } from '../lib/api';
  * Los mensajes llegan del backend ya ordenados de más antiguo a más nuevo y
  * recortados a los últimos N. Si se quedó algo fuera por arriba, se dice; no se
  * finge que el hilo empieza donde empieza la pantalla.
+ *
+ * El look replica panel/conversaciones/[id]: burbuja saliente ink/cream con
+ * `rounded-br-sm`, entrante paper con borde y `rounded-bl-sm`, el hilo dentro de
+ * una `.card` y la cabecera en su propia tarjeta.
  */
 
 const CANAL_META = {
@@ -84,42 +88,32 @@ function Burbuja({ mensaje, tz }) {
   const entrante = mensaje.direccion === 'in';
 
   return (
-    <li className={`flex flex-col ${entrante ? 'items-start' : 'items-end'}`}>
+    <div className={`flex flex-col ${entrante ? 'items-start' : 'items-end'}`}>
       <div
-        className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-[14px] leading-relaxed"
-        style={
+        className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed ${
           entrante
-            ? {
-                background: 'var(--paper)',
-                color: 'var(--ink)',
-                border: '1px solid var(--line)',
-                borderBottomLeftRadius: 6,
-              }
-            : {
-                background: 'var(--chrome)',
-                color: 'var(--on-chrome)',
-                borderBottomRightRadius: 6,
-              }
-        }
+            ? 'rounded-bl-sm border border-line bg-paper text-ink'
+            : 'rounded-br-sm bg-ink text-cream'
+        }`}
       >
         {mensaje.contenido}
       </div>
-      <span className="mt-1 px-1.5 text-[11px] tabular text-stone/70">
+      <span className="mt-1 px-2 text-[10.5px] tabular text-stone/70">
         {hora(mensaje.fecha, tz)}
       </span>
-    </li>
+    </div>
   );
 }
 
 function SeparadorDia({ etiqueta }) {
   return (
-    <li className="flex items-center gap-3 py-1">
-      <span className="h-px flex-1" style={{ background: 'var(--line)' }} />
-      <span className="text-[11px] uppercase tracking-[0.16em] text-stone/70">
+    <div className="flex items-center gap-3 py-1">
+      <span className="h-px flex-1 bg-line" />
+      <span className="text-[10px] uppercase tracking-[0.2em] text-stone/70">
         {etiqueta}
       </span>
-      <span className="h-px flex-1" style={{ background: 'var(--line)' }} />
-    </li>
+      <span className="h-px flex-1 bg-line" />
+    </div>
   );
 }
 
@@ -162,10 +156,9 @@ export default function ConversacionDetalle() {
   const volver = (
     <Link
       to="/conversaciones"
-      className="tight -mr-1 inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[13.5px] font-medium"
-      style={{ background: 'var(--chrome-2)', color: 'var(--on-chrome)' }}
+      className="tight -mr-1 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-paper px-3.5 py-1.5 text-[13px] font-medium text-ink hover:border-line-2"
     >
-      <ChevronLeft size={16} aria-hidden />
+      <Icon.Arrow width="14" height="14" className="rotate-180" aria-hidden />
       Mensajes
     </Link>
   );
@@ -173,7 +166,7 @@ export default function ConversacionDetalle() {
   if (!listo) {
     return (
       <Pantalla titulo="Conversación" subtitulo="Cargando…" accion={volver}>
-        <div className="flex flex-col gap-3" aria-busy="true">
+        <div className="card flex flex-col gap-3 p-4 md:p-5" aria-busy="true">
           <div className="h-12 w-3/5 animate-pulse rounded-2xl bg-cream-2" />
           <div className="h-16 w-4/5 animate-pulse self-end rounded-2xl bg-cream-2" />
           <div className="h-12 w-2/3 animate-pulse rounded-2xl bg-cream-2" />
@@ -185,11 +178,7 @@ export default function ConversacionDetalle() {
 
   if (error) {
     return (
-      <Pantalla
-        titulo="Conversación"
-        subtitulo={salon?.nombre}
-        accion={volver}
-      >
+      <Pantalla titulo="Conversación" subtitulo={salon?.nombre} accion={volver}>
         <div className="card p-5">
           <p className="tight text-[15px] font-medium text-ink">
             {error.status === 404
@@ -234,29 +223,33 @@ export default function ConversacionDetalle() {
 
   return (
     <Pantalla titulo={nombre} subtitulo={salon?.nombre} accion={volver}>
-      <section className="card p-4">
+      <section className="card p-4 md:p-5">
         <div className="flex items-center gap-3">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-full border border-line bg-cream-2 text-[15px] font-medium text-ink/80">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-line bg-cream-2 text-[18px] font-medium text-ink/80">
             {iniciales(nombre) || '·'}
           </span>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <div className="tight truncate text-[16px] font-medium text-ink">
+              {nombre}
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-stone">
               <span
-                className="pill shrink-0"
+                className="inline-block shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
                 style={{ background: meta.bg, color: meta.fg }}
               >
                 {meta.label}
               </span>
-              <span className="tabular text-[12.5px] text-stone">
+              {conversacion.telefono ? (
+                <span className="inline-flex items-center gap-1">
+                  <Icon.Phone width="12" height="12" aria-hidden />
+                  {conversacion.telefono}
+                </span>
+              ) : null}
+              <span className="tabular text-stone/60">
                 {conversacion.total}{' '}
                 {conversacion.total === 1 ? 'mensaje' : 'mensajes'}
               </span>
             </div>
-            {conversacion.telefono ? (
-              <p className="mt-1 truncate text-[13px] text-stone">
-                {conversacion.telefono}
-              </p>
-            ) : null}
           </div>
         </div>
 
@@ -267,17 +260,17 @@ export default function ConversacionDetalle() {
                 href={`tel:${String(conversacion.telefono).replace(/\s/g, '')}`}
                 className="gloss-btn tight flex items-center justify-center gap-2 rounded-full py-2.5 text-[14px] font-medium"
               >
-                <Phone size={16} aria-hidden />
+                <Icon.Phone width="16" height="16" aria-hidden />
                 Llamar
               </a>
             ) : null}
             {conversacion.clienteId && esDueno ? (
               <Link
                 to={`/clientes/${conversacion.clienteId}`}
-                className="tight flex items-center justify-center gap-1.5 rounded-full border border-line bg-paper py-2.5 text-[14px] font-medium text-ink"
+                className="tight flex items-center justify-center gap-1.5 rounded-full border border-line bg-paper py-2.5 text-[14px] font-medium text-ink hover:border-line-2"
               >
                 Ver ficha
-                <ChevronRight size={15} aria-hidden />
+                <Icon.Arrow width="14" height="14" aria-hidden />
               </Link>
             ) : null}
           </div>
@@ -298,7 +291,7 @@ export default function ConversacionDetalle() {
         </p>
       ) : null}
 
-      <ul className="mt-4 flex flex-col gap-3">
+      <div className="card mt-4 flex flex-col gap-3 p-4 md:p-5">
         {mensajes.map((m, i) => {
           const nuevoDia = i === 0 || dias[i] !== dias[i - 1];
           return (
@@ -310,7 +303,7 @@ export default function ConversacionDetalle() {
             </Fragment>
           );
         })}
-      </ul>
+      </div>
     </Pantalla>
   );
 }

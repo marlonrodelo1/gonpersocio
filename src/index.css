@@ -443,10 +443,11 @@ button:not(:disabled):active,
   /* La terracota pasa a ser solo marca. */
   --brand-mark: #C5562C;
 
-  /* El acento genérico que usan los componentes heredados apunta aquí, así
-     .accent-btn y compañía se repintan solos sin tocar cada componente. */
-  --gestori-accent: var(--socio-accent);
-  --gestori-accent-2: var(--socio-accent-2);
+  /* El acento vuelve a TERRACOTA para igualar el panel web (antes era grafito
+     para diferenciar la app del dueño; ahora se quiere idéntica al panel). Esto
+     repinta solos .accent-btn, focus de inputs, .search-shell, etc. */
+  --gestori-accent: var(--terracotta);
+  --gestori-accent-2: var(--terracotta-2);
 
   /* Evita el destello BLANCO entre el splash y el primer pintado: el fondo
      base era oklch(1 0 0) = blanco puro, que no es el color de ninguna
@@ -467,5 +468,34 @@ button:not(:disabled):active,
 .chrome-bar {
   background: var(--chrome);
   color: var(--on-chrome);
+}
+
+/* ============================================================
+   Clases copiadas del panel web (globals.css) para paridad
+   ============================================================ */
+
+/* Grano sutil en tarjetas destacadas (card Juanita del sidebar). */
+.grain { position: relative; }
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* Dot que late (estado "Juanita atendiendo"). */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
+
+/* Scrollbar fina en la barra lateral. */
+.nice-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.nice-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 99px;
 }
 

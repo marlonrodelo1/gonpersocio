@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Globe, MessageCircle } from 'lucide-react';
 
+import { Icon } from '../components/icons';
 import Pantalla from '../components/Pantalla';
 import { useAuth } from '../context/useAuth';
 import { apiGet } from '../lib/api';
@@ -9,9 +9,9 @@ import { apiGet } from '../lib/api';
 /**
  * Bandeja de conversaciones.
  *
- * La web pinta esto como una tabla de cinco columnas con 680 px de ancho
- * mínimo. Aquí cada conversación es una tarjeta con lo que se mira de verdad:
- * quién escribió, qué dijo lo último, por dónde y hace cuánto.
+ * Misma tabla que el panel web (avatar · conversación · canal · cuándo ·
+ * mensajes) dentro de una `.card` con scroll lateral, para que la app se vea
+ * exactamente igual. El contenido cambia, la maqueta no.
  *
  * Es SOLO LECTURA a propósito: desde aquí no se responde. Mandar un WhatsApp
  * cuesta dinero y gasta el cupo del plan, así que esa función necesita su
@@ -26,20 +26,29 @@ import { apiGet } from '../lib/api';
 const PAGINA = 25;
 
 const FILTROS = [
-  { key: 'todos', label: 'Todas' },
-  { key: 'web', label: 'Chat web' },
+  { key: 'todos', label: 'Todos' },
+  { key: 'web', label: 'Web' },
   { key: 'whatsapp', label: 'WhatsApp' },
 ];
 
-const CANAL_META = {
-  web: { label: 'Chat web', bg: 'rgba(60,110,170,0.12)', fg: '#1F4E80' },
-  whatsapp: { label: 'WhatsApp', bg: 'rgba(139,157,122,0.22)', fg: '#41503A' },
-  sms: { label: 'SMS', bg: 'rgba(26,24,21,0.08)', fg: '#2B2823' },
-  panel: { label: 'Panel', bg: 'rgba(26,24,21,0.08)', fg: '#2B2823' },
-};
-
+/** Etiqueta y color de la píldora de canal, igual que en el panel. */
 function metaCanal(canal) {
-  return CANAL_META[canal] || CANAL_META.sms;
+  if (canal === 'web') {
+    return {
+      label: 'Chat web',
+      style: { background: 'rgba(60,110,170,0.12)', color: '#1F4E80' },
+    };
+  }
+  if (canal === 'whatsapp') {
+    return {
+      label: 'WhatsApp',
+      style: { background: 'rgba(177,72,72,0.12)', color: '#7C2E2E' },
+    };
+  }
+  return {
+    label: 'SMS',
+    style: { background: 'rgba(177,72,72,0.12)', color: '#7C2E2E' },
+  };
 }
 
 /** Cómo llamar a quien no ha dejado su nombre. */
@@ -89,7 +98,9 @@ function urlListado(canal, offset) {
   return `/conversaciones?${params}`;
 }
 
-function Tarjeta({ conversacion }) {
+const COLS = 'grid-cols-[44px_1fr_120px_100px_60px]';
+
+function Fila({ conversacion }) {
   const c = conversacion;
   const nombre = nombreVisible(c);
   const meta = metaCanal(c.canal);
@@ -98,17 +109,17 @@ function Tarjeta({ conversacion }) {
   return (
     <Link
       to={`/conversaciones/${encodeURIComponent(c.id)}`}
-      className="card-tight flex items-start gap-3 px-3.5 py-3"
+      className={`grid ${COLS} items-center gap-3 border-l-2 border-l-transparent px-5 py-3.5 transition hover:border-l-terracotta hover:bg-paper/60`}
     >
-      <span className="relative flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-cream-2 text-[13px] font-medium text-ink/80">
+      <div className="relative flex h-9 w-9 items-center justify-center rounded-full border border-line bg-cream-2 text-[13px] font-medium text-ink/80">
         {esWebAnonima ? (
-          <Globe size={18} className="text-stone" aria-hidden />
+          <Icon.Chat width="16" height="16" className="text-stone" />
         ) : (
           iniciales(nombre) || '·'
         )}
         {c.sinResponder ? (
           <span
-            className="absolute -right-0.5 -top-0.5 size-3 rounded-full"
+            className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full"
             style={{
               background: 'var(--terracotta)',
               boxShadow: '0 0 0 2px var(--paper)',
@@ -116,19 +127,13 @@ function Tarjeta({ conversacion }) {
             aria-hidden
           />
         ) : null}
-      </span>
+      </div>
 
-      <span className="min-w-0 flex-1">
-        <span className="flex items-baseline justify-between gap-2">
-          <span className="tight truncate text-[15px] font-medium text-ink">
-            {nombre}
-          </span>
-          <span className="shrink-0 text-[12px] text-stone">
-            {hace(c.fecha)}
-          </span>
-        </span>
-
-        <span className="mt-0.5 block truncate text-[13px] text-stone">
+      <div className="min-w-0">
+        <div className="tight truncate text-[14.5px] font-medium text-ink">
+          {nombre}
+        </div>
+        <div className="truncate text-[12.5px] text-stone">
           {c.ultimoMensaje ? (
             <>
               {c.ultimaDireccion === 'out' ? (
@@ -137,51 +142,63 @@ function Tarjeta({ conversacion }) {
               {c.ultimoMensaje}
             </>
           ) : (
-            'Sin mensajes'
+            '—'
           )}
-        </span>
+        </div>
+      </div>
 
-        <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span
-            className="pill shrink-0"
-            style={{ background: meta.bg, color: meta.fg }}
-          >
-            {meta.label}
-          </span>
-          <span className="tabular text-[12px] text-stone">
-            {c.total} {c.total === 1 ? 'mensaje' : 'mensajes'}
-          </span>
-          {c.sinResponder ? (
-            <span className="text-[12px] font-medium text-ink">
-              Escribió el cliente
-            </span>
-          ) : null}
+      <div>
+        <span
+          className="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium"
+          style={meta.style}
+        >
+          {meta.label}
         </span>
-      </span>
+      </div>
 
-      <ChevronRight
-        size={18}
-        className="mt-3 shrink-0 text-stone/60"
-        aria-hidden
-      />
+      <div className="text-right text-[12px] text-stone">{hace(c.fecha)}</div>
+
+      <div className="text-right">
+        <span className="inline-block rounded-full bg-paper px-2 py-0.5 font-mono text-[11px] text-stone">
+          {c.total}
+        </span>
+      </div>
     </Link>
   );
 }
 
 function Esqueleto() {
   return (
-    <ul className="flex flex-col gap-2.5" aria-busy="true">
-      {[0, 1, 2, 3, 4].map((i) => (
-        <li key={i} className="card-tight flex items-start gap-3 px-3.5 py-3">
-          <span className="size-11 shrink-0 animate-pulse rounded-full bg-cream-2" />
-          <span className="min-w-0 flex-1">
-            <span className="block h-3.5 w-2/5 animate-pulse rounded bg-cream-2" />
-            <span className="mt-2 block h-3 w-4/5 animate-pulse rounded bg-cream-2" />
-            <span className="mt-2 block h-3 w-1/3 animate-pulse rounded bg-cream-2" />
-          </span>
-        </li>
-      ))}
-    </ul>
+    <div className="card overflow-hidden" aria-busy="true">
+      <div className="overflow-x-auto">
+        <div
+          className={`grid min-w-[680px] ${COLS} gap-3 border-b border-line bg-cream/40 px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-stone/70`}
+        >
+          <div />
+          <div>Conversación</div>
+          <div>Canal</div>
+          <div className="text-right">Cuándo</div>
+          <div className="text-right">Mensajes</div>
+        </div>
+        <div className="min-w-[680px] divide-y divide-line/70">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className={`grid ${COLS} items-center gap-3 px-5 py-3.5`}
+            >
+              <span className="h-9 w-9 animate-pulse rounded-full bg-cream-2" />
+              <span className="min-w-0">
+                <span className="block h-3.5 w-2/5 animate-pulse rounded bg-cream-2" />
+                <span className="mt-2 block h-3 w-4/5 animate-pulse rounded bg-cream-2" />
+              </span>
+              <span className="h-4 w-16 animate-pulse rounded-full bg-cream-2" />
+              <span className="ml-auto h-3 w-12 animate-pulse rounded bg-cream-2" />
+              <span className="ml-auto h-4 w-7 animate-pulse rounded-full bg-cream-2" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -256,6 +273,7 @@ export default function Conversaciones() {
           ? `${total} ${total === 1 ? 'conversación' : 'conversaciones'}`
           : salon?.nombre
       }
+      saludo={salon?.nombre ? `· ${salon.nombre}` : undefined}
     >
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTROS.map((f) => {
@@ -266,18 +284,11 @@ export default function Conversaciones() {
               type="button"
               onClick={() => setCanal(f.key)}
               aria-pressed={activo}
-              className={`tight rounded-full border px-4 py-1.5 text-[13px] font-medium ${
-                activo ? '' : 'border-line bg-paper text-stone'
-              }`}
-              style={
+              className={`tight rounded-full border px-4 py-1.5 text-[13px] font-medium transition ${
                 activo
-                  ? {
-                      background: 'var(--chrome)',
-                      color: 'var(--on-chrome)',
-                      borderColor: 'var(--chrome)',
-                    }
-                  : undefined
-              }
+                  ? 'border-ink bg-ink text-cream'
+                  : 'border-line bg-paper text-stone hover:border-line-2 hover:text-ink'
+              }`}
             >
               {f.label}
             </button>
@@ -302,16 +313,16 @@ export default function Conversaciones() {
       ) : !listo ? (
         <Esqueleto />
       ) : lista.length === 0 ? (
-        <div className="card p-6 text-center">
-          <p className="tight text-[15.5px] font-medium text-ink">
+        <div className="card flex flex-col items-center justify-center gap-3 p-12 text-center">
+          <p className="tight text-[18px] font-medium text-ink">
             {canal === 'todos'
               ? 'Todavía no ha escrito nadie'
               : 'Nada por este canal'}
           </p>
-          <p className="mt-1.5 text-[13.5px] leading-relaxed text-stone">
+          <p className="max-w-md text-[13.5px] leading-relaxed text-stone">
             {canal === 'todos'
               ? 'Aquí aparecen los mensajes que tu agente cruza con los clientes, vengan del chat de tu web o de WhatsApp. Cada conversación se guarda sola.'
-              : 'Prueba con "Todas": puede que las conversaciones estén entrando por otro canal.'}
+              : 'Prueba con "Todos": puede que las conversaciones estén entrando por otro canal.'}
           </p>
         </div>
       ) : (
@@ -324,13 +335,24 @@ export default function Conversaciones() {
             </p>
           ) : null}
 
-          <ul className="flex flex-col gap-2.5">
-            {lista.map((c) => (
-              <li key={c.id}>
-                <Tarjeta conversacion={c} />
-              </li>
-            ))}
-          </ul>
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <div
+                className={`grid min-w-[680px] ${COLS} items-center gap-3 border-b border-line bg-cream/40 px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-stone/70`}
+              >
+                <div />
+                <div>Conversación</div>
+                <div>Canal</div>
+                <div className="text-right">Cuándo</div>
+                <div className="text-right">Mensajes</div>
+              </div>
+              <div className="min-w-[680px] divide-y divide-line/70">
+                {lista.map((c) => (
+                  <Fila key={c.id} conversacion={c} />
+                ))}
+              </div>
+            </div>
+          </div>
 
           {errorMas ? (
             <p className="mt-3 text-center text-[13px] text-stone">
@@ -349,7 +371,7 @@ export default function Conversaciones() {
             </button>
           ) : (
             <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-[12.5px] text-stone/70">
-              <MessageCircle size={13} aria-hidden />
+              <Icon.Chat width="13" height="13" />
               Aquí solo se leen los mensajes
             </p>
           )}

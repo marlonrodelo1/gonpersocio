@@ -20,8 +20,7 @@ import {
   initPushTapHandler,
   registrarPushNativo,
 } from './lib/push';
-import BottomNav from './components/BottomNav';
-import BotonNuevaCita from './components/BotonNuevaCita';
+import PanelSidebar from './components/PanelSidebar';
 import ResetPasswordOverlay from './components/ResetPasswordOverlay';
 
 import Login from './pages/Login';
@@ -53,25 +52,7 @@ const Cobros = lazy(() => import('./pages/Cobros'));
 const Domicilio = lazy(() => import('./pages/Domicilio'));
 const Mas = lazy(() => import('./pages/Mas'));
 
-/** Franja del safe area con el color del cromo, o se ve otro color bajo la muesca. */
-function SafeAreaTop() {
-  return (
-    <div
-      aria-hidden
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 'env(safe-area-inset-top, 0px)',
-        background: 'var(--chrome)',
-        zIndex: 60,
-      }}
-    />
-  );
-}
-
-/** Barra de estado en cromo oscuro con texto claro. */
+/** Barra de estado: texto oscuro sobre cream (app clara, igual que el panel). */
 function StatusBarSetup() {
   useEffect(() => {
     if (!isNative()) return undefined;
@@ -81,13 +62,12 @@ function StatusBarSetup() {
       try {
         const { StatusBar, Style } = await import('@capacitor/status-bar');
         if (!vivo) return;
-        // OJO: Style.Dark significa "texto CLARO sobre fondo oscuro". Está al
-        // revés de lo que parece — Style.Light pondría el texto negro y sobre
-        // el espresso no se vería. Verificado en las definiciones del plugin.
-        await StatusBar.setStyle({ style: Style.Dark });
+        // App clara (cream, como el panel): texto OSCURO en la barra de estado.
+        // OJO: en este plugin Style.Light = texto oscuro (para fondos claros).
+        await StatusBar.setStyle({ style: Style.Light });
         if (platform() === 'android') {
           await StatusBar.setOverlaysWebView({ overlay: false });
-          await StatusBar.setBackgroundColor({ color: '#211D17' });
+          await StatusBar.setBackgroundColor({ color: '#F7F3EC' });
         } else {
           await StatusBar.setOverlaysWebView({ overlay: true });
         }
@@ -188,9 +168,34 @@ function PushRegistrar() {
   }, [navigate]);
 
   useEffect(() => {
-    if (user) registrarPushNativo();
-  }, [user]);
+    if (!user) return;
+    // Re-armar el tap handler AQUÍ además de al montar: en un re-login sin
+    // reiniciar la app, darDeBajaPushNativo() quitó el listener del tap y es
+    // este efecto (con user) el que lo vuelve a poner. initPushTapHandler es
+    // idempotente (guardado por tapHandlerListo).
+    initPushTapHandler(navigate);
+    registrarPushNativo();
+  }, [user, navigate]);
 
+  return null;
+}
+
+/**
+ * Refresca el perfil (plan, prueba) cuando la app vuelve al primer plano. Sirve
+ * sobre todo tras pagar la suscripción en el navegador: al volver, el banner de
+ * prueba y el estado del plan quedan al día sin tener que reiniciar.
+ */
+function RefrescarAlVolver() {
+  const { user, recargarPerfil } = useAuth();
+  useEffect(() => {
+    if (!isNative() || !user) return undefined;
+    const sub = CapApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) recargarPerfil();
+    });
+    return () => {
+      sub.then((s) => s.remove()).catch(() => {});
+    };
+  }, [user, recargarPerfil]);
   return null;
 }
 
@@ -212,7 +217,7 @@ function Cargando() {
 
 /** Exige sesión Y salón. Un usuario sin salón no tiene nada que gestionar. */
 function Protegida({ children }) {
-  const { user, perfil, cargando } = useAuth();
+  const { user, perfil, cargando, errorCarga, recargarPerfil } = useAuth();
   const { pathname, search } = useLocation();
 
   if (cargando) return <Cargando />;
@@ -220,27 +225,56 @@ function Protegida({ children }) {
     const destino = encodeURIComponent(pathname + search);
     return <Navigate to={`/login?next=${destino}`} replace />;
   }
+  // Fallo de RED/servidor al cargar el perfil: NO es "sin salón". Un dueño con
+  // negocio no debe ver "no gestiona negocio" solo porque el backend no
+  // respondió — le ofrecemos reintentar.
+  if (!perfil && errorCarga) return <ErrorConexion onReintentar={recargarPerfil} />;
   if (!perfil) return <SinSalon />;
   return children;
 }
 
+/** No se pudo conectar con el servidor (red/backend), no falta de salón. */
+function ErrorConexion({ onReintentar }) {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-cream p-8 text-center">
+      <h1 className="tight text-[20px] font-semibold text-ink">No hay conexión</h1>
+      <p className="max-w-sm text-[14px] leading-relaxed text-stone">
+        No hemos podido conectar con el servidor. Comprueba tu internet e
+        inténtalo de nuevo.
+      </p>
+      <button
+        type="button"
+        className="gloss-btn tight mt-2 rounded-full px-6 py-3 text-[14px] font-medium"
+        onClick={onReintentar}
+      >
+        Reintentar
+      </button>
+    </div>
+  );
+}
+
 /**
- * Sesión válida pero sin salón vinculado. Pasa si alguien se registró en el
- * marketplace como cliente e intenta entrar aquí. NO se ofrece dar de alta un
- * salón desde la app: eso implica elegir plan y meter tarjeta.
+ * Sesión válida pero SIN salón vinculado. NO se crea el salón desde aquí: el
+ * alta (nombre + tipo + prueba) vive en el registro por email ("Crear cuenta")
+ * y en la web. Google/Apple solo sirven para ENTRAR a un negocio que ya existe.
  */
 function SinSalon() {
   const { logout } = useAuth();
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
-      <h1 className="text-xl font-semibold text-ink">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-cream p-8 text-center">
+      <h1 className="tight text-[20px] font-semibold text-ink">
         Esta cuenta no gestiona ningún negocio
       </h1>
-      <p className="max-w-sm text-stone">
-        Gonper Socio es la app para salones y barberías. Si eres cliente y
-        quieres reservar, usa la app de Gonper.
+      <p className="max-w-sm text-[14px] leading-relaxed text-stone">
+        Con esta cuenta no hay ningún salón. Si eres un salón nuevo, crea tu
+        cuenta con email (pestaña "Crear cuenta") o desde gonperstudio.shop. Si
+        eres cliente y quieres reservar, usa la app de Gonper.
       </p>
-      <button type="button" className="gloss-btn mt-2" onClick={logout}>
+      <button
+        type="button"
+        className="gloss-btn tight mt-2 rounded-full px-6 py-3 text-[14px] font-medium"
+        onClick={logout}
+      >
         Salir
       </button>
     </div>
@@ -500,14 +534,17 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <SafeAreaTop />
         <StatusBarSetup />
         <ScrollToTop />
         <NativeBootstrap />
         <PushRegistrar />
-        <Rutas />
-        <BotonNuevaCita />
-        <BottomNav />
+        <RefrescarAlVolver />
+        <div className="flex min-h-screen bg-cream text-ink">
+          <PanelSidebar />
+          <div className="min-w-0 flex-1">
+            <Rutas />
+          </div>
+        </div>
         <ResetPasswordOverlay />
       </BrowserRouter>
     </AuthProvider>

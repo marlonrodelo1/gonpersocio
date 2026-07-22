@@ -15,10 +15,11 @@ import { WEB_PANEL } from './identidad';
  *  2) Válvula de escape: si una pantalla nativa se queda corta o falla, el
  *     dueño puede llegar al panel completo sin ir al ordenador.
  *
- * PROHIBIDO enlazar aquí a `/panel/config/suscripcion` ni a ninguna pantalla
- * con precios. La sesión abierta por este puente lleva la marca
- * `panel_modo_app`, que hace que el panel web esconda precios y botones de
- * compra — pero la primera defensa es no enlazar ahí en absoluto.
+ * Incluye `/panel/config/suscripcion`: la app del negocio gestiona el plan y el
+ * pago (decisión de producto). El pago lo hace Stripe Checkout hospedado en el
+ * navegador del sistema, no un formulario dentro del binario — la vía de menor
+ * riesgo frente a las tiendas. El servidor valida la MISMA lista en
+ * `puente-rutas.ts`; esta copia es solo la guarda de UI.
  */
 
 /** Rutas del panel que la app tiene permitido abrir. Lista cerrada a propósito. */
@@ -28,6 +29,7 @@ const RUTAS_PERMITIDAS = new Set([
   '/panel/config/equipo/nuevo',
   '/panel/config/web',
   '/panel/config/agente',
+  '/panel/config/suscripcion',
   '/panel/hoy',
 ]);
 
@@ -41,7 +43,9 @@ export async function abrirEnWeb(ruta) {
     throw new Error(`Ruta no permitida en el puente: ${ruta}`);
   }
   const { codigo } = await apiPost('/web-bridge', { ruta });
-  const url = `${WEB_PANEL}/auth/puente?codigo=${encodeURIComponent(codigo)}`;
+  const url =
+    `${WEB_PANEL}/auth/puente?codigo=${encodeURIComponent(codigo)}` +
+    `&next=${encodeURIComponent(ruta)}`;
   await Browser.open({ url });
 }
 

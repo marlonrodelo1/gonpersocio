@@ -26,7 +26,7 @@ export class ApiError extends Error {
   }
 }
 
-async function pedir(path, opciones = {}) {
+async function pedir(path, opciones = {}, _reintento = false) {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -39,11 +39,32 @@ async function pedir(path, opciones = {}) {
     cabeceras['Content-Type'] = 'application/json';
   }
 
-  const res = await fetch(`${API_BASE}${API_PREFIJO}${path}`, {
-    method: opciones.method || 'GET',
-    headers: cabeceras,
-    body: opciones.body !== undefined ? JSON.stringify(opciones.body) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${API_PREFIJO}${path}`, {
+      method: opciones.method || 'GET',
+      headers: cabeceras,
+      body: opciones.body !== undefined ? JSON.stringify(opciones.body) : undefined,
+    });
+  } catch {
+    // fetch solo lanza por fallo de red (sin conexión, DNS, CORS). El mensaje
+    // nativo es técnico y en inglés ('Failed to fetch' / 'Load failed'); lo
+    // normalizamos a algo legible para un dueño de salón.
+    throw new ApiError('No hay conexión. Comprueba tu internet.', 0, 'sin_red');
+  }
+
+  // 401 del backend: rechaza el token. Suele ser un token caducado que el
+  // refresco proactivo no llegó a renovar (app en segundo plano, franja entre
+  // chequeos). Intentamos refrescar y reintentar UNA vez. Si el refresh no
+  // devuelve sesión (refresh token inválido → sesión muerta), supabase-js emite
+  // SIGNED_OUT y la app redirige a login sola; no forzamos nada aquí para no
+  // echar al usuario por un corte de red transitorio.
+  if (res.status === 401 && !_reintento) {
+    const { data } = await supabase.auth.refreshSession();
+    if (data?.session) {
+      return pedir(path, opciones, true);
+    }
+  }
 
   // 204 sin cuerpo: no intentes parsear.
   if (res.status === 204) return null;
@@ -56,6 +77,16 @@ async function pedir(path, opciones = {}) {
   }
 
   if (!res.ok) {
+    // 401 que no se pudo recuperar: mensaje claro en vez del 'no_auth' del
+    // backend. (403 = rol insuficiente; ese sí trae mensaje legible del backend
+    // y se muestra tal cual, no es un fallo de sesión.)
+    if (res.status === 401) {
+      throw new ApiError(
+        'Tu sesión ha caducado. Vuelve a entrar.',
+        401,
+        cuerpo?.error || 'no_auth',
+      );
+    }
     const mensaje =
       cuerpo?.mensaje || cuerpo?.error || `Error ${res.status} en ${path}`;
     throw new ApiError(mensaje, res.status, cuerpo?.error);
@@ -75,6 +106,9 @@ export function apiPatch(path, body) {
   return pedir(path, { method: 'PATCH', body: body ?? {} });
 }
 
-export function apiDelete(path) {
-  return pedir(path, { method: 'DELETE' });
+export function apiDelete(path, body) {
+  return pedir(
+    path,
+    body !== undefined ? { method: 'DELETE', body } : { method: 'DELETE' },
+  );
 }

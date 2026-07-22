@@ -1,17 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Check,
-  ChevronLeft,
-  MapPin,
-  MessageCircle,
-  Phone,
-  RotateCw,
-  UserX,
-} from 'lucide-react';
 
 import Pantalla from '../components/Pantalla';
+import { Icon } from '../components/icons';
+import { metaEstado } from '../lib/estado-cita';
 import { useAuth } from '../context/useAuth';
 import { apiGet, apiPost } from '../lib/api';
 
@@ -20,75 +12,12 @@ import { apiGet, apiPost } from '../lib/api';
  * nueva, así que se optimiza para leerse de un vistazo y para las dos cosas que
  * el dueño hace nada más abrirla: llamar al cliente o escribirle por WhatsApp.
  *
- * El panel web resuelve lo mismo con tablas y columnas; aquí todo va en tarjetas
- * apiladas porque en un móvil de 360 px cualquier tabla obliga a hacer scroll
- * lateral, y con el cliente delante eso no se hace.
+ * Mismo lenguaje visual que el detalle del panel web (`panel/citas/[id]`): hero
+ * con eyebrow + servicio en serif itálica, tarjetas con badge de icono para
+ * domicilio y depósito, y rejilla de detalle. Todo apilado porque en un móvil de
+ * 360 px cualquier tabla obliga a scroll lateral y con el cliente delante eso no
+ * se hace.
  */
-
-// ---------------------------------------------------------------------------
-// Estado de la cita
-// ---------------------------------------------------------------------------
-
-/**
- * Mismos colores que el panel web (verde=confirmada, amarillo=pendiente,
- * rojo=cancelada, negro=no-show) para que el dueño no tenga que aprender dos
- * códigos de color según el dispositivo desde el que mire.
- */
-const ESTADO = {
-  confirmada: {
-    label: 'Confirmada',
-    bg: 'rgba(139,157,122,0.18)',
-    fg: '#4A5A3D',
-    dot: '#6F8460',
-  },
-  pendiente: {
-    label: 'Pendiente',
-    bg: 'rgba(197,142,44,0.16)',
-    fg: '#7A5A1B',
-    dot: '#C58E2C',
-  },
-  cancelada: {
-    label: 'Cancelada',
-    bg: 'rgba(177,72,72,0.12)',
-    fg: '#7C2E2E',
-    dot: '#B14848',
-  },
-  no_show: {
-    label: 'No se presentó',
-    bg: 'rgba(43,40,35,0.10)',
-    fg: '#2B2823',
-    dot: '#2B2823',
-  },
-  completada: {
-    label: 'Completada',
-    bg: 'rgba(95,107,77,0.18)',
-    fg: '#3F4D34',
-    dot: '#4A5A3D',
-  },
-  pendiente_pago: {
-    label: 'Esperando pago',
-    bg: 'rgba(107,99,86,0.12)',
-    fg: '#6B6356',
-    dot: '#8A8174',
-  },
-  nuevo: {
-    label: 'Nueva',
-    bg: 'rgba(107,99,86,0.12)',
-    fg: '#6B6356',
-    dot: '#8A8174',
-  },
-};
-
-function metaEstado(estado) {
-  return (
-    ESTADO[estado] ?? {
-      label: estado ?? '—',
-      bg: 'rgba(107,99,86,0.12)',
-      fg: '#6B6356',
-      dot: '#8A8174',
-    }
-  );
-}
 
 const ORIGEN = {
   manual: 'Creada a mano',
@@ -207,6 +136,7 @@ function hrefWhatsapp(telefono) {
 // Piezas de UI
 // ---------------------------------------------------------------------------
 
+/** Eyebrow de sección, igual que el panel. */
 function Etiqueta({ children }) {
   return (
     <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
@@ -215,13 +145,14 @@ function Etiqueta({ children }) {
   );
 }
 
-function Dato({ etiqueta, children }) {
+/** Celda etiqueta/valor de la rejilla de Detalle, clon del `Field` del panel. */
+function Campo({ etiqueta, children }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 py-2">
-      <span className="shrink-0 text-[13px] text-stone">{etiqueta}</span>
-      <span className="min-w-0 break-words text-right text-[14px] text-ink">
-        {children}
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] uppercase tracking-[0.2em] text-stone/70">
+        {etiqueta}
       </span>
+      <div className="text-[13.5px] text-ink/85">{children}</div>
     </div>
   );
 }
@@ -251,9 +182,8 @@ function Fallo({ mensaje, onReintentar }) {
       <button
         type="button"
         onClick={onReintentar}
-        className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-[14px] font-medium"
+        className="gloss-btn tight w-fit rounded-full px-5 py-3 text-[14px] font-medium"
       >
-        <RotateCw size={16} strokeWidth={2} />
         Reintentar
       </button>
     </div>
@@ -278,11 +208,12 @@ export default function CitaDetalle() {
   // compilador de React), así que la orden de recargar entra por aquí.
   const [intento, setIntento] = useState(0);
 
-  // Acción pendiente de confirmar: 'confirmar' | 'no_show' | null. Se pregunta
-  // antes de ejecutar porque las dos son difíciles de deshacer desde la app.
+  // Acción pendiente de confirmar: 'confirmar' | 'no_show' | 'cancelar' | null.
+  // Se pregunta antes de ejecutar porque las tres son difíciles de deshacer.
   const [pidiendo, setPidiendo] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [errorAccion, setErrorAccion] = useState(null);
+  const [motivoCancel, setMotivoCancel] = useState('');
 
   useEffect(() => {
     let vivo = true;
@@ -314,8 +245,13 @@ export default function CitaDetalle() {
     setGuardando(true);
     setErrorAccion(null);
     try {
-      const resultado = await apiPost(`/citas/${id}/estado`, { accion });
+      const cuerpo =
+        accion === 'cancelar' && motivoCancel.trim()
+          ? { accion, motivo: motivoCancel.trim() }
+          : { accion };
+      const resultado = await apiPost(`/citas/${id}/estado`, cuerpo);
       setPidiendo(null);
+      setMotivoCancel('');
       // Se recarga en vez de parchear el estado en local: confirmar rellena la
       // fecha de confirmación y el dueño necesita ver la ficha real, no una
       // aproximación. Si la recarga falla, el cambio YA está guardado: se
@@ -345,10 +281,10 @@ export default function CitaDetalle() {
       type="button"
       onClick={() => navigate(-1)}
       aria-label="Volver"
-      className="-mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-      style={{ background: 'var(--chrome-2)', color: 'var(--on-chrome)' }}
+      className="card-tight tight inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-[13px] font-medium text-ink"
     >
-      <ArrowLeft size={19} strokeWidth={1.9} />
+      <Icon.Arrow width="14" height="14" style={{ transform: 'rotate(180deg)' }} />
+      Volver
     </button>
   );
 
@@ -371,9 +307,11 @@ export default function CitaDetalle() {
   if (!datos) {
     return (
       <Pantalla titulo="Cita" subtitulo={salon?.nombre} accion={volver}>
-        <div className="card p-5">
-          <p className="text-[15px] text-ink">Esta cita ya no existe.</p>
-          <p className="mt-1 text-[13.5px] text-stone">
+        <div className="card p-6 text-center">
+          <p className="tight text-[15.5px] font-medium text-ink">
+            Esta cita ya no existe
+          </p>
+          <p className="mt-1.5 text-[13.5px] leading-relaxed text-stone">
             Puede que se haya borrado desde el panel. Vuelve a la agenda para
             ver las citas actuales.
           </p>
@@ -396,7 +334,11 @@ export default function CitaDetalle() {
   const puedeConfirmar = cita.estado === 'pendiente';
   const puedeNoShow =
     cita.estado === 'pendiente' || cita.estado === 'confirmada';
-  const hayAcciones = puedeConfirmar || puedeNoShow;
+  const puedeCancelar =
+    cita.estado === 'pendiente' ||
+    cita.estado === 'confirmada' ||
+    cita.estado === 'pendiente_pago';
+  const hayAcciones = puedeConfirmar || puedeNoShow || puedeCancelar;
 
   const totalPartes = (partes ?? []).reduce((a, p) => a + p.duracionMin, 0);
 
@@ -407,22 +349,22 @@ export default function CitaDetalle() {
       accion={volver}
     >
       <div className="flex flex-col gap-4">
-        {/* Qué es esta cita */}
-        <section className="card flex flex-col gap-3 p-5">
-          <span
-            className="pill w-fit"
-            style={{ background: m.bg, color: m.fg }}
-          >
-            <span className="pill-dot" style={{ background: m.dot }} />
-            {m.label}
-          </span>
+        {/* Hero: qué es esta cita */}
+        <section className="card flex flex-col gap-3 p-5 md:p-6">
+          <div className="flex items-center gap-3">
+            <span className="pill" style={{ background: m.bg, color: m.fg }}>
+              <span className="pill-dot" style={{ background: m.dot }} />
+              {m.label}
+            </span>
+            <Etiqueta>Cita</Etiqueta>
+          </div>
 
-          <h2 className="tight text-[21px] font-medium leading-tight text-ink">
-            {servicio.nombre}
-          </h2>
-          <p className="text-[14px] text-stone">
-            con <span className="text-ink">{profesional.nombre}</span>
-          </p>
+          <h1 className="tight text-[22px] font-medium leading-tight text-ink">
+            {servicio.nombre}{' '}
+            <span className="font-serif-it text-stone/70">
+              con {profesional.nombre}
+            </span>
+          </h1>
 
           <div className="rule my-1" />
 
@@ -470,16 +412,27 @@ export default function CitaDetalle() {
         ) : null}
 
         {/* Cliente + contacto: el motivo de que esto se use desde el móvil */}
-        <section className="card flex flex-col gap-4 p-5">
-          <div className="flex items-center gap-3">
+        <section className="card-tight flex flex-col gap-4 p-5">
+          <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-line bg-cream-2 text-[14px] font-medium text-ink">
               {iniciales(cliente.nombre)}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="tight truncate text-[16px] font-medium text-ink">
-                {cliente.nombre}
-              </p>
-              <p className="truncate text-[13px] text-stone">
+              <div className="tight flex items-center gap-2 text-[15px] font-medium text-ink">
+                <span className="truncate">{cliente.nombre}</span>
+                {cliente.totalNoShows >= 2 ? (
+                  <span
+                    className="shrink-0 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
+                    style={{
+                      background: 'rgba(177,72,72,0.10)',
+                      color: '#B14848',
+                    }}
+                  >
+                    {cliente.totalNoShows} no-shows
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-0.5 truncate text-[12.5px] text-stone">
                 {cliente.totalCitas} visita{cliente.totalCitas === 1 ? '' : 's'}
                 {cliente.telefono ? ` · ${cliente.telefono}` : ''}
               </p>
@@ -487,13 +440,22 @@ export default function CitaDetalle() {
           </div>
 
           {cliente.totalNoShows >= 2 ? (
-            <p
-              className="rounded-xl px-3 py-2 text-[13px]"
-              style={{ background: 'rgba(177,72,72,0.10)', color: '#7C2E2E' }}
+            <div
+              className="flex items-start gap-3 rounded-2xl border px-4 py-3"
+              style={{
+                borderColor: 'rgba(177,72,72,0.35)',
+                background: '#F1D6D6',
+                color: '#7C2E2E',
+              }}
             >
-              Ha faltado {cliente.totalNoShows} veces sin avisar. Puede que te
-              interese pedirle depósito la próxima vez.
-            </p>
+              <span className="mt-0.5 shrink-0 text-terracotta">
+                <Icon.Sparkle width="15" height="15" />
+              </span>
+              <p className="text-[13px] leading-relaxed">
+                Ha faltado {cliente.totalNoShows} veces sin avisar. Puede que te
+                interese pedirle depósito la próxima vez.
+              </p>
+            </div>
           ) : null}
 
           {cliente.telefono ? (
@@ -502,7 +464,7 @@ export default function CitaDetalle() {
                 href={hrefLlamar(cliente.telefono)}
                 className="gloss-btn tight flex items-center justify-center gap-2 rounded-full px-4 py-3.5 text-[14px] font-medium"
               >
-                <Phone size={17} strokeWidth={2} />
+                <Icon.Phone width="17" height="17" />
                 Llamar
               </a>
               <a
@@ -511,7 +473,7 @@ export default function CitaDetalle() {
                 rel="noreferrer"
                 className="card-tight tight flex items-center justify-center gap-2 rounded-full px-4 py-3.5 text-[14px] font-medium text-ink"
               >
-                <MessageCircle size={17} strokeWidth={2} />
+                <Icon.Chat width="17" height="17" />
                 WhatsApp
               </a>
             </div>
@@ -525,7 +487,7 @@ export default function CitaDetalle() {
           {cliente.email ? (
             <a
               href={`mailto:${cliente.email}`}
-              className="truncate text-[13px] text-stone underline decoration-line-2 underline-offset-4"
+              className="truncate text-[13px] text-terracotta underline decoration-line-2 underline-offset-4 hover:text-terracotta-2"
             >
               {cliente.email}
             </a>
@@ -534,118 +496,143 @@ export default function CitaDetalle() {
 
         {/* Servicio a domicilio: a dónde hay que ir */}
         {cita.domicilioDireccion ? (
-          <section className="card flex flex-col gap-2 p-5">
-            <Etiqueta>A domicilio</Etiqueta>
-            <p className="text-[15px] text-ink">{cita.domicilioDireccion}</p>
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                cita.domicilioDireccion,
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-              className="card-tight tight mt-1 inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-[13.5px] font-medium text-ink"
-            >
-              <MapPin size={15} strokeWidth={2} />
-              Cómo llegar
-            </a>
+          <section className="card-tight flex items-start gap-4 p-5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-terracotta/10 text-terracotta">
+              <Icon.Home width="18" height="18" />
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <Etiqueta>Servicio a domicilio</Etiqueta>
+              <p className="text-[15px] font-medium text-ink">
+                {cita.domicilioDireccion}
+              </p>
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                  cita.domicilioDireccion,
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="tight mt-1 inline-flex w-fit items-center gap-1.5 text-[12.5px] font-medium text-terracotta hover:text-terracotta-2"
+              >
+                Cómo llegar
+                <Icon.Arrow width="12" height="12" />
+              </a>
+            </div>
           </section>
         ) : null}
 
         {/* Pago por adelantado */}
         {deposito ? (
-          <section className="card flex flex-col gap-1 p-5">
-            <Etiqueta>Pago por adelantado</Etiqueta>
-            {deposito.reembolsadoAt ? (
-              <p className="mt-1 text-[15px] text-ink">
-                Devuelto
-                {deposito.montoEur !== null
-                  ? ` · ${euros.format(deposito.montoEur)}`
-                  : ''}
-              </p>
-            ) : deposito.pagadoAt ? (
-              <>
-                <p
-                  className="mt-1 text-[15px] font-medium"
-                  style={{ color: '#4A5A3D' }}
-                >
-                  Pagado
+          <section className="card-tight flex items-start gap-4 p-5">
+            <div
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[15px] font-semibold"
+              style={
+                deposito.pagadoAt && !deposito.reembolsadoAt
+                  ? { background: 'rgba(139,157,122,0.18)', color: '#4A5A3D' }
+                  : { background: 'rgba(197,142,44,0.16)', color: '#7A5A1B' }
+              }
+            >
+              €
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <Etiqueta>Pago por adelantado</Etiqueta>
+              {deposito.reembolsadoAt ? (
+                <p className="text-[15px] font-medium text-ink">
+                  Devuelto
                   {deposito.montoEur !== null
                     ? ` · ${euros.format(deposito.montoEur)}`
                     : ''}
                 </p>
-                {deposito.restanteEur !== null ? (
-                  <p className="text-[13.5px] text-stone">
-                    {deposito.restanteEur > 0
-                      ? `Queda por cobrar en el salón ${euros.format(deposito.restanteEur)}`
-                      : 'No queda nada por cobrar.'}
+              ) : deposito.pagadoAt ? (
+                <>
+                  <p
+                    className="text-[15px] font-medium"
+                    style={{ color: '#4A5A3D' }}
+                  >
+                    Pagado
+                    {deposito.montoEur !== null
+                      ? ` · ${euros.format(deposito.montoEur)}`
+                      : ''}
                   </p>
-                ) : null}
-                <p className="text-[12.5px] text-stone/80">
-                  {fmtFechaHora(deposito.pagadoAt, tz)}
-                </p>
-              </>
-            ) : (
-              <>
-                <p
-                  className="mt-1 text-[15px] font-medium"
-                  style={{ color: '#7A5A1B' }}
-                >
-                  Esperando el pago
-                  {deposito.montoEur !== null
-                    ? ` · ${euros.format(deposito.montoEur)}`
-                    : ''}
-                </p>
-                <p className="text-[13.5px] text-stone">
-                  La reserva se confirma sola en cuanto el cliente pague.
-                </p>
-              </>
-            )}
+                  {deposito.restanteEur !== null ? (
+                    <span className="text-[12.5px] text-stone">
+                      {deposito.restanteEur > 0
+                        ? `Queda por cobrar en el salón ${euros.format(deposito.restanteEur)}`
+                        : 'No queda nada por cobrar.'}
+                    </span>
+                  ) : null}
+                  <span className="text-[12.5px] text-stone/80">
+                    {fmtFechaHora(deposito.pagadoAt, tz)}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <p
+                    className="text-[15px] font-medium"
+                    style={{ color: '#7A5A1B' }}
+                  >
+                    Esperando el pago
+                    {deposito.montoEur !== null
+                      ? ` · ${euros.format(deposito.montoEur)}`
+                      : ''}
+                  </p>
+                  <span className="text-[12.5px] text-stone">
+                    La reserva se confirma sola en cuanto el cliente pague.
+                  </span>
+                </>
+              )}
+            </div>
           </section>
         ) : null}
 
+        <div className="rule" />
+
         {/* Notas y trazabilidad */}
-        <section className="card flex flex-col p-5">
+        <section className="card-tight flex flex-col gap-4 p-6">
           <Etiqueta>Detalle</Etiqueta>
-          <div className="mt-1 flex flex-col divide-y divide-line">
-            <Dato etiqueta="Notas">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Campo etiqueta="Notas">
               {cita.notas ? (
                 <span className="whitespace-pre-wrap">{cita.notas}</span>
               ) : (
-                <span className="text-stone/70">Sin notas</span>
+                <span className="text-stone/60">Sin notas</span>
               )}
-            </Dato>
-            <Dato etiqueta="Reservada por">
+            </Campo>
+            <Campo etiqueta="Reservada por">
               {ORIGEN[cita.origen] ?? cita.origen}
-            </Dato>
-            <Dato etiqueta="Entró">
+            </Campo>
+            <Campo etiqueta="Entró">
               <span className="tabular">{fmtFechaHora(cita.creadaAt, tz)}</span>
-            </Dato>
+            </Campo>
             {cita.confirmadaAt ? (
-              <Dato etiqueta="Confirmada">
+              <Campo etiqueta="Confirmada">
                 <span className="tabular">
                   {fmtFechaHora(cita.confirmadaAt, tz)}
                 </span>
-              </Dato>
+              </Campo>
             ) : null}
             {cita.canceladaAt ? (
-              <Dato etiqueta="Cancelada">
+              <Campo etiqueta="Cancelada">
                 <span className="tabular">
                   {fmtFechaHora(cita.canceladaAt, tz)}
                 </span>
-              </Dato>
+              </Campo>
             ) : null}
             {cita.motivoCancelacion ? (
-              <Dato etiqueta="Motivo">
-                <span className="whitespace-pre-wrap">
-                  {cita.motivoCancelacion}
-                </span>
-              </Dato>
+              <div className="sm:col-span-2">
+                <Campo etiqueta="Motivo">
+                  <span className="whitespace-pre-wrap">
+                    {cita.motivoCancelacion}
+                  </span>
+                </Campo>
+              </div>
             ) : null}
           </div>
         </section>
 
+        <div className="rule" />
+
         {/* Acciones */}
-        <section className="card flex flex-col gap-3 p-5">
+        <section className="card-tight flex flex-col gap-4 p-6">
           <Etiqueta>Acciones</Etiqueta>
 
           {errorAccion ? (
@@ -658,17 +645,30 @@ export default function CitaDetalle() {
           ) : null}
 
           {!hayAcciones ? (
-            <p className="text-[14px] text-stone">
-              Esta cita está {m.label.toLowerCase()} y ya no admite cambios
-              desde la app.
+            <p className="text-[13.5px] text-stone">
+              Esta cita está en estado{' '}
+              <strong className="text-ink">{m.label.toLowerCase()}</strong> y ya
+              no admite cambios desde la app.
             </p>
           ) : pidiendo ? (
             <div className="flex flex-col gap-3">
               <p className="text-[15px] text-ink">
                 {pidiendo === 'confirmar'
                   ? `¿Confirmas la cita de ${cliente.nombre}?`
-                  : `¿Marcas que ${cliente.nombre} no se presentó? Se le suma a su historial de faltas.`}
+                  : pidiendo === 'no_show'
+                    ? `¿Marcas que ${cliente.nombre} no se presentó? Se le suma a su historial de faltas.`
+                    : `¿Cancelas la cita de ${cliente.nombre}? Si pagó depósito, se le devuelve automáticamente.`}
               </p>
+              {pidiendo === 'cancelar' ? (
+                <textarea
+                  value={motivoCancel}
+                  onChange={(e) => setMotivoCancel(e.target.value)}
+                  placeholder="Motivo (opcional, lo verá el cliente)"
+                  rows={2}
+                  maxLength={500}
+                  className="w-full resize-none rounded-2xl border border-line bg-paper px-4 py-3 text-[14px] text-ink placeholder:text-stone/55 focus:border-line-2 focus:outline-none"
+                />
+              ) : null}
               <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
@@ -681,7 +681,10 @@ export default function CitaDetalle() {
                 <button
                   type="button"
                   disabled={guardando}
-                  onClick={() => setPidiendo(null)}
+                  onClick={() => {
+                    setPidiendo(null);
+                    setMotivoCancel('');
+                  }}
                   className="card-tight tight rounded-full px-4 py-3.5 text-[14px] font-medium text-ink disabled:opacity-60"
                 >
                   Mejor no
@@ -699,7 +702,7 @@ export default function CitaDetalle() {
                   }}
                   className="gloss-btn tight flex items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[14.5px] font-medium"
                 >
-                  <Check size={17} strokeWidth={2.2} />
+                  <Icon.Check width="17" height="17" />
                   Confirmar cita
                 </button>
               ) : null}
@@ -710,16 +713,27 @@ export default function CitaDetalle() {
                     setErrorAccion(null);
                     setPidiendo('no_show');
                   }}
-                  className="card-tight tight flex items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[14.5px] font-medium"
-                  style={{ color: '#7C2E2E' }}
+                  className="card-tight tight flex items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[14.5px] font-medium text-[#7C2E2E] hover:bg-[#F1D6D6]/40"
                 >
-                  <UserX size={17} strokeWidth={2} />
                   No se presentó
                 </button>
               ) : null}
+              {puedeCancelar ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErrorAccion(null);
+                    setMotivoCancel('');
+                    setPidiendo('cancelar');
+                  }}
+                  className="card-tight tight flex items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[14.5px] font-medium text-[#7C2E2E] hover:bg-[#F1D6D6]/40"
+                >
+                  <Icon.X width="16" height="16" />
+                  Cancelar cita
+                </button>
+              ) : null}
               <p className="text-[12.5px] leading-relaxed text-stone">
-                Para cancelar esta cita y devolver el pago, entra en el panel
-                desde el ordenador.
+                Si el cliente pagó depósito, se le devuelve al cancelar.
               </p>
             </div>
           )}
@@ -728,10 +742,9 @@ export default function CitaDetalle() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="tight inline-flex items-center gap-1.5 self-start px-1 py-2 text-[13.5px] text-stone"
+          className="tight self-start px-1 py-2 text-[12.5px] text-stone hover:text-ink"
         >
-          <ChevronLeft size={15} strokeWidth={2} />
-          Volver
+          ← Volver
         </button>
       </div>
     </Pantalla>

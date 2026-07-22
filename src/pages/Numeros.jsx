@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { TrendingUp } from 'lucide-react';
 
 import Pantalla from '../components/Pantalla';
+import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
 import { apiGet } from '../lib/api';
 
@@ -99,11 +99,9 @@ function Pastillas({ valor, onCambio }) {
             role="tab"
             aria-selected={activo}
             onClick={() => onCambio(p.valor)}
-            className="tight flex-1 rounded-full px-3 py-2 text-[13px] font-medium"
-            style={
-              activo
-                ? { background: 'var(--socio-accent)', color: 'var(--on-chrome)' }
-                : { color: 'var(--stone)' }
+            className={
+              'tight flex-1 rounded-full px-3 py-2 text-[13px] font-medium transition ' +
+              (activo ? 'bg-ink text-cream' : 'text-stone hover:text-ink')
             }
           >
             {p.etiqueta}
@@ -164,8 +162,8 @@ function Barras({ barras, activa, onTocar, maximo, tz }) {
                 background: vacia
                   ? 'var(--line-2)'
                   : seleccionada
-                    ? 'var(--brand-mark)'
-                    : 'var(--socio-accent)',
+                    ? 'var(--ink)'
+                    : 'var(--terracotta)',
                 opacity: vacia ? 0.7 : 1,
               }}
             />
@@ -280,7 +278,7 @@ function TopServicios({ lista }) {
                   tope > 0
                     ? `${Math.max(3, (s.facturadoEur / tope) * 100)}%`
                     : '3%',
-                background: 'var(--socio-accent)',
+                background: 'var(--terracotta)',
               }}
             />
           </div>
@@ -346,7 +344,9 @@ export default function Numeros() {
   const tz = datos?.timezone ?? salon?.timezone ?? 'Europe/Madrid';
   const kpis = datos?.kpis;
 
-  let subtitulo = salon?.nombre ?? '';
+  const saludo = salon?.nombre ? `· ${salon.nombre}` : undefined;
+
+  let subtitulo = '';
   if (datos) {
     subtitulo =
       periodo === 'hoy'
@@ -374,7 +374,7 @@ export default function Numeros() {
     datos.grafica.barras.every((b) => b.citas === 0);
 
   return (
-    <Pantalla titulo="Números" subtitulo={subtitulo}>
+    <Pantalla titulo="Números" subtitulo={subtitulo} saludo={saludo}>
       <div className="flex flex-col gap-4">
         <Pastillas valor={periodo} onCambio={setPeriodo} />
 
@@ -396,7 +396,12 @@ export default function Numeros() {
           <Esqueleto />
         ) : sinMovimiento ? (
           <div className="card px-5 py-8 text-center">
-            <TrendingUp className="mx-auto size-6 text-stone/50" aria-hidden />
+            <Icon.Chart
+              width="24"
+              height="24"
+              className="mx-auto text-stone/50"
+              aria-hidden
+            />
             <p className="tight mt-3 text-[15.5px] font-medium text-ink">
               {periodo === 'hoy'
                 ? 'Hoy todavía no hay movimiento'

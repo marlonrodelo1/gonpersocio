@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Browser } from '@capacitor/browser';
 
 import { supabase } from '../lib/supabase';
 import { apiGet } from '../lib/api';
@@ -49,6 +50,9 @@ export function AuthProvider({ children }) {
   const [perfil, setPerfil] = useState(null); // { salon, rol, profesionalId }
   const [cargando, setCargando] = useState(true);
   const [modoRecuperacion, setModoRecuperacion] = useState(false);
+  // true cuando /me NO se pudo cargar por RED/servidor (no por falta de salón).
+  // Sirve para no confundir "el backend no responde" con "no tienes negocio".
+  const [errorCarga, setErrorCarga] = useState(false);
   const refrescando = useRef(false);
 
   /** Trae salón + rol del backend. null si el usuario no tiene salón. */
@@ -56,12 +60,21 @@ export function AuthProvider({ children }) {
     try {
       const datos = await apiGet('/me');
       setPerfil(datos);
+      setErrorCarga(false);
       return datos;
     } catch (e) {
-      // 401/403 = sin salón vinculado. No es un error de programa: es un
-      // usuario que existe en Supabase pero no gestiona ningún negocio.
-      console.warn('[auth] /me', e?.message);
-      setPerfil(null);
+      // 401/403 = usuario SIN salón vinculado (existe en Supabase pero no
+      // gestiona ningún negocio) → perfil null, es un estado legítimo.
+      // Cualquier OTRO fallo (red caída, backend caído, 5xx) NO significa "sin
+      // salón": no pisamos el perfil y marcamos error de carga, para que la UI
+      // ofrezca reintentar en vez de decirle a un dueño que no tiene negocio.
+      if (e?.status === 401 || e?.status === 403) {
+        setPerfil(null);
+        setErrorCarga(false);
+      } else {
+        console.warn('[auth] /me error de carga', e?.message);
+        setErrorCarga(true);
+      }
       return null;
     }
   }, []);
@@ -125,6 +138,40 @@ export function AuthProvider({ children }) {
     if (error) throw new Error(traducir(error.message));
   }, []);
 
+  /**
+   * Login social (Google / Apple). MISMO flujo que la app de clientes: en nativo
+   * se abre el navegador del sistema y el retorno entra por deep link
+   * (`shop.gonperstudio.socio://login`), que resuelve NativeBootstrap en App.jsx.
+   * El provider tiene que estar habilitado en Supabase (ya lo está para la web y
+   * la app de clientes) y el deep link registrado en las Redirect URLs.
+   *
+   * Un usuario NUEVO por esta vía existe en auth pero aún no tiene salón: cae en
+   * la pantalla de onboarding (crear salón).
+   */
+  const oauth = useCallback(async (provider) => {
+    if (isNative()) {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: DEEP_LINK_LOGIN, skipBrowserRedirect: true },
+      });
+      if (error) throw new Error(traducir(error.message));
+      if (data?.url) {
+        await Browser.open({ url: data.url });
+      }
+    } else {
+      // Web/dev: vuelve al propio origen; la detección de sesión en la URL la
+      // hace el cliente de Supabase por defecto.
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: `${window.location.origin}/login` },
+      });
+      if (error) throw new Error(traducir(error.message));
+    }
+  }, []);
+
+  const entrarConGoogle = useCallback(() => oauth('google'), [oauth]);
+  const entrarConApple = useCallback(() => oauth('apple'), [oauth]);
+
   const logout = useCallback(async () => {
     // La baja del token de avisos va ANTES de cerrar sesión: necesita el JWT
     // para autenticarse. Si no, el móvil seguiría recibiendo los nombres y
@@ -169,8 +216,11 @@ export function AuthProvider({ children }) {
       rol: perfil?.rol ?? null,
       esDueno: perfil?.rol === 'dueno' || perfil?.rol === 'admin',
       cargando,
+      errorCarga,
       modoRecuperacion,
       login,
+      entrarConGoogle,
+      entrarConApple,
       logout,
       recuperarPassword,
       cambiarPassword,
@@ -181,8 +231,11 @@ export function AuthProvider({ children }) {
       user,
       perfil,
       cargando,
+      errorCarga,
       modoRecuperacion,
       login,
+      entrarConGoogle,
+      entrarConApple,
       logout,
       recuperarPassword,
       cambiarPassword,

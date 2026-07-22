@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Check, ExternalLink, Plus, RefreshCw, X } from 'lucide-react';
 
+import { Icon } from '../components/icons';
 import Pantalla from '../components/Pantalla';
 import { useAuth } from '../context/useAuth';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
@@ -9,12 +9,16 @@ import { abrirEnWeb } from '../lib/puente';
 /**
  * Equipo: las personas que atienden en el salón.
  *
- * El panel web lo pinta como una tabla de 820 px con cinco columnas. Aquí cada
- * profesional es una tarjeta y lo primero que se ve es su COLOR, porque es lo
- * único que los distingue en la agenda: en una pantalla llena de bloques, el
- * dueño no lee nombres, reconoce colores. Por eso el color no se elige con una
- * rueda de millones de tonos sino con una paleta de doce, todos distinguibles
- * entre sí de un vistazo y con suficiente contraste sobre el crema del fondo.
+ * El panel web lo pinta como una tabla (Color · Nombre · Estado · Cuenta ·
+ * Acciones). Aquí reusamos ese mismo lenguaje —una tarjeta-tabla con cabecera,
+ * filas divididas y acento terracota al pasar— pero conservando la edición en
+ * línea que hace usable el equipo desde el móvil: cada fila se despliega y se
+ * edita ahí mismo, sin abrir otra pantalla.
+ *
+ * Lo primero que se ve de cada profesional es su COLOR, porque es lo único que
+ * los distingue en la agenda: en una pantalla llena de bloques, el dueño no lee
+ * nombres, reconoce colores. Por eso el color no se elige con una rueda de
+ * millones de tonos sino con una paleta de doce, todos distinguibles entre sí.
  *
  * Se crea y se edita aquí porque un profesional sin cuenta es solo una ficha:
  * un nombre y un color. Dar de alta a alguien con cuenta propia para entrar al
@@ -75,7 +79,7 @@ function Avatar({ profesional }) {
       <img
         src={profesional.fotoUrl}
         alt=""
-        className="size-11 shrink-0 rounded-full object-cover"
+        className="h-10 w-10 shrink-0 rounded-full object-cover"
         style={{ boxShadow: `0 0 0 2.5px ${color}` }}
       />
     );
@@ -83,7 +87,7 @@ function Avatar({ profesional }) {
   return (
     <span
       aria-hidden
-      className="flex size-11 shrink-0 items-center justify-center rounded-full text-[13px] font-medium text-white"
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[13px] font-medium text-white"
       style={{ background: color }}
     >
       {iniciales(profesional.nombre)}
@@ -148,9 +152,7 @@ function SelectorColor({ valor, onChange, disabled }) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[12.5px] text-stone">
-        Color en la agenda
-      </span>
+      <span className="text-[12.5px] text-stone">Color en la agenda</span>
       <div className="flex flex-wrap gap-2">
         {opciones.map((c) => {
           const elegido = c.hex === valor;
@@ -162,7 +164,7 @@ function SelectorColor({ valor, onChange, disabled }) {
               aria-label={c.nombre}
               aria-pressed={elegido}
               onClick={() => onChange(c.hex)}
-              className="flex size-11 items-center justify-center rounded-full transition disabled:opacity-50"
+              className="flex h-11 w-11 items-center justify-center rounded-full transition disabled:opacity-50"
               style={{
                 background: c.hex,
                 boxShadow: elegido
@@ -170,7 +172,9 @@ function SelectorColor({ valor, onChange, disabled }) {
                   : 'inset 0 0 0 1px rgba(0,0,0,0.08)',
               }}
             >
-              {elegido ? <Check size={17} color="#fff" strokeWidth={3} /> : null}
+              {elegido ? (
+                <Icon.Check width="17" height="17" color="#fff" />
+              ) : null}
             </button>
           );
         })}
@@ -269,60 +273,67 @@ function FormularioNuevo({ colorInicial, onCreado, onCancelar }) {
   };
 
   return (
-    <section className="card flex flex-col gap-4 p-5">
-      <h2 className="tight text-[17px] font-medium text-ink">
-        Nuevo profesional
-      </h2>
-
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="nuevo_nombre" className="text-[12.5px] text-stone">
-          Nombre
-        </label>
-        <input
-          id="nuevo_nombre"
-          type="text"
-          value={nombre}
-          maxLength={50}
-          autoCapitalize="words"
-          disabled={guardando}
-          placeholder="Ana, Carlos, Sala 2…"
-          onChange={(e) => setNombre(e.target.value)}
-          className="field-input"
-        />
+    <section className="card overflow-hidden">
+      <div className="flex flex-col gap-1 border-b border-line px-5 py-4">
+        <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+          Alta
+        </span>
+        <h2 className="tight text-[17px] font-medium text-ink">
+          Nuevo profesional
+        </h2>
       </div>
 
-      <SelectorColor valor={color} onChange={setColor} disabled={guardando} />
+      <div className="flex flex-col gap-4 px-5 py-5">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="nuevo_nombre" className="text-[12.5px] text-stone">
+            Nombre
+          </label>
+          <input
+            id="nuevo_nombre"
+            type="text"
+            value={nombre}
+            maxLength={50}
+            autoCapitalize="words"
+            disabled={guardando}
+            placeholder="Ana, Carlos, Sala 2…"
+            onChange={(e) => setNombre(e.target.value)}
+            className="field-input"
+          />
+        </div>
 
-      {error ? <Aviso tipo="error" texto={error} /> : null}
+        <SelectorColor valor={color} onChange={setColor} disabled={guardando} />
 
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={guardar}
-          disabled={guardando}
-          className="gloss-btn tight flex-1 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
-        >
-          {guardando ? 'Guardando…' : 'Añadir al equipo'}
-        </button>
-        <button
-          type="button"
-          onClick={onCancelar}
-          disabled={guardando}
-          className="rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
-        >
-          Cancelar
-        </button>
+        {error ? <Aviso tipo="error" texto={error} /> : null}
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={guardar}
+            disabled={guardando}
+            className="gloss-btn tight flex-1 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
+          >
+            {guardando ? 'Guardando…' : 'Añadir al equipo'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancelar}
+            disabled={guardando}
+            className="rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+        </div>
+
+        <p className="text-[12.5px] leading-relaxed text-stone">
+          Se crea como ficha del salón: podrás asignarle citas y saldrá al
+          reservar. No lleva cuenta para entrar a la app.
+        </p>
       </div>
-
-      <p className="text-[12.5px] leading-relaxed text-stone">
-        Se crea como ficha del salón: podrás asignarle citas y saldrá al
-        reservar. No lleva cuenta para entrar a la app.
-      </p>
     </section>
   );
 }
 
-/* ---------- tarjeta ---------- */
+/* ---------- fila ---------- */
 
 function Tarjeta({ profesional, puedeEditar, onGuardado, onBorrado }) {
   const [abierto, setAbierto] = useState(false);
@@ -411,30 +422,32 @@ function Tarjeta({ profesional, puedeEditar, onGuardado, onBorrado }) {
 
   return (
     <div
-      className="card-tight overflow-hidden"
+      className="border-l-2 border-l-transparent transition hover:border-l-terracotta hover:bg-paper/60"
       style={{ opacity: profesional.activo ? 1 : 0.72 }}
     >
-      <div className="flex items-start gap-3 p-4">
+      <div className="flex items-start gap-3 px-5 py-4">
         <Avatar profesional={profesional} />
 
         <div className="min-w-0 flex-1">
-          <p className="tight text-[15.5px] font-medium leading-snug text-ink">
+          <p className="tight text-[15px] font-medium leading-snug text-ink">
             {profesional.nombre}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {!puedeEditar ? <PillEstado activo={profesional.activo} /> : null}
+            <PillEstado activo={profesional.activo} />
             {profesional.esMiCuenta ? (
               <span
                 className="pill"
                 style={{ background: 'rgba(197,86,44,0.10)', color: '#A8451F' }}
               >
+                <span className="pill-dot" style={{ background: '#C5562C' }} />
                 Tu cuenta
               </span>
             ) : profesional.tieneCuenta ? (
               <span
                 className="pill"
-                style={{ background: 'var(--cream-2)', color: 'var(--stone)' }}
+                style={{ background: 'rgba(139,157,122,0.15)', color: '#5A6B4D' }}
               >
+                <span className="pill-dot" style={{ background: '#8B9D7A' }} />
                 Entra a la app
               </span>
             ) : null}
@@ -456,11 +469,11 @@ function Tarjeta({ profesional, puedeEditar, onGuardado, onBorrado }) {
               type="button"
               onClick={abrir}
               aria-expanded={abierto}
-              className="inline-flex items-center gap-1 rounded-full border border-line bg-paper px-3 py-1.5 text-[12.5px] font-medium text-ink"
+              className="card-tight tight inline-flex items-center gap-1.5 px-3 py-1.5 text-[12.5px] font-medium text-ink hover:bg-cream"
             >
               {hecho ? (
                 <>
-                  <Check size={13} /> Guardado
+                  <Icon.Check width="13" height="13" /> Guardado
                 </>
               ) : abierto ? (
                 'Cerrar'
@@ -473,7 +486,7 @@ function Tarjeta({ profesional, puedeEditar, onGuardado, onBorrado }) {
       </div>
 
       {abierto ? (
-        <div className="flex flex-col gap-4 border-t border-line bg-cream/60 px-4 py-4">
+        <div className="flex flex-col gap-4 border-t border-line bg-cream/60 px-5 py-4">
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor={`nombre-${profesional.id}`}
@@ -544,7 +557,7 @@ function Tarjeta({ profesional, puedeEditar, onGuardado, onBorrado }) {
                     className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium disabled:opacity-50"
                     style={{ background: '#F1D6D6', color: '#7C2E2E' }}
                   >
-                    <Check size={14} />
+                    <Icon.Check width="14" height="14" />
                     {borrando ? 'Borrando…' : 'Sí, borrar'}
                   </button>
                   <button
@@ -553,7 +566,7 @@ function Tarjeta({ profesional, puedeEditar, onGuardado, onBorrado }) {
                     disabled={ocupado}
                     className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium text-stone disabled:opacity-50"
                   >
-                    <X size={14} />
+                    <Icon.X width="14" height="14" />
                     No
                   </button>
                 </div>
@@ -575,7 +588,7 @@ function Tarjeta({ profesional, puedeEditar, onGuardado, onBorrado }) {
 
       {!abierto && error ? (
         <div
-          className="border-t border-line px-4 py-2.5 text-[13px]"
+          className="border-t border-line px-5 py-2.5 text-[13px]"
           style={{ background: '#F1D6D6', color: '#7C2E2E' }}
         >
           {error}
@@ -686,25 +699,35 @@ export default function Equipo() {
   return (
     <Pantalla titulo="Equipo" subtitulo={subtitulo}>
       {cargando ? (
-        <div className="flex flex-col gap-2" aria-busy="true">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="card-tight h-[76px] animate-pulse" />
-          ))}
+        <div className="card overflow-hidden" aria-busy="true">
+          <div className="border-b border-line bg-cream/40 px-5 py-3">
+            <div className="h-3 w-28 animate-pulse rounded bg-cream-2" />
+          </div>
+          <div className="divide-y divide-line/70">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-5 py-4">
+                <span className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-cream-2" />
+                <span className="min-w-0 flex-1">
+                  <span className="block h-3.5 w-2/5 animate-pulse rounded bg-cream-2" />
+                  <span className="mt-2 block h-3 w-1/4 animate-pulse rounded bg-cream-2" />
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
 
       {!cargando && error ? (
         <div className="card flex flex-col items-start gap-3 p-5">
-          <p className="text-[15px] font-medium text-ink">
+          <p className="tight text-[15px] font-medium text-ink">
             No hemos podido cargar tu equipo
           </p>
           <p className="text-[14px] text-stone">{error}</p>
           <button
             type="button"
             onClick={reintentar}
-            className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+            className="gloss-btn tight rounded-full px-5 py-2.5 text-[13.5px] font-medium"
           >
-            <RefreshCw size={15} />
             Reintentar
           </button>
         </div>
@@ -726,9 +749,9 @@ export default function Equipo() {
                 type="button"
                 disabled={lleno}
                 onClick={() => setCreando(true)}
-                className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-50"
+                className="gloss-btn tight inline-flex items-center justify-center gap-2 self-start rounded-full px-5 py-2.5 text-[14px] font-medium disabled:opacity-50"
               >
-                <Plus size={16} />
+                <Icon.Plus width="15" height="15" />
                 Nuevo profesional
               </button>
             )
@@ -742,51 +765,66 @@ export default function Equipo() {
           ) : null}
 
           {equipo.length === 0 ? (
-            <div className="card flex flex-col gap-2 p-5">
-              <p className="text-[15px] font-medium text-ink">
+            <div className="card flex flex-col items-center justify-center gap-2 border-dashed p-10 text-center">
+              <p className="tight text-[15px] font-medium text-ink">
                 Todavía no hay nadie en el equipo
               </p>
-              <p className="text-[14px] leading-relaxed text-stone">
+              <p className="max-w-sm text-[13.5px] leading-relaxed text-stone">
                 {puedeEditar
                   ? 'Hasta que no haya al menos un profesional, nadie puede reservar contigo. Añade el primero con el botón de arriba.'
                   : 'El dueño todavía no ha dado de alta a nadie.'}
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
-              {equipo.map((p) => (
-                <Tarjeta
-                  key={p.id}
-                  profesional={p}
-                  puedeEditar={puedeEditar}
-                  onGuardado={aplicarCambio}
-                  onBorrado={aplicarBorrado}
-                />
-              ))}
-            </div>
+            <section className="card overflow-hidden">
+              <div className="flex items-center justify-between gap-3 border-b border-line bg-cream/40 px-5 py-3">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-stone/70">
+                  Profesional
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-stone/70">
+                  {puedeEditar ? 'Estado · Editar' : 'Estado'}
+                </span>
+              </div>
+              <div className="divide-y divide-line/70">
+                {equipo.map((p) => (
+                  <Tarjeta
+                    key={p.id}
+                    profesional={p}
+                    puedeEditar={puedeEditar}
+                    onGuardado={aplicarCambio}
+                    onBorrado={aplicarBorrado}
+                  />
+                ))}
+              </div>
+            </section>
           )}
 
           {puedeEditar ? (
-            <section className="card flex flex-col gap-3 p-5">
-              <div>
+            <section className="card overflow-hidden">
+              <div className="flex flex-col gap-1 border-b border-line px-5 py-4">
+                <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+                  Cuenta de panel
+                </span>
                 <h2 className="tight text-[16px] font-medium text-ink">
                   Que un trabajador entre a la app
                 </h2>
-                <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
+                <p className="mt-0.5 text-[13.5px] leading-relaxed text-stone">
                   Dar acceso propio a alguien de tu equipo se hace desde el
                   navegador, donde puedes revisarlo con calma. Se abre con tu
                   sesión ya iniciada.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={abrirNavegador}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-ink"
-              >
-                <ExternalLink size={15} />
-                Invitar desde el navegador
-              </button>
-              {errorPuente ? <Aviso tipo="error" texto={errorPuente} /> : null}
+              <div className="flex flex-col gap-3 px-5 py-4">
+                <button
+                  type="button"
+                  onClick={abrirNavegador}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-ink"
+                >
+                  <Icon.Share width="15" height="15" />
+                  Invitar desde el navegador
+                </button>
+                {errorPuente ? <Aviso tipo="error" texto={errorPuente} /> : null}
+              </div>
             </section>
           ) : null}
 

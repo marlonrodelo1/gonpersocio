@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Megaphone, Plus, RefreshCw, X } from 'lucide-react';
 
+import { Icon } from '../components/icons';
 import Pantalla from '../components/Pantalla';
 import { useAuth } from '../context/useAuth';
 import { apiDelete, apiGet, apiPatch } from '../lib/api';
@@ -9,21 +9,15 @@ import { apiDelete, apiGet, apiPatch } from '../lib/api';
 /**
  * Promociones: las ofertas que salen en la web pública del salón.
  *
- * El panel web las pinta en una tabla de siete columnas y 1020 px de ancho
- * mínimo; aquí cada promoción es una tarjeta y el orden de lectura es el de la
- * decisión: ¿se está viendo o no?, ¿qué ofrece?, ¿hasta cuándo?
+ * Re-maquetada como la TABLA del panel web (`panel/promociones/page.tsx`):
+ * misma rejilla de siete columnas y ancho mínimo con scroll lateral. La lógica
+ * (apiGet/apiPatch/apiDelete, alternar activa, borrar con confirmación) es la
+ * misma que ya tenía la app.
  *
- * Lo importante de esta pantalla es el estado CADUCADA. Una promoción con
- * `activa = true` pero con la fecha pasada sigue apareciendo encendida en el
- * panel y sin embargo la web ya no la enseña: el dueño cree que está anunciando
- * algo que nadie ve. Por eso caducada se pinta como aviso y no como un gris
- * más, y por eso el estado lo calcula el servidor en la zona del salón (ver el
- * endpoint): con la hora del móvil, un dueño en Canarias vería caducar a las
- * 23:00 lo que en su salón sigue vivo.
- *
- * No existe "programada" porque la tabla no tiene fecha de inicio: una
- * promoción empieza cuando se activa. Inventar aquí ese estado sería prometer
- * un comportamiento que la web pública no tiene.
+ * El estado CADUCADA es propio de la app: una promoción con `activa = true`
+ * pero con la fecha pasada sigue "encendida" en el panel y sin embargo la web
+ * ya no la enseña. El servidor lo calcula en la zona del salón (ver endpoint):
+ * con la hora del móvil, un dueño en Canarias vería caducar antes de tiempo.
  */
 
 const ESTADOS = {
@@ -46,16 +40,6 @@ const ESTADOS = {
     dot: '#B14848',
   },
 };
-
-function euros(valor) {
-  const n = Number(valor) || 0;
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(n);
-}
 
 /** 'AAAA-MM-DD' → "30 sept 2026". Se fija UTC para que no reste un día. */
 function fmtDia(ymd) {
@@ -81,39 +65,15 @@ function diasEntre(desdeYmd, hastaYmd) {
 function textoVigencia(promo, hoy) {
   if (!promo.validaHasta) return 'Sin fecha de fin';
   const dias = hoy ? diasEntre(hoy, promo.validaHasta) : null;
-  if (dias === null) return `Hasta el ${fmtDia(promo.validaHasta)}`;
+  if (dias === null) return fmtDia(promo.validaHasta);
   if (dias < 0) return `Caducó el ${fmtDia(promo.validaHasta)}`;
   if (dias === 0) return 'Último día';
   if (dias === 1) return 'Termina mañana';
   if (dias <= 14) return `Quedan ${dias} días`;
-  return `Hasta el ${fmtDia(promo.validaHasta)}`;
+  return fmtDia(promo.validaHasta);
 }
 
-/** Interruptor accesible, gemelo del de Servicios. */
-function Interruptor({ activo, ocupado, onCambiar, etiqueta }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={activo}
-      aria-label={etiqueta}
-      disabled={ocupado}
-      onClick={onCambiar}
-      className="relative h-[28px] w-[48px] shrink-0 rounded-full border transition disabled:opacity-50"
-      style={{
-        background: activo ? 'var(--socio-accent)' : 'var(--cream-2)',
-        borderColor: activo ? 'var(--socio-accent)' : 'var(--line-2)',
-      }}
-    >
-      <span
-        className="absolute top-[3px] block h-[20px] w-[20px] rounded-full bg-paper shadow-sm transition-all"
-        style={{ left: activo ? 23 : 3 }}
-      />
-    </button>
-  );
-}
-
-function Tarjeta({ promo, hoy, puedeEditar, onCambiada, onBorrada }) {
+function Fila({ promo, hoy, puedeEditar, onCambiada, onBorrada }) {
   const [ocupado, setOcupado] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [error, setError] = useState(null);
@@ -149,132 +109,154 @@ function Tarjeta({ promo, hoy, puedeEditar, onCambiada, onBorrada }) {
   };
 
   return (
-    <div
-      className="card flex flex-col gap-3 p-4"
-      style={{ opacity: promo.estado === 'visible' ? 1 : 0.82 }}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+    <div className="border-l-2 border-l-transparent transition hover:border-l-terracotta hover:bg-paper/60">
+      <div className="grid grid-cols-[100px_1fr_120px_140px_140px_110px_230px] items-center gap-3 px-5 py-3.5">
+        {/* Tag */}
+        <div className="truncate">
           {promo.tag ? (
             <span
-              className="pill mb-1.5"
+              className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
               style={{ background: 'rgba(197,142,44,0.14)', color: '#7A5A1B' }}
             >
               {promo.tag}
             </span>
-          ) : null}
-          <p className="tight text-[15.5px] font-medium leading-snug text-ink">
-            {promo.titulo}
-          </p>
+          ) : (
+            <span className="text-stone/60">—</span>
+          )}
+        </div>
+
+        {/* Título + descripción */}
+        <div className="min-w-0">
+          {puedeEditar ? (
+            <Link
+              to={`/promociones/${promo.id}`}
+              className="tight block truncate text-[14.5px] font-medium text-ink hover:text-terracotta"
+            >
+              {promo.titulo}
+            </Link>
+          ) : (
+            <span className="tight block truncate text-[14.5px] font-medium text-ink">
+              {promo.titulo}
+            </span>
+          )}
           {promo.descripcion ? (
-            <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
+            <span className="block truncate text-[12px] text-stone">
               {promo.descripcion}
-            </p>
+            </span>
           ) : null}
         </div>
 
-        <span
-          className="pill shrink-0"
-          style={{ background: meta.bg, color: meta.fg }}
-        >
-          <span className="pill-dot" style={{ background: meta.dot }} />
-          {meta.label}
-        </span>
-      </div>
-
-      {promo.descuentoLabel || promo.precioEur !== null ? (
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+        {/* Descuento */}
+        <div className="truncate">
           {promo.descuentoLabel ? (
             <span
-              className="pill"
+              className="rounded-md px-2 py-0.5 text-[12px] font-medium"
               style={{ background: 'rgba(177,72,72,0.10)', color: '#7C2E2E' }}
             >
               {promo.descuentoLabel}
             </span>
-          ) : null}
-          {promo.precioEur !== null ? (
-            <span className="tabular text-[15px] font-medium text-ink">
-              {euros(promo.precioEur)}
-            </span>
-          ) : null}
-          {promo.precioAnteriorEur !== null ? (
-            <span className="tabular text-[13px] text-stone line-through">
-              {euros(promo.precioAnteriorEur)}
-            </span>
-          ) : null}
+          ) : (
+            <span className="text-stone/60">—</span>
+          )}
         </div>
-      ) : null}
 
-      <p
-        className="text-[13px]"
-        style={{
-          color: promo.estado === 'caducada' ? '#7C2E2E' : 'var(--stone)',
-        }}
-      >
-        {textoVigencia(promo, hoy)}
-      </p>
+        {/* Precio */}
+        <div className="tabular text-right text-[13px]">
+          {promo.precioEur !== null ? (
+            <div className="flex flex-col items-end">
+              <span className="text-ink">
+                {Number(promo.precioEur).toFixed(2)} €
+              </span>
+              {promo.precioAnteriorEur !== null ? (
+                <span className="text-[11px] text-stone line-through">
+                  {Number(promo.precioAnteriorEur).toFixed(2)} €
+                </span>
+              ) : null}
+            </div>
+          ) : (
+            <span className="text-stone/60">—</span>
+          )}
+        </div>
+
+        {/* Válida hasta */}
+        <div
+          className="text-[12.5px]"
+          style={{
+            color: promo.estado === 'caducada' ? '#7C2E2E' : 'var(--stone)',
+          }}
+        >
+          {textoVigencia(promo, hoy)}
+        </div>
+
+        {/* Estado */}
+        <div>
+          <span className="pill" style={{ background: meta.bg, color: meta.fg }}>
+            <span className="pill-dot" style={{ background: meta.dot }} />
+            {meta.label}
+          </span>
+        </div>
+
+        {/* Acciones */}
+        <div className="flex items-center justify-end gap-1.5">
+          {!puedeEditar ? (
+            <span className="text-[12px] text-stone/60">—</span>
+          ) : confirmando ? (
+            <>
+              <button
+                type="button"
+                disabled={ocupado}
+                onClick={borrar}
+                className="tight inline-flex h-7 items-center gap-1 rounded-full px-3 text-[12px] font-medium disabled:opacity-50"
+                style={{ background: '#F1D6D6', color: '#7C2E2E' }}
+              >
+                <Icon.Check width="13" height="13" />
+                {ocupado ? 'Borrando…' : 'Sí'}
+              </button>
+              <button
+                type="button"
+                disabled={ocupado}
+                onClick={() => setConfirmando(false)}
+                className="tight inline-flex h-7 items-center justify-center rounded-full border border-line bg-paper px-3 text-[12px] font-medium text-stone disabled:opacity-50"
+              >
+                No
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                to={`/promociones/${promo.id}`}
+                className="tight inline-flex h-7 items-center justify-center rounded-full border border-line bg-paper px-3 text-[12px] font-medium text-ink hover:bg-cream"
+              >
+                Editar
+              </Link>
+              <button
+                type="button"
+                disabled={ocupado}
+                onClick={alternar}
+                className="tight inline-flex h-7 items-center justify-center rounded-full border border-line bg-paper px-3 text-[12px] font-medium text-stone hover:bg-cream hover:text-ink disabled:opacity-50"
+              >
+                {ocupado ? '…' : promo.activa ? 'Pausar' : 'Activar'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmando(true)}
+                aria-label={`Borrar ${promo.titulo}`}
+                className="tight inline-flex h-7 w-7 items-center justify-center rounded-full border border-line bg-paper text-stone hover:bg-cream hover:text-terracotta"
+              >
+                <Icon.X width="14" height="14" />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
 
       {error ? (
         <p
-          className="rounded-xl px-3 py-2 text-[13px]"
+          className="mx-5 mb-3 rounded-xl px-3 py-2 text-[12.5px]"
           style={{ background: '#F1D6D6', color: '#7C2E2E' }}
         >
           {error}
         </p>
-      ) : null}
-
-      {puedeEditar ? (
-        confirmando ? (
-          <div className="flex items-center gap-2 border-t border-line pt-3">
-            <span className="mr-auto text-[13px] text-stone">
-              ¿Borrarla del todo?
-            </span>
-            <button
-              type="button"
-              disabled={ocupado}
-              onClick={borrar}
-              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium disabled:opacity-50"
-              style={{ background: '#F1D6D6', color: '#7C2E2E' }}
-            >
-              <Check size={14} />
-              {ocupado ? 'Borrando…' : 'Sí, borrar'}
-            </button>
-            <button
-              type="button"
-              disabled={ocupado}
-              onClick={() => setConfirmando(false)}
-              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium text-stone disabled:opacity-50"
-            >
-              <X size={14} />
-              No
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 border-t border-line pt-3">
-            <Interruptor
-              activo={promo.activa}
-              ocupado={ocupado}
-              onCambiar={alternar}
-              etiqueta={`${promo.activa ? 'Pausar' : 'Activar'} ${promo.titulo}`}
-            />
-            <span className="mr-auto text-[12.5px] text-stone">
-              {promo.activa ? 'Encendida' : 'Apagada'}
-            </span>
-            <Link
-              to={`/promociones/${promo.id}`}
-              className="card-tight rounded-full px-3.5 py-2 text-[13px] font-medium text-ink"
-            >
-              Editar
-            </Link>
-            <button
-              type="button"
-              onClick={() => setConfirmando(true)}
-              className="rounded-full px-3 py-2 text-[13px] font-medium text-stone"
-            >
-              Borrar
-            </button>
-          </div>
-        )
       ) : null}
     </div>
   );
@@ -282,14 +264,16 @@ function Tarjeta({ promo, hoy, puedeEditar, onCambiada, onBorrada }) {
 
 function Esqueleto() {
   return (
-    <div className="flex flex-col gap-2.5" aria-busy="true">
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          className="card h-[132px] animate-pulse"
-          style={{ opacity: 1 - i * 0.15 }}
-        />
-      ))}
+    <div className="card overflow-hidden" aria-busy="true">
+      <div className="divide-y divide-line/70">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex items-center gap-3 px-5 py-4">
+            <span className="h-4 w-16 animate-pulse rounded-full bg-cream-2" />
+            <span className="h-4 flex-1 animate-pulse rounded bg-cream-2" />
+            <span className="h-4 w-20 animate-pulse rounded bg-cream-2" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -363,10 +347,9 @@ export default function Promociones() {
   const nueva = puedeEditar ? (
     <Link
       to="/promociones/nueva"
-      className="tight -mr-1 inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[13.5px] font-medium"
-      style={{ background: 'var(--chrome-2)', color: 'var(--on-chrome)' }}
+      className="gloss-btn tight inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2.5 text-[13.5px] font-medium"
     >
-      <Plus size={16} aria-hidden />
+      <Icon.Plus width="15" height="15" aria-hidden />
       Nueva
     </Link>
   ) : null;
@@ -382,7 +365,7 @@ export default function Promociones() {
 
       {!cargando && error ? (
         <div className="card flex flex-col items-start gap-3 p-5">
-          <p className="text-[15px] font-medium text-ink">
+          <p className="tight text-[15px] font-medium text-ink">
             No hemos podido cargar tus promociones
           </p>
           <p className="text-[14px] text-stone">{error}</p>
@@ -391,7 +374,6 @@ export default function Promociones() {
             onClick={reintentar}
             className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
           >
-            <RefreshCw size={15} />
             Reintentar
           </button>
         </div>
@@ -399,9 +381,9 @@ export default function Promociones() {
 
       {!cargando && !error && datos ? (
         datos.promociones.length === 0 ? (
-          <div className="card flex flex-col items-center gap-2 p-8 text-center">
-            <Megaphone size={22} className="text-stone" aria-hidden />
-            <p className="text-[15px] font-medium text-ink">
+          <div className="card flex flex-col items-center justify-center gap-3 p-10 text-center">
+            <Icon.Sparkle width="22" height="22" className="text-stone/70" aria-hidden />
+            <p className="tight text-[16px] font-medium text-ink">
               Todavía no anuncias nada
             </p>
             <p className="max-w-xs text-[13.5px] leading-relaxed text-stone">
@@ -412,32 +394,47 @@ export default function Promociones() {
             {puedeEditar ? (
               <Link
                 to="/promociones/nueva"
-                className="gloss-btn tight mt-2 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium"
+                className="gloss-btn tight mt-1 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium"
               >
-                <Plus size={15} aria-hidden />
+                <Icon.Plus width="15" height="15" aria-hidden />
                 Crear la primera
               </Link>
             ) : null}
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5">
-            {datos.promociones.map((p) => (
-              <Tarjeta
-                key={p.id}
-                promo={p}
-                hoy={datos.hoy}
-                puedeEditar={puedeEditar}
-                onCambiada={aplicarCambio}
-                onBorrada={quitar}
-              />
-            ))}
+          <>
+            <div className="card overflow-hidden">
+              <div className="overflow-x-auto">
+                <div className="grid min-w-[1040px] grid-cols-[100px_1fr_120px_140px_140px_110px_230px] items-center gap-3 border-b border-line bg-cream/40 px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-stone/70">
+                  <div>Tag</div>
+                  <div>Título</div>
+                  <div>Descuento</div>
+                  <div className="text-right">Precio</div>
+                  <div>Válida hasta</div>
+                  <div>Estado</div>
+                  <div className="text-right">Acciones</div>
+                </div>
+                <div className="min-w-[1040px] divide-y divide-line/70">
+                  {datos.promociones.map((p) => (
+                    <Fila
+                      key={p.id}
+                      promo={p}
+                      hoy={datos.hoy}
+                      puedeEditar={puedeEditar}
+                      onCambiada={aplicarCambio}
+                      onBorrada={quitar}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
 
-            <p className="mt-1 px-1 text-[13px] leading-relaxed text-stone">
+            <p className="mt-3 px-1 text-[13px] leading-relaxed text-stone">
               {puedeEditar
                 ? 'Las promociones encendidas salen en la web de tu salón por el orden que les hayas puesto. Al pasar la fecha de fin desaparecen solas.'
                 : 'Estas son las ofertas del salón. Quien las cambia es el dueño.'}
             </p>
-          </div>
+          </>
         )
       ) : null}
     </Pantalla>
