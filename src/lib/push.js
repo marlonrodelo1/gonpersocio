@@ -16,6 +16,23 @@ let registrando = false;
 let tapHandlerListo = false;
 
 /**
+ * ¿Trae este build la configuración de Firebase?
+ *
+ * `__FIREBASE_ANDROID__` lo calcula vite.config.js mirando si existe
+ * `android/app/google-services.json`. Sin ese archivo, `register()` NO falla
+ * devolviendo un error: tumba el proceso desde el hilo nativo con
+ * `Default FirebaseApp is not initialized`, y el try/catch de aquí abajo ni se
+ * entera. Por eso hay que no llamarlo, en vez de intentarlo y capturar.
+ *
+ * Pasó en el emulador el 25-07: el dueño aceptaba el permiso de notificaciones
+ * y la app se cerraba sola, justo después de iniciar sesión.
+ */
+function hayFirebaseEnEsteBuild() {
+  if (Capacitor.getPlatform() !== 'android') return true;
+  return typeof __FIREBASE_ANDROID__ === 'undefined' || __FIREBASE_ANDROID__;
+}
+
+/**
  * Token FCM de ESTE dispositivo. Lo guardamos al recibirlo para poder dar de baja
  * solo esta instalación al cerrar sesión: si mandáramos el DELETE sin token, el
  * backend borraría todos los tokens del dueño y su móvil personal dejaría de
@@ -78,6 +95,12 @@ async function asegurarListeners(PushNotifications) {
  */
 export async function registrarPushNativo() {
   if (!Capacitor.isNativePlatform() || registrando) return;
+  if (!hayFirebaseEnEsteBuild()) {
+    console.warn(
+      '[push] build sin google-services.json: no se registra el dispositivo',
+    );
+    return;
+  }
   registrando = true;
   try {
     const { PushNotifications } = await import('@capacitor/push-notifications');

@@ -18,7 +18,12 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     languageOptions: {
-      globals: globals.browser,
+      globals: {
+        ...globals.browser,
+        // Lo inyecta vite.config.js con `define`: en el código existe, pero no
+        // está declarado en ningún sitio que eslint pueda ver.
+        __FIREBASE_ANDROID__: 'readonly',
+      },
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
