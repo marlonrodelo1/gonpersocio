@@ -1,0 +1,47 @@
+VERSIONES PUBLICABLES DE GONPER SOCIO
+=====================================
+Aqui se guarda el .aab firmado de cada version que se sube a Google Play, con su
+numero delante para saber cual es cual de un vistazo:
+
+    gonper-socio-v<versionName>-vc<versionCode>.aab
+
+El versionCode es el que manda: Play rechaza un archivo cuyo numero ya se haya
+subido, y no se puede bajar nunca. El versionName es solo lo que ve la gente.
+
+
+LOS .AAB NO ENTRAN EN GIT
+-------------------------
+Estan en .gitignore (`versiones/*.aab`). Son 5 MB cada uno y git no borra nada
+nunca: a diez versiones, el repositorio pesaria 50 MB de mas para siempre, y a
+cambio no se gana nada, porque el .aab se puede volver a generar en cualquier
+momento desde el codigo mas la llave de firma. Este LEEME si se versiona.
+
+O sea: esta carpeta es un archivo de mano, no una copia de seguridad. Si
+formateas el ordenador se pierde, y no pasa nada — lo que NO se puede perder es
+la llave (ver Desktop\Claves-Keystores).
+
+
+COMO SE GENERA LA SIGUIENTE
+---------------------------
+1. Sube el numero en android\app\build.gradle:
+       versionCode 1     ->  2
+       versionName "1.0" ->  "1.1"
+
+2. Compila, desde la carpeta android\:
+       gradlew bundleRelease
+   (si se queja de JAVA_HOME: set JAVA_HOME=C:\Program Files\Android\Android Studio\jbr)
+
+3. Comprueba que salio firmado:
+       jarsigner -verify app\build\outputs\bundle\release\app-release.aab
+   Tiene que decir "jar verified". Si dice "jar is unsigned", no encontro la
+   llave: revisa android\keystore.properties.
+
+4. Copia el resultado aqui con su numero y subelo a Play Console.
+
+
+HISTORIAL
+---------
+v1.0 (versionCode 1) — 25 de julio de 2026. Primera version. Firmada con
+gonper-socio-release.jks (alias gonper-socio). Incluye el nombre corregido
+"Gonper Socio", el arreglo del cierre al aceptar las notificaciones y el
+google-services.json de Firebase, o sea con las push ya funcionando.

@@ -49,3 +49,8 @@ ios/App/App/public/
 ios/App/build/
 .ios-temp/
 android/FIRMA-*.txt
+
+# Los .aab/.apk publicables viven en versiones/, pero no van a git: 5 MB cada
+# uno, git no borra nada y se pueden regenerar desde el codigo mas la llave.
+versiones/*.aab
+versiones/*.apk
