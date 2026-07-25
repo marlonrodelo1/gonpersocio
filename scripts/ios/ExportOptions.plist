@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Opciones de exportacion del .ipa para App Store Connect.
+
+  Vive en scripts/ios/ y no en ios/ a proposito: `npx cap add ios` se niega a
+  crear la plataforma si la carpeta ios/ ya existe, aunque solo tenga un
+  archivo suelto. Asi el repo puede traer esto sin estorbar al montaje.
+
+  teamID: Rogotech (el mismo con el que se publico la app de clientes).
+  signingStyle automatic: deja que Xcode cree y renueve los perfiles solo, que
+  es lo que evita el via crucis de los .mobileprovision caducados.
+-->
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string>
+
+    <key>teamID</key>
+    <string>XR7JH7A8ZY</string>
+
+    <key>signingStyle</key>
+    <string>automatic</string>
+
+    <key>destination</key>
+    <string>export</string>
+
+    <key>uploadSymbols</key>
+    <true/>
+
+    <key>manageAppVersionAndBuildNumber</key>
+    <false/>
+</dict>
+</plist>
