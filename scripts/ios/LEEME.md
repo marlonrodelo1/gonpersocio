@@ -49,26 +49,39 @@ chmod +x scripts/ios/publicar.sh
 
 Y copiar `GoogleService-Info.plist` a `ios/App/App/`.
 
-### Lo único que pide Xcode abierto
+### Dos cosas que se copian por terminal
 
-Tres cosas que no salen bien por terminal, y son 10 minutos:
+```bash
+# 1. El AppDelegate con Firebase y el token FCM (ver el porqué dentro del archivo)
+cp scripts/ios/AppDelegate.swift ios/App/App/AppDelegate.swift
 
-- Arrastrar `GoogleService-Info.plist` al target **App** (Add Files → target App).
-- **File → Add Package Dependencies** → `https://github.com/firebase/firebase-ios-sdk`
-  → marcar solo **FirebaseMessaging**.
-- **Signing & Capabilities**: Team + *Automatically manage signing*, y añadir
-  **Push Notifications**, **Sign in with Apple** y **Background Modes → Remote
-  notifications**.
+# 2. El deep link en el Info.plist, para volver a la app tras el login o Stripe
+/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" ios/App/App/Info.plist
+/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" ios/App/App/Info.plist
+/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" ios/App/App/Info.plist
+/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string shop.gonperstudio.socio" ios/App/App/Info.plist
+```
 
-Y en `AppDelegate.swift`: `FirebaseApp.configure()`, y en
-`didRegisterForRemoteNotificationsWithDeviceToken` pasar el token a `Messaging`
-y emitir el evento `registration` con el **token FCM**, no con el de APNs. El
-código está en `gonper-app/docs/publicar-ios.md`, anexo A.
+### Los tres pasos que sí piden Xcode
 
-> Si en la primera versión renuncias a las notificaciones en iOS, te saltas los
-> tres puntos de arriba enteros y la subida es 100 % terminal. La app funciona
-> igual; simplemente al dueño no le suena el aviso de reserva nueva en iPhone.
-> `push.js` ya está preparado para eso y no se cierra por no tener Firebase.
+`npx cap open ios` y, en el target **App**:
+
+1. **Añadir `GoogleService-Info.plist` al target**: arrástralo al panel de la
+   izquierda (o File → Add Files) y asegúrate de que en el diálogo está marcado
+   el target **App**. Copiarlo a la carpeta no basta: si no está en el target,
+   no entra en el binario y Firebase arranca sin configuración.
+2. **File → Add Package Dependencies** → `https://github.com/firebase/firebase-ios-sdk`
+   → marcar solo **FirebaseMessaging**. Con Swift Package Manager, no CocoaPods.
+3. **Signing & Capabilities** → Team, *Automatically manage signing*, y añadir
+   las capacidades **Push Notifications**, **Sign in with Apple** y **Background
+   Modes → Remote notifications**.
+
+Esto es de una sola vez: queda guardado en el proyecto y las siguientes
+versiones ya salen enteras por terminal.
+
+> Si algún día hiciera falta subir una versión sin notificaciones, `push.js` lo
+> soporta: detecta que no hay configuración de Firebase y se salta el registro
+> en vez de cerrarse.
 
 ---
 
