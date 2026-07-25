@@ -248,18 +248,33 @@ export default function Compartir() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => abrirExterno(`${API_BASE}${datos.qrPathImpresion}`)}
-              className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[14px] font-medium"
-            >
-              <Icon.Arrow width="14" height="14" />
-              Abrir QR para imprimir
-            </button>
+            {/* Dos salidas para dos necesidades distintas: el cartel entero,
+                que es lo que casi siempre se quiere, y el QR a pelo para quien
+                va a montarlo en un diseño propio. El cartel va primero. */}
+            <div className="flex w-full flex-col gap-2">
+              {datos.flyerPath ? (
+                <button
+                  type="button"
+                  onClick={() => abrirExterno(`${API_BASE}${datos.flyerPath}`)}
+                  className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[14px] font-medium"
+                >
+                  <Icon.Arrow width="14" height="14" />
+                  Descargar cartel para imprimir
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => abrirExterno(`${API_BASE}${datos.qrPathImpresion}`)}
+                className="card-tight tight inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[14px] font-medium text-ink"
+              >
+                Solo el código QR
+              </button>
+            </div>
 
-            <p className="max-w-xs text-[12px] text-stone">
-              Imprímelo en el mostrador, escaparate o cartas. Quien lo escanea
-              con el móvil entra directo a tu web para reservar.
+            <p className="max-w-xs text-[12px] leading-relaxed text-stone">
+              El cartel sale en A4 con tu logo, tu nombre y el QR. Ábrelo y dale
+              a imprimir o a «Guardar como PDF» para pegarlo en el escaparate o
+              repartirlo.
             </p>
           </div>
 

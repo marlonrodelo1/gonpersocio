@@ -413,7 +413,7 @@ export default function ConfigReservas() {
               nota={
                 whatsappDisponible
                   ? undefined
-                  : 'Tu cuenta no envía recordatorios por WhatsApp ahora mismo. Escríbenos desde Más → Soporte si quieres activarlos.'
+                  : 'Tu cuenta no envía recordatorios por WhatsApp ahora mismo. Escríbenos desde Cuenta → Escribir a soporte si quieres activarlos.'
               }
             />
             <Ajuste

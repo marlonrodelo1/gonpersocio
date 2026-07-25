@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { Icon } from '../components/icons';
 import Pantalla from '../components/Pantalla';
+import SeccionDomicilio from '../components/SeccionDomicilio';
 import { useAuth } from '../context/useAuth';
 import { apiGet, apiPatch } from '../lib/api';
 
@@ -20,6 +21,10 @@ import { apiGet, apiPatch } from '../lib/api';
  * en vez de deshabilitados, que es más honesto que un formulario que parece
  * editable y no lo es. Quién puede escribir lo dice el servidor (`puedeEditar`),
  * no el rol que la app crea tener.
+ *
+ * «A domicilio» cuelga de aquí abajo como una sección más (antes era pantalla
+ * suelta). Trae su PROPIO botón de guardar porque va contra otro endpoint y con
+ * otras reglas: el detalle está en la cabecera de `SeccionDomicilio`.
  */
 
 const TIPOS_NEGOCIO = [
@@ -492,6 +497,11 @@ export default function ConfigSalon() {
               </div>
             </div>
           ) : null}
+
+          {/* Va DESPUÉS del botón de arriba, no entre las tarjetas: así queda
+              claro que ese botón guarda los datos del salón y esta sección
+              tiene el suyo. Ver la cabecera de SeccionDomicilio. */}
+          <SeccionDomicilio />
         </div>
       ) : null}
     </Pantalla>

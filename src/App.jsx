@@ -33,8 +33,6 @@ const ClienteDetalle = lazy(() => import('./pages/ClienteDetalle'));
 const Servicios = lazy(() => import('./pages/Servicios'));
 const Horario = lazy(() => import('./pages/Horario'));
 const Cierres = lazy(() => import('./pages/Cierres'));
-const Conversaciones = lazy(() => import('./pages/Conversaciones'));
-const ConversacionDetalle = lazy(() => import('./pages/ConversacionDetalle'));
 const Numeros = lazy(() => import('./pages/Numeros'));
 const Resenas = lazy(() => import('./pages/Resenas'));
 const Promociones = lazy(() => import('./pages/Promociones'));
@@ -46,11 +44,8 @@ const Cuenta = lazy(() => import('./pages/Cuenta'));
 const CitaNueva = lazy(() => import('./pages/CitaNueva'));
 const ConfigSalon = lazy(() => import('./pages/ConfigSalon'));
 const ConfigReservas = lazy(() => import('./pages/ConfigReservas'));
-const ConfigAgente = lazy(() => import('./pages/ConfigAgente'));
 const Equipo = lazy(() => import('./pages/Equipo'));
 const Cobros = lazy(() => import('./pages/Cobros'));
-const Domicilio = lazy(() => import('./pages/Domicilio'));
-const Mas = lazy(() => import('./pages/Mas'));
 
 /** Barra de estado: texto oscuro sobre cream (app clara, igual que el panel). */
 function StatusBarSetup() {
@@ -106,8 +101,11 @@ function NativeBootstrap() {
       if (!url) return;
 
       // Vuelta del alta de cobros de Stripe: no trae sesión, solo refresca.
+      // La ruta es '/cobros' a secas: '/mas/cobros' caía en la pantalla "Más"
+      // (comodín '/mas/*'), así que el dueño volvía de darse de alta en Stripe
+      // a un menú, no a ver si sus cobros habían quedado activos.
       if (url.includes('://cobros')) {
-        navigate('/mas/cobros', { replace: true });
+        navigate('/cobros', { replace: true });
         return;
       }
 
@@ -233,6 +231,35 @@ function Protegida({ children }) {
   return children;
 }
 
+/**
+ * Permiso para ESTA pantalla. Va SIEMPRE dentro de `Protegida`: primero se
+ * resuelve quién eres (y si el perfil llegó a cargar), y solo después qué
+ * puedes. Al revés, un perfil todavía en vuelo se leería como "no puede".
+ *
+ * Redirige al inicio en vez de pintar "no autorizado" a propósito: quien no
+ * tiene una pantalla no gana nada sabiendo que existe, y un cartel de acceso
+ * denegado en la app del negocio se lee como un fallo, no como una norma.
+ *
+ * Es maquillaje: el permiso de verdad lo comprueba cada endpoint.
+ */
+function Permitida({ permiso, soloAdmin = false, children }) {
+  const { esDueno, puede } = useAuth();
+  const autorizado = soloAdmin ? esDueno : puede(permiso);
+  if (!autorizado) return <Navigate to={RUTA_INICIO} replace />;
+  return children;
+}
+
+/** Sesión + salón + permiso, en ese orden. Atajo para no anidar a mano. */
+function Privada({ permiso, soloAdmin, children }) {
+  return (
+    <Protegida>
+      <Permitida permiso={permiso} soloAdmin={soloAdmin}>
+        {children}
+      </Permitida>
+    </Protegida>
+  );
+}
+
 /** No se pudo conectar con el servidor (red/backend), no falta de salón. */
 function ErrorConexion({ onReintentar }) {
   return (
@@ -341,57 +368,41 @@ function Rutas() {
         <Route
           path="/clientes"
           element={
-            <Protegida>
+            <Privada permiso="ver_clientes">
               <Clientes />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
           path="/clientes/:id"
           element={
-            <Protegida>
+            <Privada permiso="ver_clientes">
               <ClienteDetalle />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
           path="/servicios"
           element={
-            <Protegida>
+            <Privada soloAdmin>
               <Servicios />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
           path="/horario"
           element={
-            <Protegida>
+            <Privada soloAdmin>
               <Horario />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
           path="/cierres"
           element={
-            <Protegida>
+            <Privada permiso="cerrar_franjas">
               <Cierres />
-            </Protegida>
-          }
-        />
-        <Route
-          path="/conversaciones"
-          element={
-            <Protegida>
-              <Conversaciones />
-            </Protegida>
-          }
-        />
-        <Route
-          path="/conversaciones/:id"
-          element={
-            <Protegida>
-              <ConversacionDetalle />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
@@ -405,17 +416,17 @@ function Rutas() {
         <Route
           path="/resenas"
           element={
-            <Protegida>
+            <Privada soloAdmin>
               <Resenas />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
           path="/promociones"
           element={
-            <Protegida>
+            <Privada soloAdmin>
               <Promociones />
-            </Protegida>
+            </Privada>
           }
         />
         {/* La ruta literal va ANTES que la de :id, o "nueva" se leería como
@@ -423,41 +434,41 @@ function Rutas() {
         <Route
           path="/promociones/nueva"
           element={
-            <Protegida>
+            <Privada soloAdmin>
               <PromocionForm />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
           path="/promociones/:id"
           element={
-            <Protegida>
+            <Privada soloAdmin>
               <PromocionForm />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
           path="/galeria"
           element={
-            <Protegida>
+            <Privada soloAdmin>
               <Galeria />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
           path="/antes-despues"
           element={
-            <Protegida>
+            <Privada soloAdmin>
               <AntesDespues />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
           path="/compartir"
           element={
-            <Protegida>
+            <Privada soloAdmin>
               <Compartir />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
@@ -468,60 +479,38 @@ function Rutas() {
             </Protegida>
           }
         />
+        {/* "A domicilio" ya no es pantalla propia: vive como una sección más
+            dentro de Datos del salón, que es donde el dueño la busca. */}
         <Route
           path="/config/salon"
           element={
-            <Protegida>
+            <Privada soloAdmin>
               <ConfigSalon />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
           path="/config/reservas"
           element={
-            <Protegida>
+            <Privada soloAdmin>
               <ConfigReservas />
-            </Protegida>
-          }
-        />
-        <Route
-          path="/config/agente"
-          element={
-            <Protegida>
-              <ConfigAgente />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
           path="/equipo"
           element={
-            <Protegida>
+            <Privada soloAdmin>
               <Equipo />
-            </Protegida>
+            </Privada>
           }
         />
         <Route
           path="/cobros"
           element={
-            <Protegida>
+            <Privada soloAdmin>
               <Cobros />
-            </Protegida>
-          }
-        />
-        <Route
-          path="/domicilio"
-          element={
-            <Protegida>
-              <Domicilio />
-            </Protegida>
-          }
-        />
-        <Route
-          path="/mas/*"
-          element={
-            <Protegida>
-              <Mas />
-            </Protegida>
+            </Privada>
           }
         />
         <Route path="*" element={<Navigate to={RUTA_INICIO} replace />} />

@@ -208,13 +208,29 @@ export function AuthProvider({ children }) {
    */
   const activarRecuperacion = useCallback(() => setModoRecuperacion(true), []);
 
-  const valor = useMemo(
-    () => ({
+  const valor = useMemo(() => {
+    const esDueno = perfil?.rol === 'dueno' || perfil?.rol === 'admin';
+    const permisos = perfil?.permisos ?? null;
+
+    return {
       user,
       perfil,
       salon: perfil?.salon ?? null,
       rol: perfil?.rol ?? null,
-      esDueno: perfil?.rol === 'dueno' || perfil?.rol === 'admin',
+      esDueno,
+      /** Nombre de pila de la PERSONA, no del negocio. Lo resuelve `/me`. */
+      nombre: perfil?.usuario?.nombre ?? null,
+      /** Mapa de permisos tal cual lo manda el servidor. Puede ser null. */
+      permisos,
+      /**
+       * Dueño y administrador mandan en todo sin mirar el mapa, igual que hace
+       * `resolverPermisos` en el backend: si un día llega un mapa incompleto o
+       * corrupto, el dueño no puede quedarse fuera de su propio negocio.
+       *
+       * Esto decide QUÉ SE ENSEÑA, no qué se permite. Cada endpoint vuelve a
+       * comprobarlo por su cuenta; esconder un botón nunca es la seguridad.
+       */
+      puede: (permiso) => esDueno || permisos?.[permiso] === true,
       cargando,
       errorCarga,
       modoRecuperacion,
@@ -226,23 +242,22 @@ export function AuthProvider({ children }) {
       cambiarPassword,
       activarRecuperacion,
       recargarPerfil: cargarPerfil,
-    }),
-    [
-      user,
-      perfil,
-      cargando,
-      errorCarga,
-      modoRecuperacion,
-      login,
-      entrarConGoogle,
-      entrarConApple,
-      logout,
-      recuperarPassword,
-      cambiarPassword,
-      activarRecuperacion,
-      cargarPerfil,
-    ],
-  );
+    };
+  }, [
+    user,
+    perfil,
+    cargando,
+    errorCarga,
+    modoRecuperacion,
+    login,
+    entrarConGoogle,
+    entrarConApple,
+    logout,
+    recuperarPassword,
+    cambiarPassword,
+    activarRecuperacion,
+    cargarPerfil,
+  ]);
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;
 }

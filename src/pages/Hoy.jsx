@@ -5,6 +5,8 @@ import { apiGet } from '../lib/api';
 import { useAuth } from '../context/useAuth';
 import Pantalla from '../components/Pantalla';
 import CitaFila from '../components/CitaFila';
+import AvisoSinFicha from '../components/AvisoSinFicha';
+import { Icon } from '../components/icons';
 
 /**
  * Inicio. Maquetado como `/panel/hoy` del panel web: topbar con saludo serif,
@@ -80,7 +82,7 @@ function KpiCard({ label, value }) {
 }
 
 export default function Hoy() {
-  const { salon } = useAuth();
+  const { salon, perfil, esDueno, puede } = useAuth();
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -112,13 +114,40 @@ export default function Hoy() {
   }, []);
 
   const tz = datos?.timezone ?? salon?.timezone ?? 'Europe/Madrid';
-  const ownerName = (salon?.nombre ?? 'tu salón').split(' ')[0] || 'tu salón';
-  const saludo = `${saludoPorHora(tz)}, ${ownerName}.`;
+  // A quien abre la app se le saluda por SU nombre. Con varios usuarios en el
+  // mismo negocio, "Buenos días, Revolution" le dice a la empleada que la app
+  // habla con el salón, no con ella. El nombre del salón se queda de respaldo
+  // para las cuentas de dueño sin ficha de profesional, donde sigue encajando.
+  // `||` y no `??`: una cadena vacía es tan inservible como un null aquí, y con
+  // `??` el saludo saldría "Buenos días, ." si el nombre llegara en blanco.
+  const nombreSaludo =
+    perfil?.usuario?.nombre || salon?.nombre?.split(' ')[0] || 'tu salón';
+  const saludo = `${saludoPorHora(tz)}, ${nombreSaludo}.`;
   const fechaTxt = fechaLarga(datos?.fecha, tz);
+
+  /**
+   * Atajo a "nueva cita" en la cabecera.
+   *
+   * Existía un `BotonNuevaCita` flotante, pensado para quedar por encima de la
+   * antigua barra inferior; esa barra ya no está y el componente nunca llegó a
+   * montarse, así que en la práctica no había ningún atajo. Aquí, al lado del
+   * título, está donde el dueño mira cuando entra alguien por la puerta.
+   */
+  const nuevaCita = (
+    <Link
+      to="/citas/nueva"
+      aria-label="Nueva cita"
+      className="tight inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[13.5px] font-medium"
+      style={{ background: 'var(--chrome)', color: 'var(--on-chrome)' }}
+    >
+      <Icon.Plus width="15" height="15" />
+      Nueva cita
+    </Link>
+  );
 
   if (cargando && !datos) {
     return (
-      <Pantalla titulo="Hoy." saludo={saludo} subtitulo={fechaTxt}>
+      <Pantalla titulo="Hoy." saludo={saludo} subtitulo={fechaTxt} accion={nuevaCita}>
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-3 gap-3">
             {[0, 1, 2].map((i) => (
@@ -134,7 +163,7 @@ export default function Hoy() {
 
   if (error) {
     return (
-      <Pantalla titulo="Hoy." saludo={saludo} subtitulo={fechaTxt}>
+      <Pantalla titulo="Hoy." saludo={saludo} subtitulo={fechaTxt} accion={nuevaCita}>
         <div className="card p-6 text-center">
           <p className="tight text-[15px] font-medium text-ink">
             No se ha podido cargar el día
@@ -152,19 +181,36 @@ export default function Hoy() {
     );
   }
 
-  const { kpis, citas = [], bloqueos = [], proxima, fecha } = datos ?? {};
+  const {
+    kpis,
+    citas = [],
+    bloqueos = [],
+    proxima,
+    fecha,
+    puedeVerCaja,
+    sinFicha,
+  } = datos ?? {};
+  // "Facturado" es la caja del negocio; un empleado lo leería como "lo que me
+  // llevo". El servidor ya suma solo lo suyo (ver `ambitoCaja`), así que aquí
+  // basta con llamarlo por su nombre.
+  const cajaEsDelSalon = puedeVerCaja !== false;
   const total = kpis?.total ?? citas.length;
   const atendidas = kpis?.atendidas ?? 0;
   const restantes = kpis?.restantes ?? 0;
   const noShows = kpis?.noShows ?? 0;
 
   return (
-    <Pantalla titulo="Hoy." saludo={saludo} subtitulo={fechaTxt}>
+    <Pantalla titulo="Hoy." saludo={saludo} subtitulo={fechaTxt} accion={nuevaCita}>
       <div className="flex flex-col gap-6">
+        {sinFicha ? <AvisoSinFicha /> : null}
+
         {/* KPIs */}
         <div className="grid grid-cols-3 gap-3">
           <KpiCard label="Citas hoy" value={String(total)} />
-          <KpiCard label="Facturado hoy" value={euros0(kpis?.facturadoEur)} />
+          <KpiCard
+            label={cajaEsDelSalon ? 'Facturado hoy' : 'Lo tuyo hoy'}
+            value={euros0(kpis?.facturadoEur)}
+          />
           <KpiCard label="Esta semana" value={String(kpis?.reservasSemana ?? 0)} />
         </div>
 
@@ -217,12 +263,16 @@ export default function Hoy() {
                   {total} cita{total === 1 ? '' : 's'} · {fechaTxt.toLowerCase()}
                 </div>
               </div>
-              <Link
-                to="/cierres"
-                className="tight inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[12.5px] text-stone transition hover:text-ink"
-              >
-                Bloquear franja
-              </Link>
+              {/* Sin el permiso, /cierres rebota a esta misma pantalla: un
+                  botón que no lleva a ningún sitio es peor que no tenerlo. */}
+              {puede('cerrar_franjas') ? (
+                <Link
+                  to="/cierres"
+                  className="tight inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[12.5px] text-stone transition hover:text-ink"
+                >
+                  Bloquear franja
+                </Link>
+              ) : null}
             </div>
             {total > 0 ? (
               <div className="tabular flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-stone">
@@ -237,7 +287,8 @@ export default function Hoy() {
                 </span>
                 <span className="text-line-2">·</span>
                 <span>
-                  <span className="font-medium text-ink">{euros0(kpis?.facturadoEur)}</span> facturado
+                  <span className="font-medium text-ink">{euros0(kpis?.facturadoEur)}</span>{' '}
+                  {cajaEsDelSalon ? 'facturado' : 'de lo tuyo'}
                 </span>
                 {noShows > 0 ? (
                   <>
@@ -264,16 +315,28 @@ export default function Hoy() {
                   ? `Tu próxima cita es ${diaRelativo(proxima.inicio, tz, fecha).toLowerCase()} a las ${horaDe(proxima.inicio, tz)} · ${proxima.cliente?.nombre ?? 'un cliente'}.`
                   : 'Cuando se reserven citas para hoy aparecerán aquí.'}
               </p>
-              <Link
-                to="/compartir"
-                className="tight mt-4 inline-flex rounded-full bg-ink px-4 py-2 text-[13px] font-medium text-cream hover:bg-ink/90"
-              >
-                Comparte tu web para recibir reservas
-              </Link>
+              {/* Promocionar el negocio es cosa del dueño; /compartir no está
+                  abierta a un empleado y el botón le rebotaría aquí mismo. */}
+              {esDueno ? (
+                <Link
+                  to="/compartir"
+                  className="tight mt-4 inline-flex rounded-full bg-ink px-4 py-2 text-[13px] font-medium text-cream hover:bg-ink/90"
+                >
+                  Comparte tu web para recibir reservas
+                </Link>
+              ) : null}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <div className="grid min-w-[760px] grid-cols-[80px_44px_1fr_140px_120px_92px_28px] gap-3 border-b border-line bg-cream/40 px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-stone/70">
+            <div className="lg:overflow-x-auto">
+              {/* La cabecera de columnas solo existe en pantalla ancha
+                  (≥ 1024 px): en móvil y tablet cada cita se apila y no hay
+                  nada que arrastrar de lado (ver CitaFila).
+
+                  Sin ancho mínimo a propósito: el contenido de la app está
+                  limitado a 756 px por `Pantalla`, así que un `min-w` de 760
+                  no cabía NUNCA —ni en un monitor grande— y dejaba el precio
+                  siempre fuera. Fluida, la rejilla se reparte lo que haya. */}
+              <div className="hidden grid-cols-[80px_44px_1fr_120px_104px_92px_28px] gap-3 border-b border-line bg-cream/40 px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-stone/70 lg:grid">
                 <div>Hora</div>
                 <div />
                 <div>Cliente</div>
@@ -282,7 +345,7 @@ export default function Hoy() {
                 <div>Estado</div>
                 <div className="text-right">€</div>
               </div>
-              <div className="min-w-[760px] divide-y divide-line/70">
+              <div className="divide-y divide-line/70">
                 {citas.map((c) => (
                   <CitaFila key={c.id} cita={c} tz={tz} />
                 ))}

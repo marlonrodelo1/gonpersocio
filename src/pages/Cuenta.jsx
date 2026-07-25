@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Icon } from '../components/icons';
 import Pantalla from '../components/Pantalla';
 import { useAuth } from '../context/useAuth';
-import { EMAIL_SOPORTE } from '../lib/identidad';
+import { EMAIL_SOPORTE, URL_PRIVACIDAD, URL_TERMINOS } from '../lib/identidad';
 import { abrirExterno } from '../lib/puente';
 
 /**
@@ -303,6 +303,51 @@ export default function Cuenta() {
           >
             {saliendo ? 'Cerrando sesión…' : 'Cerrar sesión'}
           </button>
+        </section>
+
+        {/* ============================================
+            AYUDA Y LEGALES
+            ============================================
+            Términos y privacidad estaban SOLO en la pantalla "Más", que se ha
+            eliminado. Las dos tiendas exigen que sean alcanzables desde dentro
+            de la app, así que viven aquí, junto al soporte, que es donde se
+            buscan. Se abren fuera de la app a propósito. */}
+        <section className="card flex flex-col gap-3 p-5 md:p-7">
+          <header className="flex flex-col gap-1">
+            <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+              Ayuda
+            </span>
+            <h2 className="tight text-[18px] font-medium text-ink">
+              Si necesitas algo
+            </h2>
+          </header>
+
+          <button
+            type="button"
+            onClick={() => abrirExterno(`mailto:${EMAIL_SOPORTE}`)}
+            className="tight inline-flex items-center gap-2 self-start rounded-full border border-line bg-paper px-4 py-2 text-[13.5px] font-medium text-ink transition hover:border-line-2"
+          >
+            <Icon.Send width="15" height="15" aria-hidden />
+            Escribir a soporte
+          </button>
+
+          <p className="text-[12px] text-stone/80">
+            <button
+              type="button"
+              onClick={() => abrirExterno(URL_TERMINOS)}
+              className="underline underline-offset-4"
+            >
+              Términos
+            </button>{' '}
+            ·{' '}
+            <button
+              type="button"
+              onClick={() => abrirExterno(URL_PRIVACIDAD)}
+              className="underline underline-offset-4"
+            >
+              Privacidad
+            </button>
+          </p>
         </section>
       </div>
     </Pantalla>

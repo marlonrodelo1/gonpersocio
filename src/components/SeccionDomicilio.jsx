@@ -1,29 +1,31 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import Pantalla from '../components/Pantalla';
-import { Icon } from '../components/icons';
-import { useAuth } from '../context/useAuth';
+import { Icon } from './icons';
 import { apiGet, apiPatch } from '../lib/api';
 
 /**
- * Zona de servicio a domicilio.
+ * Zona de servicio a domicilio, como una sección más de "Datos del salón".
  *
- * El formulario web pide el radio en un `<input type="number">` y los códigos
- * postales en un textarea separado por comas. Las dos cosas son teclado puro y
- * en el móvil se pagan caras: el number abre el teclado numérico para escribir
- * "20", y el textarea de CPs es un campo donde una coma de más borra la zona
- * entera sin que se note. Aquí el radio es un deslizador y los CPs son
- * etiquetas que se quitan de un toque.
+ * ANTES era pantalla suelta. Se movió aquí porque el dueño la busca donde están
+ * los datos del negocio, no en una entrada propia del menú.
  *
- * La pantalla enseña además cuántos servicios están marcados como «A domicilio»
+ * TIENE SU PROPIO BOTÓN DE GUARDAR, y es a propósito: el formulario de arriba
+ * manda un diff parcial a `/config` y esto manda el bloque entero a
+ * `/domicilio`, donde el servidor juzga la coherencia del conjunto (activo +
+ * modo + radio o CPs). Bajo un solo botón serían dos peticiones distintas y el
+ * caso malo es real: una va bien, la otra falla, y la pantalla queda a medias
+ * sin que se sepa qué se guardó.
+ *
+ * Sobre la interfaz: el formulario web pide el radio en un `<input
+ * type="number">` y los códigos postales en un textarea separado por comas. Las
+ * dos cosas son teclado puro y en el móvil se pagan caras — una coma de más
+ * borra la zona entera sin que se note. Aquí el radio es un deslizador y los
+ * CPs son etiquetas que se quitan de un toque.
+ *
+ * La sección enseña además cuántos servicios están marcados como «A domicilio»
  * o «Ambos». Encender la zona sin ninguno no cambia nada para el cliente, y ese
- * es el fallo silencioso más fácil de cometer: el dueño da por hecho que ya se
- * puede reservar a casa y no vuelve a mirarlo.
- *
- * Se guarda todo de una vez, no campo a campo: la coherencia (activo + modo +
- * radio o CPs) la juzga el servidor sobre el conjunto, y guardar a trozos
- * dejaría estados intermedios que el backend rechazaría en mitad de la edición.
+ * es el fallo silencioso más fácil de cometer.
  */
 
 const RADIO_MIN = 1;
@@ -88,50 +90,21 @@ function InterruptorGrande({ activo, ocupado, onCambiar, etiqueta }) {
   );
 }
 
-function Cargando() {
-  return (
-    <div className="flex flex-col gap-4" aria-busy="true">
-      <div className="card h-[108px] animate-pulse" />
-      <div className="card h-[196px] animate-pulse" style={{ opacity: 0.8 }} />
-      <div className="card h-[96px] animate-pulse" style={{ opacity: 0.6 }} />
-    </div>
-  );
-}
-
-function AvisoError({ mensaje, onReintentar }) {
-  return (
-    <div className="card flex flex-col items-start gap-3 p-5">
-      <p className="tight text-[15px] font-medium text-ink">
-        No hemos podido cargar tu zona de domicilio
-      </p>
-      <p className="text-[14px] text-stone">{mensaje}</p>
-      <button
-        type="button"
-        onClick={onReintentar}
-        className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
-      >
-        <IconoRefrescar width="15" height="15" />
-        Reintentar
-      </button>
-    </div>
-  );
-}
-
 /** Recuento de servicios que se pueden pedir a casa. */
 function ResumenServicios({ activos, total }) {
   if (total === 0) {
     return (
-      <div className="card flex flex-col gap-2 p-5">
-        <p className="tight text-[15px] font-medium text-ink">
+      <div className="flex flex-col gap-2 rounded-2xl border border-line bg-cream/40 p-4">
+        <p className="tight text-[14.5px] font-medium text-ink">
           Ningún servicio se puede pedir a domicilio
         </p>
-        <p className="text-[13.5px] leading-relaxed text-stone">
+        <p className="text-[13px] leading-relaxed text-stone">
           Aunque actives la zona, tus clientes no verán la opción hasta que
           marques algún servicio como «A domicilio» o «Ambos».
         </p>
         <Link
           to="/servicios"
-          className="tight self-start text-[13.5px] font-medium text-terracotta hover:text-terracotta-2"
+          className="tight self-start text-[13px] font-medium text-terracotta hover:text-terracotta-2"
         >
           Ir a Servicios →
         </Link>
@@ -140,13 +113,13 @@ function ResumenServicios({ activos, total }) {
   }
 
   return (
-    <div className="card flex flex-col gap-1.5 p-5">
-      <p className="tight text-[15px] font-medium text-ink">
+    <div className="flex flex-col gap-1.5 rounded-2xl border border-line bg-cream/40 p-4">
+      <p className="tight text-[14.5px] font-medium text-ink">
         <span className="tabular">{activos}</span>{' '}
         {activos === 1 ? 'servicio se puede' : 'servicios se pueden'} pedir a
         domicilio
       </p>
-      <p className="text-[13.5px] leading-relaxed text-stone">
+      <p className="text-[13px] leading-relaxed text-stone">
         {activos === 0
           ? `Tienes ${total} ${total === 1 ? 'servicio marcado' : 'servicios marcados'} para domicilio, pero ${total === 1 ? 'está pausado' : 'están pausados'}. Actívalos en Servicios para que se puedan reservar.`
           : 'La modalidad de cada servicio («En el local», «A domicilio» o «Ambos») se cambia en Servicios.'}
@@ -155,9 +128,7 @@ function ResumenServicios({ activos, total }) {
   );
 }
 
-export default function Domicilio() {
-  const { salon } = useAuth();
-
+export default function SeccionDomicilio() {
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -247,7 +218,7 @@ export default function Domicilio() {
       });
       setDatos(res);
       setRadioOriginal(null);
-      setAviso({ tipo: 'ok', texto: 'Guardado' });
+      setAviso({ tipo: 'ok', texto: 'Zona de domicilio guardada.' });
       setTimeout(() => setAviso(null), 2500);
     } catch (e) {
       setAviso({
@@ -263,39 +234,56 @@ export default function Domicilio() {
   const sinUbicacion = datos ? datos.tieneUbicacion === false : false;
 
   return (
-    <Pantalla
-      titulo="A domicilio"
-      subtitulo="Configuración"
-      saludo={salon?.nombre ? `· ${salon.nombre}` : undefined}
-    >
-      {cargando ? <Cargando /> : null}
+    <section className="card flex flex-col gap-5 p-5 md:p-8">
+      <header className="flex flex-col gap-1.5">
+        <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+          A domicilio
+        </span>
+        <h2 className="tight text-[20px] font-medium text-ink">
+          Si vas a casa del cliente
+        </h2>
+        <p className="text-[13px] text-stone">
+          Actívalo y define tu zona. En cada servicio eliges si es «En el
+          local», «A domicilio» o «Ambos» desde{' '}
+          <Link
+            to="/servicios"
+            className="font-medium text-terracotta hover:text-terracotta-2"
+          >
+            Servicios →
+          </Link>
+        </p>
+      </header>
+
+      {cargando ? (
+        <div className="h-[140px] animate-pulse rounded-2xl bg-cream-2" aria-busy="true" />
+      ) : null}
 
       {!cargando && error ? (
-        <AvisoError mensaje={error} onReintentar={reintentar} />
+        <div className="flex flex-col items-start gap-3 rounded-2xl border border-line bg-cream/40 p-4">
+          <p className="tight text-[14.5px] font-medium text-ink">
+            No hemos podido cargar tu zona de domicilio
+          </p>
+          <p className="text-[13px] text-stone">{error}</p>
+          <button
+            type="button"
+            onClick={reintentar}
+            className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+          >
+            <IconoRefrescar width="15" height="15" />
+            Reintentar
+          </button>
+        </div>
       ) : null}
 
       {!cargando && !error && datos ? (
         <div className="flex flex-col gap-4">
-          {/* ---------- intro (eco del header del panel) ---------- */}
-          <p className="px-1 text-[13.5px] leading-relaxed text-stone">
-            Si te desplazas a casa del cliente, actívalo y define tu zona. En
-            cada servicio eliges si es «En el local», «A domicilio» o «Ambos»
-            desde{' '}
-            <Link
-              to="/servicios"
-              className="font-medium text-terracotta hover:text-terracotta-2"
-            >
-              Servicios →
-            </Link>
-          </p>
-
           {/* ---------- interruptor principal ---------- */}
-          <section className="card flex items-start gap-4 p-5">
+          <div className="flex items-start gap-4 rounded-2xl border border-line bg-cream/40 p-4">
             <div className="min-w-0 flex-1">
-              <p className="tight text-[16px] font-medium leading-snug text-ink">
+              <p className="tight text-[15px] font-medium leading-snug text-ink">
                 Voy a casa del cliente
               </p>
-              <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
+              <p className="mt-1 text-[13px] leading-relaxed text-stone">
                 Con esto encendido, los servicios marcados para domicilio se
                 pueden reservar a domicilio dentro de tu zona.
               </p>
@@ -324,16 +312,16 @@ export default function Domicilio() {
                 {activo ? 'Activo' : 'Apagado'}
               </span>
             )}
-          </section>
+          </div>
 
           {/* ---------- zona ---------- */}
           {activo ? (
-            <section className="card flex flex-col gap-5 p-5">
+            <div className="flex flex-col gap-4">
               <div>
-                <h2 className="tight text-[15px] font-medium text-ink">
+                <h3 className="tight text-[14.5px] font-medium text-ink">
                   Hasta dónde llegas
-                </h2>
-                <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
+                </h3>
+                <p className="mt-1 text-[13px] leading-relaxed text-stone">
                   Fuera de tu zona, la app no deja terminar la reserva.
                 </p>
               </div>
@@ -446,37 +434,24 @@ export default function Domicilio() {
                     </p>
                   ) : null}
 
+                  {/* El aviso LARGO del punto del mapa (qué es y dónde se
+                      coloca) vive una sola vez, arriba en «Dónde estás». Aquí
+                      basta con decir por qué le afecta al radio y señalarlo:
+                      repetir el mismo párrafo dos veces en la misma pantalla
+                      hace que no se lea ninguna de las dos. */}
                   {sinUbicacion ? (
-                    <div
-                      className="flex items-start gap-3 rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed"
+                    <p
+                      className="rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed"
                       style={{
                         background: 'rgba(197,86,44,0.06)',
                         color: '#5B3B23',
                       }}
                     >
-                      <svg
-                        viewBox="0 0 24 24"
-                        width="18"
-                        height="18"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="mt-0.5 shrink-0"
-                        aria-hidden
-                      >
-                        <circle cx="12" cy="12" r="9" />
-                        <path d="M12 8v4" />
-                        <path d="M12 16h.01" />
-                      </svg>
-                      <span>
-                        El radio se mide desde la{' '}
-                        <strong>dirección de tu salón</strong> y todavía no la
-                        tienes puesta en el mapa. Configúrala desde el ordenador
-                        o usa la zona por códigos postales.
-                      </span>
-                    </div>
+                      El radio se mide desde el punto del mapa de tu salón, y
+                      todavía no lo tienes puesto (lo dice el aviso de «Dónde
+                      estás», más arriba). Hasta entonces, usa la zona por
+                      códigos postales.
+                    </p>
                   ) : (
                     <p className="text-[12px] leading-relaxed text-stone/80">
                       Se mide en línea recta desde la dirección de tu salón.
@@ -490,7 +465,7 @@ export default function Domicilio() {
                   </span>
 
                   {cps.length === 0 ? (
-                    <p className="text-[13.5px] leading-relaxed text-stone">
+                    <p className="text-[13px] leading-relaxed text-stone">
                       Todavía no has añadido ninguno. Añade los códigos postales
                       a los que te desplazas.
                     </p>
@@ -560,15 +535,15 @@ export default function Domicilio() {
                   </p>
                 </div>
               )}
-            </section>
+            </div>
           ) : (
-            <section className="card flex items-start gap-3 p-5">
+            <div className="flex items-start gap-3 rounded-2xl border border-line bg-cream/40 p-4">
               <IconoPin width="18" height="18" className="mt-0.5 shrink-0 text-stone" aria-hidden />
-              <p className="text-[13.5px] leading-relaxed text-stone">
+              <p className="text-[13px] leading-relaxed text-stone">
                 Ahora mismo solo atiendes en el local. Enciende el interruptor
                 para elegir hasta dónde te desplazas.
               </p>
-            </section>
+            </div>
           )}
 
           {/* ---------- ¿sirve de algo activarlo? ---------- */}
@@ -577,50 +552,48 @@ export default function Domicilio() {
             total={datos.serviciosDomicilio?.total ?? 0}
           />
 
-          {/* ---------- guardar ---------- */}
+          {/* ---------- guardar (propio, ver cabecera) ---------- */}
           {puedeEditar ? (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               {aviso ? (
-                <p
-                  role="status"
-                  className="rounded-xl px-3.5 py-2.5 text-[13.5px]"
-                  style={
-                    aviso.tipo === 'ok'
-                      ? {
-                          background: 'var(--sage-soft)',
-                          color: 'var(--sage-deep)',
-                        }
-                      : { background: '#F1D6D6', color: '#7C2E2E' }
-                  }
-                >
-                  {aviso.tipo === 'ok' ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Icon.Check width="14" height="14" />
-                      {aviso.texto}
-                    </span>
-                  ) : (
-                    aviso.texto
-                  )}
-                </p>
+                aviso.tipo === 'ok' ? (
+                  <div
+                    role="status"
+                    className="flex items-center gap-2 rounded-xl border border-sage/40 bg-sage-soft px-4 py-3 text-[13px] text-sage-deep"
+                  >
+                    <Icon.Check width="14" height="14" />
+                    {aviso.texto}
+                  </div>
+                ) : (
+                  <div
+                    role="status"
+                    className="rounded-xl border bg-[#F1D6D6] px-4 py-3 text-[13px] text-[#7C2E2E]"
+                    style={{ borderColor: 'rgba(177,72,72,0.4)' }}
+                  >
+                    {aviso.texto}
+                  </div>
+                )
               ) : null}
 
-              <button
-                type="button"
-                onClick={guardar}
-                disabled={guardando}
-                className="gloss-btn tight w-full rounded-full px-5 py-3.5 text-[15px] font-medium disabled:opacity-60"
-              >
-                {guardando ? 'Guardando…' : 'Guardar cambios'}
-              </button>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={guardar}
+                  disabled={guardando}
+                  className="gloss-btn tight rounded-full px-5 py-3 text-[13.5px] font-medium disabled:opacity-60"
+                >
+                  {guardando ? 'Guardando…' : 'Guardar zona de domicilio'}
+                </button>
+              </div>
             </div>
           ) : (
-            <p className="px-1 text-[13px] leading-relaxed text-stone">
+            <p className="text-[13px] leading-relaxed text-stone">
               Aquí ves hasta dónde se desplaza el salón. Cambiar la zona lo hace
               el dueño.
             </p>
           )}
         </div>
       ) : null}
-    </Pantalla>
+    </section>
   );
 }

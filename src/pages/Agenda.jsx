@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 
 import Pantalla from '../components/Pantalla';
+import AvisoSinFicha from '../components/AvisoSinFicha';
 import { useAuth } from '../context/useAuth';
 import { apiGet } from '../lib/api';
 
@@ -205,8 +206,13 @@ export default function Agenda() {
   // El interruptor solo aparece si la cuenta está vinculada a un profesional
   // (es lo que pasa con los trabajadores). A un dueño sin ficha propia el
   // filtro le devolvería cero citas y parecería que la agenda está rota.
+  //
+  // Y si `alcanceForzado` viene a true, el servidor YA está filtrando por su
+  // cuenta: enseñar un interruptor apagado sería mentir sobre lo que se está
+  // viendo, y apagarlo no traería ni una cita más.
   const puedeFiltrarMias =
-    datos?.puedeFiltrarMias ?? Boolean(perfil?.profesionalId);
+    (datos?.puedeFiltrarMias ?? Boolean(perfil?.profesionalId)) &&
+    datos?.alcanceForzado !== true;
 
   const hayContenido =
     (datos?.citas?.length ?? 0) > 0 || (datos?.cierres?.length ?? 0) > 0;
@@ -297,11 +303,16 @@ export default function Agenda() {
           )}
         </div>
 
+        {!cargando && !error && datos?.sinFicha && <AvisoSinFicha />}
+
         {!cargando && !error && datos && hayContenido && (
           <div className="grid grid-cols-3 gap-2">
             <Mini label="Citas" valor={String(datos.resumen.total)} />
+            {/* El resumen suma la caja de quien pregunta, no la del salón:
+                a un empleado "Facturado" le sonaría a lo que factura el
+                negocio (ver `ambitoCaja` en el backend). */}
             <Mini
-              label="Facturado"
+              label={perfil?.puedeVerCaja === false ? 'Lo tuyo' : 'Facturado'}
               valor={`${Math.round(datos.resumen.facturado)} €`}
             />
             <Mini label="No-shows" valor={String(datos.resumen.noShows)} />

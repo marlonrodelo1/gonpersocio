@@ -57,44 +57,84 @@ function urlListado(busqueda, offset) {
   return `/clientes?${params}`;
 }
 
+/** Avisos de la ficha: depósito exigido y plantones repetidos. */
+function Avisos({ cliente }) {
+  return (
+    <>
+      {cliente.requiereDeposito ? (
+        <span
+          className="shrink-0 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
+          style={{ background: 'rgba(197,142,44,0.12)', color: '#C58E2C' }}
+        >
+          Depósito
+        </span>
+      ) : null}
+      {cliente.totalNoShows >= 2 ? (
+        <span
+          className="shrink-0 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
+          style={{ background: 'rgba(177,72,72,0.10)', color: '#B14848' }}
+        >
+          {cliente.totalNoShows} plantones
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * Ficha de cliente en el listado. Dos maquetas de lo mismo: apilada en móvil y
+ * tablet, y la rejilla de 5 columnas del panel web en pantalla ancha. La
+ * rejilla sola medía 640 px y en un móvil dejaba el contacto y las visitas
+ * fuera de pantalla.
+ */
 function FichaCliente({ cliente, tz }) {
+  const contacto = cliente.telefono || cliente.email || '—';
+  const citasTxt = `${cliente.totalCitas} ${cliente.totalCitas === 1 ? 'cita' : 'citas'}`;
+  const avatar = iniciales(cliente.nombre) || '·';
+
   return (
     <Link
       to={`/clientes/${cliente.id}`}
-      className="grid grid-cols-[44px_1fr_150px_84px_130px] items-center gap-3 border-l-2 border-l-transparent px-5 py-4 transition hover:border-l-terracotta hover:bg-paper/60"
+      className="block border-l-2 border-l-transparent transition hover:border-l-terracotta hover:bg-paper/60 active:bg-paper"
     >
-      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-cream-2 text-[12px] font-medium text-ink/80">
-        {iniciales(cliente.nombre) || '·'}
-      </div>
-      <div className="min-w-0">
-        <div className="tight flex items-center gap-2 truncate text-[14.5px] font-medium text-ink">
-          <span className="truncate">{cliente.nombre}</span>
-          {cliente.requiereDeposito ? (
-            <span
-              className="shrink-0 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
-              style={{ background: 'rgba(197,142,44,0.12)', color: '#C58E2C' }}
-            >
-              Depósito
-            </span>
-          ) : null}
-          {cliente.totalNoShows >= 2 ? (
-            <span
-              className="shrink-0 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
-              style={{ background: 'rgba(177,72,72,0.10)', color: '#B14848' }}
-            >
-              {cliente.totalNoShows} plantones
-            </span>
-          ) : null}
+      {/* ---------- MÓVIL ---------- */}
+      <div className="flex items-center gap-3 px-4 py-3.5 lg:hidden">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-cream-2 text-[13px] font-medium text-ink/80">
+          {avatar}
         </div>
+        <div className="min-w-0 flex-1">
+          <div className="tight flex flex-wrap items-center gap-1.5">
+            <span className="truncate text-[15px] font-medium text-ink">
+              {cliente.nombre}
+            </span>
+            <Avisos cliente={cliente} />
+          </div>
+          <div className="truncate text-[12.5px] text-stone">{contacto}</div>
+          <div className="truncate text-[12.5px] text-stone">
+            {citasTxt} · {fmtUltimaVisita(cliente.ultimaVisita, tz)}
+          </div>
+        </div>
+        <span className="shrink-0 text-stone/60" aria-hidden>
+          →
+        </span>
       </div>
-      <div className="truncate text-[13px] text-stone">
-        {cliente.telefono || cliente.email || '—'}
-      </div>
-      <div className="tabular text-[13px] text-ink">
-        {cliente.totalCitas} {cliente.totalCitas === 1 ? 'cita' : 'citas'}
-      </div>
-      <div className="text-[13px] text-stone">
-        {fmtUltimaVisita(cliente.ultimaVisita, tz)}
+
+      {/* ---------- ESCRITORIO ---------- */}
+      <div className="hidden grid-cols-[44px_1fr_150px_84px_130px] items-center gap-3 px-5 py-4 lg:grid">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-cream-2 text-[12px] font-medium text-ink/80">
+          {avatar}
+        </div>
+        <div className="min-w-0">
+          <div className="tight flex items-center gap-2 truncate text-[14.5px] font-medium text-ink">
+            <span className="truncate">{cliente.nombre}</span>
+            <Avisos cliente={cliente} />
+          </div>
+        </div>
+        <div className="truncate text-[13px] text-stone">{contacto}</div>
+        <div className="tabular text-[13px] text-ink">{citasTxt}</div>
+        <div className="text-[13px] text-stone">
+          {fmtUltimaVisita(cliente.ultimaVisita, tz)}
+        </div>
       </div>
     </Link>
   );
@@ -249,15 +289,17 @@ export default function Clientes() {
       ) : (
         <>
           <div className="card overflow-hidden">
-            <div className="overflow-x-auto">
-              <div className="grid min-w-[640px] grid-cols-[44px_1fr_150px_84px_130px] gap-3 border-b border-line bg-cream/40 px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-stone/70">
+            <div className="lg:overflow-x-auto">
+              {/* Cabecera y ancho fijo solo en pantalla ancha: en móvil y
+                  tablet cada ficha se apila (ver FichaCliente). */}
+              <div className="hidden grid-cols-[44px_1fr_150px_84px_130px] gap-3 border-b border-line bg-cream/40 px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-stone/70 lg:grid">
                 <div />
                 <div>Cliente</div>
                 <div>Contacto</div>
                 <div>Citas</div>
                 <div>Última</div>
               </div>
-              <div className="min-w-[640px] divide-y divide-line/70">
+              <div className="divide-y divide-line/70">
                 {lista.map((c) => (
                   <FichaCliente key={c.id} cliente={c} tz={tz} />
                 ))}

@@ -146,7 +146,7 @@ function enCurso(desdeIso, hastaIso) {
 /* ---------- pantalla ---------- */
 
 export default function Cierres() {
-  const { salon } = useAuth();
+  const { salon, esDueno } = useAuth();
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -493,7 +493,14 @@ export default function Cierres() {
                         ) : null}
                       </div>
 
-                      {puedeEditar ? (
+                      {/* `puedeQuitar` va POR FILA, no por pantalla: un empleado
+                          con `cerrar_franjas` ve también los cierres del salón
+                          —tiene que saber que el negocio está cerrado— pero solo
+                          puede levantar los suyos. Con el `puedeEditar` global le
+                          saldría el botón en todas y el servidor se lo rechazaría
+                          con un 404 al pulsarlo. El `??` mantiene el
+                          comportamiento con una respuesta antigua sin el campo. */}
+                      {(c.puedeQuitar ?? puedeEditar) ? (
                         preguntando ? (
                           <div className="flex items-center gap-2 border-t border-line pt-2">
                             <button
@@ -534,20 +541,25 @@ export default function Cierres() {
             )}
           </section>
 
-          <Link
-            to="/horario"
-            className="card flex items-center justify-between gap-3 p-5 text-left transition hover:bg-paper/60"
-          >
-            <div className="min-w-0">
-              <p className="tight text-[14.5px] font-medium text-ink">
-                Ver mi horario semanal
-              </p>
-              <p className="mt-0.5 text-[13px] leading-relaxed text-stone">
-                Los cierres son excepciones. Tu horario de siempre está aparte.
-              </p>
-            </div>
-            <Icon.Arrow width="18" height="18" className="shrink-0 text-stone/60" />
-          </Link>
+          {/* Solo para quien manda: `/horario` es zona de dueño y a un empleado
+              con `cerrar_franjas` —que es el único no-admin que llega hasta
+              aquí— este enlace le rebotaría a Hoy sin decirle por qué. */}
+          {esDueno ? (
+            <Link
+              to="/horario"
+              className="card flex items-center justify-between gap-3 p-5 text-left transition hover:bg-paper/60"
+            >
+              <div className="min-w-0">
+                <p className="tight text-[14.5px] font-medium text-ink">
+                  Ver mi horario semanal
+                </p>
+                <p className="mt-0.5 text-[13px] leading-relaxed text-stone">
+                  Los cierres son excepciones. Tu horario de siempre está aparte.
+                </p>
+              </div>
+              <Icon.Arrow width="18" height="18" className="shrink-0 text-stone/60" />
+            </Link>
+          ) : null}
         </div>
       ) : null}
     </Pantalla>

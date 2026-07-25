@@ -10,55 +10,84 @@ import { WEB_PANEL } from '../lib/identidad';
 /**
  * Barra lateral, CLON del panel web (`panel-sidebar.tsx`) para que la app se vea
  * igual: drawer off-canvas en móvil (hamburguesa + overlay), mismos grupos,
- * mismo item activo (bg-ink/text-cream), misma card de Juanita. Adaptado a
- * react-router, a la sesión de la app (useAuth) y a las rutas de socio.
+ * mismo item activo (bg-ink/text-cream). Adaptado a react-router, a la sesión
+ * de la app (useAuth) y a las rutas de socio.
  *
  * Se oculta en login/onboarding y cuando no hay salón (igual que hacía la
  * antigua BottomNav).
  */
 
-const NAV_OPERACION = [
-  { to: '/hoy', label: 'Hoy', Icono: Icon.Home, exact: true },
-  { to: '/agenda', label: 'Agenda', Icono: Icon.Cal },
-  { to: '/citas/nueva', label: 'Nueva cita', Icono: Icon.Plus },
-  { to: '/conversaciones', label: 'Conversaciones', Icono: Icon.Chat },
-  { to: '/clientes', label: 'Clientes', Icono: Icon.Users },
-  { to: '/servicios', label: 'Servicios', Icono: Icon.Scissors },
-  { to: '/numeros', label: 'Números', Icono: Icon.Chart },
-];
+/**
+ * El menú se CONSTRUYE, no se filtra al pintar.
+ *
+ * Así los encabezados de grupo se deciden sobre la lista ya resuelta y no puede
+ * quedarse "Configuración" con nada debajo, que es el fallo típico de esconder
+ * items uno a uno con condicionales sueltos dentro del `map`.
+ *
+ * Esto es maquillaje de interfaz, no seguridad: cada endpoint vuelve a
+ * comprobar el permiso por su cuenta. Lo que se gana es que un empleado no
+ * descubra pantallas que no puede usar.
+ */
+function construirNav({ esDueno, puede }) {
+  const operacion = [
+    { to: '/hoy', label: 'Hoy', Icono: Icon.Home, exact: true },
+    { to: '/agenda', label: 'Agenda', Icono: Icon.Cal },
+    { to: '/citas/nueva', label: 'Nueva cita', Icono: Icon.Plus },
+  ];
+  if (esDueno || puede('ver_clientes')) {
+    operacion.push({ to: '/clientes', label: 'Clientes', Icono: Icon.Users });
+  }
+  if (esDueno) {
+    operacion.push({ to: '/servicios', label: 'Servicios', Icono: Icon.Scissors });
+  }
+  operacion.push({ to: '/numeros', label: 'Números', Icono: Icon.Chart });
 
-const NAV_WEB = [
-  { to: '/compartir', label: 'Compartir', Icono: Icon.Share },
-  { to: '/promociones', label: 'Promociones', Icono: Icon.Sparkle },
-  { to: '/galeria', label: 'Galería', Icono: Icon.Sparkle },
-  { to: '/antes-despues', label: 'Antes y después', Icono: Icon.Sparkle },
-  { to: '/resenas', label: 'Reseñas', Icono: Icon.Sparkle },
-];
+  // La web del salón es escaparate del negocio: la lleva quien lo administra.
+  const web = esDueno
+    ? [
+        { to: '/compartir', label: 'Compartir', Icono: Icon.Share },
+        { to: '/promociones', label: 'Promociones', Icono: Icon.Sparkle },
+        { to: '/galeria', label: 'Galería', Icono: Icon.Sparkle },
+        { to: '/antes-despues', label: 'Antes y después', Icono: Icon.Sparkle },
+        { to: '/resenas', label: 'Reseñas', Icono: Icon.Sparkle },
+      ]
+    : [];
 
-// El panel colapsa esto en una sola entrada con tabs; en la app son pantallas
-// sueltas, así que se listan con el estilo de "puntito" del grupo Configuración.
-const NAV_CONFIG = [
-  { to: '/config/salon', label: 'Datos del salón' },
-  { to: '/config/reservas', label: 'Reservas' },
-  { to: '/horario', label: 'Horario' },
-  { to: '/cierres', label: 'Cierres y vacaciones' },
-  { to: '/equipo', label: 'Equipo' },
-  { to: '/cobros', label: 'Cobros y depósitos' },
-  { to: '/domicilio', label: 'A domicilio' },
-  { to: '/config/agente', label: 'Tu asistente' },
-];
+  // El panel colapsa esto en una sola entrada con tabs; en la app son pantallas
+  // sueltas, así que se listan con el estilo de "puntito".
+  const config = esDueno
+    ? [
+        { to: '/config/salon', label: 'Datos del salón' },
+        { to: '/config/reservas', label: 'Reservas' },
+        { to: '/horario', label: 'Horario' },
+        { to: '/cierres', label: 'Cierres y vacaciones' },
+        { to: '/equipo', label: 'Equipo' },
+        { to: '/cobros', label: 'Cobros y depósitos' },
+      ]
+    : puede('cerrar_franjas')
+      ? [{ to: '/cierres', label: 'Cierres y vacaciones' }]
+      : [];
+
+  // Con una sola entrada, "Configuración" se lee como si faltara algo. Lo que
+  // el empleado tiene ahí es exactamente eso: cuándo NO está disponible.
+  const tituloConfig = esDueno ? 'Configuración' : 'Tu disponibilidad';
+
+  return { operacion, web, config, tituloConfig };
+}
 
 const OCULTA_EN = ['/login', '/auth'];
 
 export default function PanelSidebar() {
   const { pathname } = useLocation();
-  const { user, perfil, salon, logout } = useAuth();
+  const { user, perfil, salon, logout, esDueno, puede } = useAuth();
   const [abierto, setAbierto] = useState(false);
   const cerrar = () => setAbierto(false);
 
   const oculta =
     !user || !perfil || OCULTA_EN.some((p) => pathname.startsWith(p));
   if (oculta) return null;
+
+  const nav = construirNav({ esDueno, puede });
 
   const inicial = (salon?.nombre ?? 'G').trim().charAt(0).toUpperCase() || 'G';
 
@@ -144,11 +173,11 @@ export default function PanelSidebar() {
 
         {/* Nav */}
         <div className="nice-scroll flex-1 overflow-y-auto">
-          <nav className="mt-6 flex flex-col gap-0.5 px-3">
+          <nav className="mt-6 flex flex-col gap-0.5 px-3 pb-3">
             <div className="px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-stone/60">
               Operación
             </div>
-            {NAV_OPERACION.map((it) => {
+            {nav.operacion.map((it) => {
               const act = activo(it.to, it.exact);
               const Ico = it.Icono;
               return (
@@ -161,41 +190,51 @@ export default function PanelSidebar() {
               );
             })}
 
-            <div className="mt-4 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-stone/60">
-              Web del salón
-            </div>
-            {NAV_WEB.map((it) => {
-              const act = activo(it.to);
-              const Ico = it.Icono;
-              return (
-                <Link key={it.to} to={it.to} onClick={cerrar} className={itemClase(act)}>
-                  <span className={act ? 'text-cream' : 'text-terracotta'}>
-                    <Ico width="18" height="18" />
-                  </span>
-                  <span className="tight">{it.label}</span>
-                </Link>
-              );
-            })}
+            {/* Encabezado y lista van juntos: si la lista queda vacía se cae
+                el grupo entero, encabezado incluido. */}
+            {nav.web.length > 0 && (
+              <>
+                <div className="mt-4 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-stone/60">
+                  Web del salón
+                </div>
+                {nav.web.map((it) => {
+                  const act = activo(it.to);
+                  const Ico = it.Icono;
+                  return (
+                    <Link key={it.to} to={it.to} onClick={cerrar} className={itemClase(act)}>
+                      <span className={act ? 'text-cream' : 'text-terracotta'}>
+                        <Ico width="18" height="18" />
+                      </span>
+                      <span className="tight">{it.label}</span>
+                    </Link>
+                  );
+                })}
+              </>
+            )}
 
-            <div className="mt-4 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-stone/60">
-              Configuración
-            </div>
-            {NAV_CONFIG.map((it) => {
-              const act = activo(it.to);
-              return (
-                <Link
-                  key={it.to}
-                  to={it.to}
-                  onClick={cerrar}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition ${
-                    act ? 'bg-ink text-cream' : 'text-stone hover:bg-paper hover:text-ink'
-                  }`}
-                >
-                  <span className={`h-1.5 w-1.5 rounded-full ${act ? 'bg-cream' : 'bg-stone/40'}`} />
-                  <span className="tight">{it.label}</span>
-                </Link>
-              );
-            })}
+            {nav.config.length > 0 && (
+              <>
+                <div className="mt-4 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-stone/60">
+                  {nav.tituloConfig}
+                </div>
+                {nav.config.map((it) => {
+                  const act = activo(it.to);
+                  return (
+                    <Link
+                      key={it.to}
+                      to={it.to}
+                      onClick={cerrar}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition ${
+                        act ? 'bg-ink text-cream' : 'text-stone hover:bg-paper hover:text-ink'
+                      }`}
+                    >
+                      <span className={`h-1.5 w-1.5 rounded-full ${act ? 'bg-cream' : 'bg-stone/40'}`} />
+                      <span className="tight">{it.label}</span>
+                    </Link>
+                  );
+                })}
+              </>
+            )}
 
             <div className="mt-4 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-stone/60">
               Cuenta
@@ -210,21 +249,25 @@ export default function PanelSidebar() {
               </span>
               <span className="tight">Mi cuenta</span>
             </Link>
-            <button
-              type="button"
-              onClick={() => {
-                cerrar();
-                abrirEnWeb('/panel/config/suscripcion').catch(() => {});
-              }}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] text-stone transition hover:bg-paper hover:text-ink"
-            >
-              <span className="text-terracotta">
-                <Icon.Wallet width="18" height="18" />
-              </span>
-              <span className="tight">Suscripción y plan</span>
-            </button>
+            {/* Lo que se paga y lo que se publica son del dueño. Un empleado
+                que abriera la suscripción vería la factura del negocio. */}
+            {esDueno && (
+              <button
+                type="button"
+                onClick={() => {
+                  cerrar();
+                  abrirEnWeb('/panel/config/suscripcion').catch(() => {});
+                }}
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] text-stone transition hover:bg-paper hover:text-ink"
+              >
+                <span className="text-terracotta">
+                  <Icon.Wallet width="18" height="18" />
+                </span>
+                <span className="tight">Suscripción y plan</span>
+              </button>
+            )}
 
-            {salon?.slug && (
+            {esDueno && salon?.slug && (
               <button
                 type="button"
                 onClick={() => {
@@ -239,29 +282,6 @@ export default function PanelSidebar() {
               </button>
             )}
           </nav>
-        </div>
-
-        {/* Card Juanita */}
-        <div className="p-3">
-          <div className="card grain p-4">
-            <div className="mb-2 flex items-center gap-2">
-              <span className="pulse-soft h-2 w-2 rounded-full bg-sage" />
-              <span className="text-[11px] uppercase tracking-[0.18em] text-stone">
-                Juanita
-              </span>
-              <span className="ml-auto font-mono text-[10px] text-stone/60">v2.4</span>
-            </div>
-            <div className="tight text-[13px] font-medium text-ink">
-              Atendiendo el chat web
-            </div>
-            <Link
-              to="/config/agente"
-              onClick={cerrar}
-              className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-terracotta hover:text-terracotta-2"
-            >
-              Configurar agente <Icon.Arrow width="11" height="11" />
-            </Link>
-          </div>
         </div>
 
         {/* Footer usuario */}

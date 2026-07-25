@@ -309,7 +309,7 @@ function Esqueleto() {
 }
 
 export default function Numeros() {
-  const { salon } = useAuth();
+  const { salon, perfil } = useAuth();
   const [periodo, setPeriodo] = useState('hoy');
   const [intento, setIntento] = useState(0);
   // La respuesta se guarda junto a la CLAVE que la pidió. Así una respuesta
@@ -346,6 +346,12 @@ export default function Numeros() {
 
   const saludo = salon?.nombre ? `· ${salon.nombre}` : undefined;
 
+  // El endpoint suma la caja de QUIEN PREGUNTA (ver `ambitoCaja` en el
+  // backend): a un empleado esta pantalla nunca le enseña la del negocio, así
+  // que el título tiene que decirlo o dará por hecho que son los números del
+  // salón entero.
+  const titulo = perfil?.puedeVerCaja === false ? 'Tus números' : 'Números';
+
   let subtitulo = '';
   if (datos) {
     subtitulo =
@@ -374,7 +380,7 @@ export default function Numeros() {
     datos.grafica.barras.every((b) => b.citas === 0);
 
   return (
-    <Pantalla titulo="Números" subtitulo={subtitulo} saludo={saludo}>
+    <Pantalla titulo={titulo} subtitulo={subtitulo} saludo={saludo}>
       <div className="flex flex-col gap-4">
         <Pastillas valor={periodo} onCambio={setPeriodo} />
 

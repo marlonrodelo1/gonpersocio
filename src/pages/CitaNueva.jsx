@@ -5,6 +5,7 @@ import Pantalla from '../components/Pantalla';
 import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
 import { apiGet, apiPost } from '../lib/api';
+import { telefonoEsValido } from '../lib/telefono';
 
 /**
  * Nueva cita: meter en la agenda a quien acaba de entrar por la puerta.
@@ -177,8 +178,14 @@ export default function CitaNueva() {
   const [creandoFicha, setCreandoFicha] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [nuevoTelefono, setNuevoTelefono] = useState('');
+  const [nuevoEmail, setNuevoEmail] = useState('');
   const [guardandoFicha, setGuardandoFicha] = useState(false);
   const [errorFicha, setErrorFicha] = useState(null);
+
+  // El teléfono es obligatorio: es la clave con la que se reconoce al cliente
+  // y la única vía para avisarle si hay que mover la cita.
+  const telefonoAvisa = telefonoEsValido(nuevoTelefono);
+  const fichaCompletable = Boolean(nuevoNombre.trim()) && telefonoAvisa;
 
   // Paso 2 — servicio y partes
   const [servicioId, setServicioId] = useState('');
@@ -276,20 +283,31 @@ export default function CitaNueva() {
   const crearFicha = async () => {
     const nombre = nuevoNombre.trim();
     if (!nombre) {
-      setErrorFicha('Escribe al menos el nombre.');
+      setErrorFicha('Escribe el nombre.');
+      return;
+    }
+    if (!telefonoAvisa) {
+      setErrorFicha(
+        'Hace falta un teléfono válido: son 9 dígitos, o con el prefijo del país si es de fuera de España.',
+      );
       return;
     }
     setGuardandoFicha(true);
     setErrorFicha(null);
     try {
+      // Se manda TAL CUAL se ha tecleado: el backend lo pasa a E.164 y es el
+      // único que decide el formato guardado. Normalizarlo aquí también sería
+      // tener dos criterios que se pueden separar con el tiempo.
       const r = await apiPost('/clientes', {
         nombre,
-        telefono: nuevoTelefono.trim() || null,
+        telefono: nuevoTelefono.trim(),
+        email: nuevoEmail.trim() || null,
       });
       setCliente(r.cliente);
       setCreandoFicha(false);
       setNuevoNombre('');
       setNuevoTelefono('');
+      setNuevoEmail('');
     } catch (e) {
       setErrorFicha(e?.message || 'No se ha podido crear la ficha.');
     } finally {
@@ -599,7 +617,7 @@ export default function CitaNueva() {
                       htmlFor="cita_telefono"
                       className="text-[11px] uppercase tracking-[0.2em] text-stone"
                     >
-                      Teléfono (opcional)
+                      Teléfono
                     </label>
                     <input
                       id="cita_telefono"
@@ -612,8 +630,36 @@ export default function CitaNueva() {
                       className="field-input"
                     />
                     <p className="text-[12px] leading-relaxed text-stone">
-                      Sin teléfono no podrás avisarle si tienes que mover la
-                      cita.
+                      {telefonoAvisa
+                        ? 'Por aquí le llega el recordatorio de la cita por WhatsApp.'
+                        : 'Hace falta para mandarle el recordatorio. Si es de fuera de España, ponle el prefijo (+351…).'}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      htmlFor="cita_email"
+                      className="text-[11px] uppercase tracking-[0.2em] text-stone"
+                    >
+                      Email (opcional)
+                    </label>
+                    <input
+                      id="cita_email"
+                      type="email"
+                      inputMode="email"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      value={nuevoEmail}
+                      onChange={(e) => setNuevoEmail(e.target.value)}
+                      maxLength={200}
+                      placeholder="laura@ejemplo.com"
+                      className="field-input"
+                    />
+                    <p className="text-[12px] leading-relaxed text-stone">
+                      {nuevoEmail.trim()
+                        ? 'Aquí le llegará la confirmación de la cita.'
+                        : 'Sin email no recibirá la confirmación: al reservar solo se manda por correo.'}
                     </p>
                   </div>
 
@@ -630,7 +676,7 @@ export default function CitaNueva() {
                     <button
                       type="button"
                       onClick={crearFicha}
-                      disabled={guardandoFicha}
+                      disabled={guardandoFicha || !fichaCompletable}
                       className="gloss-btn tight flex-1 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
                     >
                       {guardandoFicha ? 'Guardando…' : 'Guardar ficha'}
@@ -895,7 +941,7 @@ export default function CitaNueva() {
                   </p>
                   <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
                     Las citas se asignan siempre a una persona. Da de alta al
-                    equipo desde Más → Equipo.
+                    equipo desde Equipo, en el menú.
                   </p>
                 </div>
               ) : (

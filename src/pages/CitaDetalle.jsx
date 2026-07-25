@@ -331,13 +331,21 @@ export default function CitaDetalle() {
   const m = metaEstado(cita.estado);
   const esValoracion = servicio.precioModo === 'valoracion' && !cita.precioEur;
 
-  const puedeConfirmar = cita.estado === 'pendiente';
+  // Dos condiciones, no una: el ESTADO dice si la acción tiene sentido, y
+  // `puedeCambiarEstado` (del servidor) si esta persona puede hacerla. Un
+  // empleado ve la cita de un compañero cuando tiene la agenda completa, pero
+  // verla no es poder tocarla: sin esto le pintaríamos botones que el servidor
+  // le va a rechazar con un 404, que es la peor forma de decir "no puedes".
+  const puedeTocar = datos?.puedeCambiarEstado !== false;
+
+  const puedeConfirmar = puedeTocar && cita.estado === 'pendiente';
   const puedeNoShow =
-    cita.estado === 'pendiente' || cita.estado === 'confirmada';
+    puedeTocar && (cita.estado === 'pendiente' || cita.estado === 'confirmada');
   const puedeCancelar =
-    cita.estado === 'pendiente' ||
-    cita.estado === 'confirmada' ||
-    cita.estado === 'pendiente_pago';
+    puedeTocar &&
+    (cita.estado === 'pendiente' ||
+      cita.estado === 'confirmada' ||
+      cita.estado === 'pendiente_pago');
   const hayAcciones = puedeConfirmar || puedeNoShow || puedeCancelar;
 
   const totalPartes = (partes ?? []).reduce((a, p) => a + p.duracionMin, 0);
