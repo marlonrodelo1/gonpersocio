@@ -5,9 +5,13 @@
   defecto. Aquí se fijan los de Gonper Socio.
 
   #211D17 ("espresso") tiene que coincidir con capacitor.config.json,
-  index.html (theme-color), src/index.css (--chrome) y el SafeAreaTop de
-  App.jsx. Si uno se queda atrás, en el móvil real aparece una franja de otro
-  color bajo la muesca — y eso solo se ve al compilar, no en el navegador.
+  index.html (theme-color), la variable "chrome" de src/index.css y el
+  SafeAreaTop de App.jsx. Si uno se queda atrás, en el móvil real aparece una
+  franja de otro color bajo la muesca, y eso solo se ve al compilar.
+
+  (Ojo al redactar: XML prohíbe dos guiones seguidos dentro de un comentario,
+  así que la variable CSS se nombra sin ellos. Con ellos, el build de release
+  falla en mergeReleaseResources.)
 -->
 <resources>
     <color name="colorPrimary">#211D17</color>
