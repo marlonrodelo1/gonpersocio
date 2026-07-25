@@ -119,7 +119,7 @@ export default function VistaPreviaCartel({
         </p>
 
         <div
-          className="mt-[4%] bg-white"
+          className="relative mt-[4%] bg-white"
           style={{
             border: `2px solid ${DORADO}`,
             borderRadius: 10,
@@ -136,13 +136,33 @@ export default function VistaPreviaCartel({
               QR no disponible
             </div>
           ) : (
-            <img
-              src={qrSrc}
-              alt={`Código QR para reservar en ${nombre}`}
-              className="block w-full"
-              style={{ aspectRatio: '1' }}
-              onError={onQrError}
-            />
+            <>
+              <img
+                src={qrSrc}
+                alt={`Código QR para reservar en ${nombre}`}
+                className="block w-full"
+                style={{ aspectRatio: '1' }}
+                onError={onQrError}
+              />
+              {/* El monograma va encima, igual que en el cartel impreso. El
+                  código se pide con `tema=gonper`, que sube la corrección de
+                  errores para que taparle el centro no lo estropee. */}
+              <span
+                className="absolute left-1/2 top-1/2 grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full font-serif-it"
+                style={{
+                  width: '18%',
+                  aspectRatio: '1',
+                  background: CREMA,
+                  border: `1px solid ${DORADO}`,
+                  color: VERDE,
+                  fontSize: 'clamp(7px, 2vw, 11px)',
+                  lineHeight: 1,
+                }}
+                aria-hidden
+              >
+                GS
+              </span>
+            </>
           )}
         </div>
 

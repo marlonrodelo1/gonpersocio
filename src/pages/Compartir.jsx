@@ -231,7 +231,9 @@ export default function Compartir() {
               nombre={nombre}
               logoUrl={salon?.logoUrl}
               urlVisible={urlBonita(url)}
-              qrSrc={`${API_BASE}${datos.qrPath}`}
+              // `tema=gonper`: el mismo verde y la misma corrección de errores
+              // que el cartel impreso, para que la previa no engañe.
+              qrSrc={`${API_BASE}${datos.qrPath}&tema=gonper`}
               qrRoto={qrRoto}
               onQrError={() => setQrRoto(true)}
             />
