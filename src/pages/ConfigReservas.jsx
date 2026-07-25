@@ -120,20 +120,83 @@ function AvisoError({ mensaje, onReintentar }) {
  * consecuencia. `editable` en false enseña solo la elegida: para un trabajador,
  * o para un ajuste que su cuenta no usa.
  */
+/**
+ * Las ayudas de los dos topes se escriben con el valor ELEGIDO, no con un
+ * ejemplo fijo.
+ *
+ * Antes decían "con 1 hora, nadie te pide hora para dentro de veinte minutos"
+ * mientras el ajuste marcaba 5 min: el dueño tenía que traducir el ejemplo a su
+ * caso, y lo más probable era que se quedara con el número del texto. Diciendo
+ * lo que hace SU configuración, la frase deja de ser un ejemplo y pasa a ser la
+ * respuesta.
+ */
+function ayudaLeadTime(min) {
+  if (min >= 1440) {
+    return 'Nadie puede reservar para hoy: la cita más cercana es la de mañana a esta hora.';
+  }
+  if (min >= 60) {
+    const h = Math.round(min / 60);
+    return `Nadie puede pedir hora para dentro de menos de ${h} ${h === 1 ? 'hora' : 'horas'}. Te deja margen para prepararte.`;
+  }
+  if (min <= 5) {
+    return 'Se puede reservar casi al momento: si hay un hueco libre a la hora siguiente, sale. Bueno para llenar, exigente para ti.';
+  }
+  return `Nadie puede pedir hora para dentro de menos de ${min} minutos.`;
+}
+
+function ayudaMaxAdvance(dias) {
+  if (dias >= 365) return 'Ven un año entero de calendario por delante.';
+  if (dias >= 30) {
+    const m = Math.round(dias / 30);
+    return `Ven ${m} ${m === 1 ? 'mes' : 'meses'} de calendario por delante. Más allá no pueden coger hora.`;
+  }
+  return `Ven ${dias} días por delante. Más allá no pueden coger hora.`;
+}
+
+/**
+ * Un ajuste: su etiqueta, las opciones y la explicación.
+ *
+ * LAS OPCIONES VAN EN REJILLA, NO EN `flex-wrap`.
+ *
+ * Con wrap, cada píldora medía lo que midiera su texto ("5 min" y "14 días" no
+ * ocupan lo mismo), así que las filas quedaban descuadradas y con huecos
+ * distintos en cada grupo: seis ajustes seguidos y ninguno alineado con el de
+ * arriba. En rejilla todas miden igual, las columnas cuadran entre grupos y una
+ * última fila incompleta se lee como intencionada en vez de como un descuadre.
+ *
+ * Tres columnas en móvil y cuatro desde 420 px: con 6 y 7 opciones —los grupos
+ * más largos— caen en 2 y 3 filas limpias en vez de las 3 desiguales de antes.
+ */
 function Ajuste({ etiqueta, ayuda, valor, opciones, onChange, editable, nota, extra }) {
   const actual = opciones.find((o) => o.valor === valor);
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-1.5">
-        <p className="text-[11px] uppercase tracking-[0.2em] text-stone/80">
-          {etiqueta}
-        </p>
-        {extra}
+    // El padding vertical lo pone cada ajuste (y no un `gap` del contenedor)
+    // para que la línea divisoria de la tarjeta quede centrada entre los dos.
+    <div className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0">
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-stone/80">
+            {etiqueta}
+          </p>
+          {extra}
+        </div>
+        {/* El valor elegido, a la derecha de su etiqueta. Al repasar la
+            pantalla de un vistazo se leen los seis ajustes en columna sin
+            tener que buscar cuál es la píldora oscura de cada grupo. */}
+        {actual ? (
+          <span className="tight shrink-0 text-[12.5px] font-medium text-ink">
+            {actual.etiqueta}
+          </span>
+        ) : null}
       </div>
 
       {editable ? (
-        <div className="flex flex-wrap gap-2" role="group" aria-label={etiqueta}>
+        <div
+          className="grid grid-cols-3 gap-1.5 min-[420px]:grid-cols-4"
+          role="group"
+          aria-label={etiqueta}
+        >
           {opciones.map((o) => {
             const elegida = o.valor === valor;
             return (
@@ -142,7 +205,10 @@ function Ajuste({ etiqueta, ayuda, valor, opciones, onChange, editable, nota, ex
                 type="button"
                 aria-pressed={elegida}
                 onClick={() => onChange(o.valor)}
-                className="rounded-full border px-4 py-2.5 text-[14px] font-medium transition"
+                // Cuerpo ajustado para que la etiqueta más larga de todas
+                // ("30 min antes") entre en una línea a 375 px. Con una sola
+                // que parta en dos, la rejilla engorda esa fila entera.
+                className="rounded-full border px-1.5 py-2.5 text-center text-[12.5px] font-medium transition"
                 style={
                   elegida
                     ? {
@@ -183,21 +249,35 @@ function Ajuste({ etiqueta, ayuda, valor, opciones, onChange, editable, nota, ex
   );
 }
 
+/**
+ * Tarjeta de un bloque de ajustes.
+ *
+ * Los ajustes van separados por una línea fina en vez de por aire. Con solo
+ * espacio, tres ajustes seguidos —cada uno con etiqueta, píldoras y ayuda— se
+ * leían como una lista larga y continua y costaba ver dónde acababa uno y
+ * empezaba el siguiente. La línea cuesta un píxel y ahorra el hueco que hacía
+ * falta para separarlos a ojo, así que la pantalla entra más y se lee mejor.
+ *
+ * El `eyebrow` se quitó de las tarjetas: repetía casi literalmente lo que ya
+ * dice el título ("PROGRAMACIÓN / Cuándo pueden reservar") y era una línea de
+ * ruido por bloque. Se conserva el prop por si alguna tarjeta futura lo
+ * necesita de verdad.
+ */
 function Tarjeta({ eyebrow, titulo, descripcion, children }) {
   return (
-    <section className="card flex flex-col gap-5 p-5 md:p-7">
-      <header className="flex flex-col gap-1">
+    <section className="card flex flex-col p-5 md:p-6">
+      <header className="mb-4 flex flex-col gap-1">
         {eyebrow ? (
           <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
             {eyebrow}
           </span>
         ) : null}
-        <h2 className="tight text-[19px] font-medium text-ink">{titulo}</h2>
+        <h2 className="tight text-[18px] font-medium text-ink">{titulo}</h2>
         {descripcion ? (
           <p className="text-[13px] leading-relaxed text-stone">{descripcion}</p>
         ) : null}
       </header>
-      {children}
+      <div className="flex flex-col divide-y divide-line/70">{children}</div>
     </section>
   );
 }
@@ -346,7 +426,6 @@ export default function ConfigReservas() {
           ) : null}
 
           <Tarjeta
-            eyebrow="Programación"
             titulo="Cuándo pueden reservar"
             descripcion="Las tres reglas que deciden qué huecos ve un cliente al pedir hora."
           >
@@ -356,7 +435,7 @@ export default function ConfigReservas() {
               opciones={OPCIONES.leadTimeMin}
               onChange={elegir('leadTimeMin')}
               editable={puedeEditar}
-              ayuda="Con cuánta antelación mínima puede reservar un cliente. Con 1 hora, nadie te pide hora para dentro de veinte minutos."
+              ayuda={ayudaLeadTime(form.leadTimeMin)}
             />
             <Ajuste
               etiqueta="Antelación máxima"
@@ -364,7 +443,7 @@ export default function ConfigReservas() {
               opciones={OPCIONES.maxAdvanceDays}
               onChange={elegir('maxAdvanceDays')}
               editable={puedeEditar}
-              ayuda="Cuánto calendario ven por delante. Con 1 mes no pueden coger hora para dentro de dos."
+              ayuda={ayudaMaxAdvance(form.maxAdvanceDays)}
             />
             <Ajuste
               etiqueta="Pausa entre citas"
@@ -377,7 +456,6 @@ export default function ConfigReservas() {
           </Tarjeta>
 
           <Tarjeta
-            eyebrow="Avisos automáticos"
             titulo="Cuándo enviar los recordatorios"
             descripcion="Cada cita dispara tres recordatorios. Decides cuánto antes sale cada uno."
           >
