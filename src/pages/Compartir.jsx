@@ -6,6 +6,7 @@ import { useAuth } from '../context/useAuth';
 import { apiGet } from '../lib/api';
 import { API_BASE } from '../lib/identidad';
 import { abrirExterno } from '../lib/puente';
+import VistaPreviaCartel from '../components/VistaPreviaCartel';
 
 /**
  * Compartir: la dirección pública del salón.
@@ -219,34 +220,21 @@ export default function Compartir() {
             </div>
           </div>
 
-          {/* El QR, protagonista: es lo que se enseña girando el móvil. */}
+          {/* El CARTEL, protagonista. Antes aquí había un QR suelto y los
+              botones debajo, así que el dueño tenía que fiarse de un texto para
+              saber qué iba a salir por la impresora. Enseñar la hoja entera
+              —con su logo y su nombre— es lo que hace que le den al botón. */}
           <div className="card flex flex-col items-center gap-4 p-5 text-center">
-            <div className={EYEBROW}>Código QR de tu salón</div>
+            <div className={EYEBROW}>Tu cartel para imprimir</div>
 
-            <div className="rounded-2xl border border-line bg-paper p-4">
-              {qrRoto ? (
-                <div className="flex size-[228px] items-center justify-center px-4 text-center text-[13px] text-stone">
-                  No se ha podido cargar el código. El enlace de arriba funciona
-                  igual.
-                </div>
-              ) : (
-                <img
-                  src={`${API_BASE}${datos.qrPath}`}
-                  alt={`Código QR para reservar en ${nombre}`}
-                  width={228}
-                  height={228}
-                  className="size-[228px]"
-                  onError={() => setQrRoto(true)}
-                />
-              )}
-            </div>
-
-            <div className="flex flex-col items-center gap-1">
-              <p className="tight text-[15px] font-medium text-ink">{nombre}</p>
-              <p className="break-all text-[12px] text-stone">
-                {urlBonita(url)}
-              </p>
-            </div>
+            <VistaPreviaCartel
+              nombre={nombre}
+              logoUrl={salon?.logoUrl}
+              urlVisible={urlBonita(url)}
+              qrSrc={`${API_BASE}${datos.qrPath}`}
+              qrRoto={qrRoto}
+              onQrError={() => setQrRoto(true)}
+            />
 
             {/* Dos salidas para dos necesidades distintas: el cartel entero,
                 que es lo que casi siempre se quiere, y el QR a pelo para quien
