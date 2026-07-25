@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "453532381595",
+    "project_id": "gonper-studio-3a698",
+    "storage_bucket": "gonper-studio-3a698.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:453532381595:android:2fb235c11900b686a2f13e",
+        "android_client_info": {
+          "package_name": "shop.gonperstudio.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA8dVso5xb1LUx0FsVBrQ7PCobla8NRnsg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:453532381595:android:8db656c589187a3ba2f13e",
+        "android_client_info": {
+          "package_name": "shop.gonperstudio.socio"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA8dVso5xb1LUx0FsVBrQ7PCobla8NRnsg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
