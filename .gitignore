@@ -48,3 +48,4 @@ ios/App/Pods/
 ios/App/App/public/
 ios/App/build/
 .ios-temp/
+android/FIRMA-*.txt
