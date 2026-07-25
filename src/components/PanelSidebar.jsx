@@ -5,7 +5,7 @@ import { Icon } from './icons';
 import LogoGonper from './LogoGonper';
 import { useAuth } from '../context/useAuth';
 import { abrirEnWeb, abrirExterno } from '../lib/puente';
-import { WEB_PANEL } from '../lib/identidad';
+import { APP_NOMBRE, WEB_PANEL } from '../lib/identidad';
 
 /**
  * Barra lateral, CLON del panel web (`panel-sidebar.tsx`) para que la app se vea
@@ -132,7 +132,7 @@ export default function PanelSidebar() {
           <Link to="/hoy" onClick={cerrar} className="flex items-center gap-2.5">
             <LogoGonper tamano={26} />
             <span className="font-playfair text-[19px] font-medium text-ink">
-              Gonper Studio
+              {APP_NOMBRE}
             </span>
           </Link>
           <span className="ml-auto text-[10px] uppercase tracking-[0.18em] text-stone/70">

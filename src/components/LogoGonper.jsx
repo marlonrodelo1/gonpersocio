@@ -7,13 +7,15 @@
  * Para esos casos `tono="claro"` lo mete en una pastilla redondeada, que se lee
  * como una decisión de diseño y no como un recorte mal hecho.
  */
+import { APP_NOMBRE } from '../lib/identidad';
+
 export default function LogoGonper({ tamano = 96, tono = 'oscuro' }) {
   const enPastilla = tono === 'claro';
 
   return (
     <img
       src="/logo-gs.png"
-      alt="Gonper Studio"
+      alt={APP_NOMBRE}
       width={tamano}
       height={tamano}
       style={{

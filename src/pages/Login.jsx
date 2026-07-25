@@ -191,7 +191,7 @@ export default function Login() {
             Gonper Socio
           </span>
 
-          <h1 className="sr-only">Gonper Studio Socio</h1>
+          <h1 className="sr-only">{APP_NOMBRE_LARGO}</h1>
 
           <p className="mt-4 text-[14px] text-stone">{subtitulo}</p>
         </div>
