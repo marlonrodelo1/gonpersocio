@@ -54,3 +54,8 @@ android/FIRMA-*.txt
 # uno, git no borra nada y se pueden regenerar desde el codigo mas la llave.
 versiones/*.aab
 versiones/*.apk
+
+# Configuracion de Firebase: no se versiona. Su api_key la marca el escaner de
+# secretos de GitHub, y este repo es publico. Cada maquina se lo baja de la
+# consola de Firebase (proyecto gonper-studio, app shop.gonperstudio.socio).
+android/app/google-services.json
