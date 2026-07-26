@@ -59,3 +59,7 @@ versiones/*.apk
 # secretos de GitHub, y este repo es publico. Cada maquina se lo baja de la
 # consola de Firebase (proyecto gonper-studio, app shop.gonperstudio.socio).
 android/app/google-services.json
+
+# Igual que el de Android: configuracion de Firebase fuera del repo, que es
+# publico y el escaner de secretos marca su api_key.
+**/GoogleService-Info.plist
