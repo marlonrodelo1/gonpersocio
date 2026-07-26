@@ -12,8 +12,8 @@
       "splashImmersive": true
     },
     "StatusBar": {
-      "style": "DARK",
-      "backgroundColor": "#211D17"
+      "style": "LIGHT",
+      "backgroundColor": "#F7F3EC"
     },
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]

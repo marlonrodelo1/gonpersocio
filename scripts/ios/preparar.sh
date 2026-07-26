@@ -44,6 +44,20 @@ else
   echo "    anadido"
 fi
 
+echo "==> Barra de estado (hora, wifi y bateria en negro)"
+# En iOS, `StatusBar.setStyle()` NO hace nada mientras el Info.plist no diga que
+# la barra la controla la app y no cada pantalla: por defecto iOS ignora al
+# plugin. Sin esto, la app —que es de fondo claro— pinta la hora y los iconos en
+# BLANCO y no se leen. El codigo ya pedia texto oscuro; simplemente no le hacian
+# caso.
+if $PB -c "Print :UIViewControllerBasedStatusBarAppearance" "$INFO" 2>/dev/null | grep -q false; then
+  echo "    ya estaba"
+else
+  $PB -c "Delete :UIViewControllerBasedStatusBarAppearance" "$INFO" 2>/dev/null || true
+  $PB -c "Add :UIViewControllerBasedStatusBarAppearance bool false" "$INFO"
+  echo "    anadido"
+fi
+
 echo "==> Configuracion de Firebase"
 if [ -f "ios/App/App/GoogleService-Info.plist" ]; then
   BUNDLE_EN_PLIST="$($PB -c "Print :BUNDLE_ID" ios/App/App/GoogleService-Info.plist 2>/dev/null || echo '?')"

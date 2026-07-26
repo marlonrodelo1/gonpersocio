@@ -41,6 +41,13 @@ COMO SE GENERA LA SIGUIENTE
 
 HISTORIAL
 ---------
+v1.1.2 (versionCode 4) — 26 de julio de 2026. La hora, el wifi y la bateria se
+veian en BLANCO sobre el fondo claro de la app, ilegibles. El codigo ya pedia
+texto oscuro, pero en iOS la barra de estado la controla cada pantalla salvo que
+el Info.plist diga lo contrario, asi que al plugin no le hacian caso: lo pone
+ahora `scripts/ios/preparar.sh`. Y la configuracion de arranque decia DARK (texto
+blanco), asi que el primer fotograma ya salia mal.
+
 v1.1.1 (versionCode 3) — 26 de julio de 2026. Arregla que la app se quedara en
 "Cargando..." para siempre cuando la sesion guardada estaba corrupta: ahora sale
 del limbo siempre (catch + finally + un tope de 12 s) y cae al login o al error
