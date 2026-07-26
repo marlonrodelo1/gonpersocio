@@ -41,6 +41,17 @@ COMO SE GENERA LA SIGUIENTE
 
 HISTORIAL
 ---------
+v1.2.0 (versionCode 7) — 26 de julio de 2026. Dos cosas que pidio Marlon al
+probar con una cuenta de empleada:
+  · El menu lateral y Mi cuenta saludaban con el nombre del NEGOCIO ("Marlon
+    Rodelo") a una empleada que se llama Lucia, mientras que la pantalla Hoy si
+    la llamaba por su nombre. Ahora las tres usan el nombre de la persona; el
+    negocio sigue en su fila de "Negocio".
+  · El campo de contrasena del login lleva el ojo para verla. En el movil se
+    teclea con el pulgar y a ciegas, y un fallo solo se descubre al no poder
+    entrar.
+Incluye todo lo de la 1.1.4.
+
 v1.1.4 (versionCode 6) — 26 de julio de 2026. El boton de soporte escribe ahora
 a soporte@gonperstudio.shop en vez de hola@. OJO: el dominio NO tiene registros
 MX, asi que hoy no recibe correo ninguno — hay que configurar la recepcion o un

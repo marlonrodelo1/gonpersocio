@@ -146,7 +146,7 @@ function Field({ etiqueta, valor }) {
 }
 
 export default function Cuenta() {
-  const { user, salon, rol, logout } = useAuth();
+  const { user, salon, rol, nombre, logout } = useAuth();
   const [saliendo, setSaliendo] = useState(false);
 
   const tz = salon?.timezone || 'Europe/Madrid';
@@ -154,12 +154,17 @@ export default function Cuenta() {
   const finPrueba =
     salon?.plan === 'trial' ? fechaCorta(salon?.trialUntil, tz) : null;
 
-  const inicial = (salon?.nombre || user?.email || 'M')
-    .trim()
-    .charAt(0)
-    .toUpperCase();
+  // ESTA PANTALLA ES DE LA PERSONA, NO DEL NEGOCIO.
+  //
+  // Antes ponía el nombre del salón: a Lucía, empleada, le saludaba "Marlon
+  // Rodelo" —el nombre del negocio— con su email debajo, mientras que en Hoy sí
+  // la llamaba por su nombre. El backend ya manda el nombre bueno en
+  // `usuario.nombre`: el de su ficha de profesional, y para un dueño sin ficha
+  // el del salón, que en la voz de la app es él mismo. El negocio sigue
+  // saliendo, pero en su fila de "Negocio", que es donde toca.
   const nombreMostrado =
-    salon?.nombre || (user?.email ? user.email.split('@')[0] : 'Tu cuenta');
+    nombre || (user?.email ? user.email.split('@')[0] : 'Tu cuenta');
+  const inicial = (nombreMostrado || 'G').trim().charAt(0).toUpperCase();
 
   async function salir() {
     setSaliendo(true);
@@ -174,7 +179,7 @@ export default function Cuenta() {
     <Pantalla
       titulo="Tu cuenta"
       subtitulo="Mi cuenta"
-      saludo={salon?.nombre ? `· ${salon.nombre}` : undefined}
+      saludo={nombreMostrado ? `· ${nombreMostrado}` : undefined}
     >
       <div className="flex flex-col gap-6">
         {/* ============================================

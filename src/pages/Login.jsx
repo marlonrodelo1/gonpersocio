@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import CampoPassword from '../components/CampoPassword';
 import { useAuth } from '../context/useAuth';
 import { apiPost } from '../lib/api';
 import LogoGonper from '../components/LogoGonper';
@@ -288,9 +289,8 @@ export default function Login() {
               placeholder="Tu email"
               className={inputClass}
             />
-            <input
+            <CampoPassword
               name="password"
-              type="password"
               required
               autoComplete="current-password"
               placeholder="Contraseña"
@@ -325,9 +325,8 @@ export default function Login() {
               placeholder="Tu email"
               className={inputClass}
             />
-            <input
+            <CampoPassword
               name="password"
-              type="password"
               required
               minLength={8}
               autoComplete="new-password"

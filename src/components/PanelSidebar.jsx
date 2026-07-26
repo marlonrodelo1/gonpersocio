@@ -79,7 +79,7 @@ const OCULTA_EN = ['/login', '/auth'];
 
 export default function PanelSidebar() {
   const { pathname } = useLocation();
-  const { user, perfil, salon, logout, esDueno, puede } = useAuth();
+  const { user, perfil, salon, nombre, logout, esDueno, puede } = useAuth();
   const [abierto, setAbierto] = useState(false);
   const cerrar = () => setAbierto(false);
 
@@ -89,7 +89,13 @@ export default function PanelSidebar() {
 
   const nav = construirNav({ esDueno, puede });
 
-  const inicial = (salon?.nombre ?? 'G').trim().charAt(0).toUpperCase() || 'G';
+  // La cabecera es de QUIEN mira, no del negocio: a una empleada le salia el
+  // nombre del salon con su email debajo, como si el salon fuera ella. El
+  // backend ya manda el nombre bueno en `usuario.nombre` (su ficha de
+  // profesional; para un dueno sin ficha, el del salon). El negocio se ve en
+  // Mi cuenta, en su fila.
+  const titulo = nombre || salon?.nombre || 'Tu cuenta';
+  const inicial = (titulo ?? 'G').trim().charAt(0).toUpperCase() || 'G';
 
   const activo = (to, exact) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
@@ -162,7 +168,7 @@ export default function PanelSidebar() {
           )}
           <div className="min-w-0 flex-1">
             <div className="tight truncate text-[13px] font-medium text-ink">
-              {salon?.nombre ?? 'Tu salón'}
+              {titulo}
             </div>
             <div className="truncate text-[11px] text-stone">
               {user?.email ?? `gonperstudio.shop/${salon?.slug ?? '—'}`}
