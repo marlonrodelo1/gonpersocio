@@ -50,6 +50,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             NSLog("[push] Falta GoogleService-Info.plist en el binario (¿esta en el target App?). La app sigue, sin notificaciones.")
             return
         }
+
+        // Y ademas, que la clave TENGA SENTIDO. Que el archivo exista no basta:
+        // una copia del plist se quedo a medias al pegarla por terminal y su
+        // API_KEY tenia 8 caracteres en vez de 39. Firebase valida el formato
+        // DENTRO de configure(), lanzando una NSException que Swift no puede
+        // capturar, asi que la app se cerraba al abrirse. Comprobandolo antes,
+        // como mucho nos quedamos sin avisos.
+        let clave = opciones.apiKey ?? ""
+        let formatoValido = clave.count >= 30
+            && clave.allSatisfy { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }
+        guard formatoValido else {
+            NSLog("[push] La API_KEY del GoogleService-Info.plist no tiene buena pinta (\(clave.count) caracteres). Firebase no se configura; la app sigue, sin notificaciones.")
+            return
+        }
+
         FirebaseApp.configure(options: opciones)
     }
 
