@@ -106,7 +106,14 @@ xcodebuild -exportArchive \
 
 # La comprobacion que de verdad vale: mirar DENTRO del .ipa. Lo anterior mira
 # el proyecto; esto mira el resultado.
-if ! unzip -l "$EXPORT_DIR/App.ipa" | grep -q "GoogleService-Info.plist"; then
+#
+# El listado se guarda en una variable ANTES de filtrarlo, y no se encadena
+# `unzip | grep -q`. Con `set -o pipefail`, grep -q cierra el pipe en cuanto
+# encuentra la coincidencia, unzip muere con SIGPIPE y el pipeline devuelve 141:
+# la comprobacion falla justo cuando el archivo SI esta. Bloqueo una subida
+# buena por esto.
+LISTADO_IPA="$(unzip -l "$EXPORT_DIR/App.ipa")"
+if [[ "$LISTADO_IPA" != *"GoogleService-Info.plist"* ]]; then
   echo
   echo "ERROR: el .ipa NO lleva dentro el GoogleService-Info.plist."
   echo "       No lo subo: la app se cerraria al abrirse en el movil."
