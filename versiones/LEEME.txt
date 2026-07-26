@@ -41,7 +41,14 @@ COMO SE GENERA LA SIGUIENTE
 
 HISTORIAL
 ---------
-v1.1.3 (versionCode 5) — 26 de julio de 2026. "Escribir a soporte" no hacia nada:
+v1.1.4 (versionCode 6) — 26 de julio de 2026. El boton de soporte escribe ahora
+a soporte@gonperstudio.shop en vez de hola@. OJO: el dominio NO tiene registros
+MX, asi que hoy no recibe correo ninguno — hay que configurar la recepcion o un
+reenvio antes de que un salon escriba y nadie lo lea. Incluye el arreglo de la
+1.1.3.
+
+v1.1.3 (versionCode 5) — NO PUBLICADA. Mismo arreglo del boton de soporte, sin el
+cambio de direccion. (versionCode 5) — 26 de julio de 2026. "Escribir a soporte" no hacia nada:
 abria el correo con el navegador interno (Browser.open), que solo entiende http y
 https. Con mailto:, tel: o whatsapp: no abre ni falla, simplemente no responde.
 Ahora esos esquemas se dejan al sistema, que abre la app que toca.

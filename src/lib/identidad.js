@@ -54,4 +54,12 @@ export const RUTA_INICIO = '/hoy';
 /** Enlaces legales. Se abren SIEMPRE fuera de la app (requisito de tienda). */
 export const URL_TERMINOS = `${WEB_PANEL}/terminos`;
 export const URL_PRIVACIDAD = `${WEB_PANEL}/privacidad`;
-export const EMAIL_SOPORTE = 'hola@gonperstudio.shop';
+/**
+ * Buzón de soporte: el que abre "Escribir a soporte" en Mi cuenta.
+ *
+ * OJO — el dominio `gonperstudio.shop` hoy NO tiene registros MX: ENVÍA correo
+ * (por Resend) pero no RECIBE ninguno. Mientras no se configure la recepción, o
+ * un reenvío a una cuenta real, lo que escriba un salón desde aquí no llega a
+ * ninguna parte.
+ */
+export const EMAIL_SOPORTE = 'soporte@gonperstudio.shop';
