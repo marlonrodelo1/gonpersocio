@@ -63,8 +63,18 @@ xcodebuild -exportArchive \
   -exportOptionsPlist "$RAIZ/scripts/ios/ExportOptions.plist" \
   -allowProvisioningUpdates
 
+# La contrasena, por orden de preferencia:
+#   1. La variable APPLE_APP_PASSWORD, si viene puesta en el entorno.
+#   2. El llavero, que es lo normal.
+# La variable existe como salida de emergencia: en Xcode 26 el
+# `altool --store-password-in-keychain-item` cambio de sintaxis y falla con
+# "Expected item argument is missing", asi que a veces es mas rapido pasarla y
+# seguir. Se guarda en el llavero con:
+#   security add-generic-password -a <apple-id> -w <contrasena> -s AC_PASSWORD
+CLAVE="${APPLE_APP_PASSWORD:-@keychain:AC_PASSWORD}"
+
 xcrun altool --upload-app -f "$EXPORT_DIR/App.ipa" -t ios \
-  -u "$APPLE_ID" -p "@keychain:AC_PASSWORD"
+  -u "$APPLE_ID" -p "$CLAVE"
 
 echo
 echo "Subido. Tarda 5-15 minutos en aparecer en App Store Connect -> TestFlight."
