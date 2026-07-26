@@ -28,8 +28,29 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        FirebaseApp.configure()
+        configurarFirebase()
         return true
+    }
+
+    /// Arranca Firebase SOLO si su configuracion esta dentro del binario.
+    ///
+    /// `FirebaseApp.configure()` a secas lanza una NSException de Objective-C
+    /// cuando no encuentra el GoogleService-Info.plist en el bundle. Swift no
+    /// puede capturar una NSException, asi que sube sin recoger y iOS mata el
+    /// proceso: la app se cierra sola nada mas abrirse, siempre, y el build se
+    /// compila, firma y sube a TestFlight sin una sola queja. Paso de verdad en
+    /// la primera subida.
+    ///
+    /// `FirebaseOptions(contentsOfFile:)` devuelve nil en vez de lanzar, asi que
+    /// preguntar primero es lo unico seguro. Sin plist la app arranca igual y
+    /// como mucho se queda sin avisos, que es lo que promete `push.js`.
+    private func configurarFirebase() {
+        guard let ruta = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+              let opciones = FirebaseOptions(contentsOfFile: ruta) else {
+            NSLog("[push] Falta GoogleService-Info.plist en el binario (¿esta en el target App?). La app sigue, sin notificaciones.")
+            return
+        }
+        FirebaseApp.configure(options: opciones)
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {}
@@ -54,6 +75,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     // FCM por el evento 'registration' de Capacitor.
     func application(_ application: UIApplication,
                      didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        // Segundo sitio donde se puede morir: `Messaging.messaging()` tambien
+        // revienta si Firebase no llego a configurarse. Con la guarda de arriba
+        // ese caso ya es posible, asi que aqui hay que preguntar igual.
+        guard FirebaseApp.app() != nil else {
+            NSLog("[push] APNs registro el dispositivo pero Firebase no esta configurado: no hay token FCM que enviar.")
+            return
+        }
         Messaging.messaging().apnsToken = deviceToken
         Messaging.messaging().token { token, error in
             if let error = error {

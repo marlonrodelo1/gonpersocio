@@ -38,6 +38,29 @@ npm run build
 echo "==> 2/5  Sincronizando con el proyecto iOS"
 npx cap sync ios
 
+# Antes de gastar diez minutos en compilar y subir, comprobar que la
+# configuracion de Firebase esta donde tiene que estar. La primera version se
+# subio sin ella y la app se cerraba nada mas abrirse en el iPhone: el build no
+# se queja, el fallo solo aparece al ejecutar.
+PLIST="ios/App/App/GoogleService-Info.plist"
+if [ ! -f "$PLIST" ]; then
+  echo "ERROR: falta $PLIST"
+  echo "       Descargalo de Firebase (proyecto gonper-studio, app iOS)."
+  exit 1
+fi
+BUNDLE_PLIST="$(/usr/libexec/PlistBuddy -c 'Print :BUNDLE_ID' "$PLIST" 2>/dev/null || echo '?')"
+if [ "$BUNDLE_PLIST" != "shop.gonperstudio.socio" ]; then
+  echo "ERROR: el plist es de '$BUNDLE_PLIST' y no de shop.gonperstudio.socio."
+  exit 1
+fi
+if ! grep -q "GoogleService-Info.plist" ios/App/App.xcodeproj/project.pbxproj; then
+  echo "ERROR: el plist esta en la carpeta pero NO en el target App."
+  echo "       Xcode > seleccionarlo > inspector derecho > Target Membership > marcar App."
+  echo "       Sin eso no entra en el binario y la app se cierra al abrirse."
+  exit 1
+fi
+echo "    configuracion de Firebase: correcta"
+
 echo "==> 3/5  Poniendo version ${VERSION} (build ${BUILD})"
 cd ios/App
 # agvtool escribe en el proyecto (MARKETING_VERSION / CURRENT_PROJECT_VERSION),
@@ -62,6 +85,16 @@ xcodebuild -exportArchive \
   -exportPath "$EXPORT_DIR" \
   -exportOptionsPlist "$RAIZ/scripts/ios/ExportOptions.plist" \
   -allowProvisioningUpdates
+
+# La comprobacion que de verdad vale: mirar DENTRO del .ipa. Lo anterior mira
+# el proyecto; esto mira el resultado.
+if ! unzip -l "$EXPORT_DIR/App.ipa" | grep -q "GoogleService-Info.plist"; then
+  echo
+  echo "ERROR: el .ipa NO lleva dentro el GoogleService-Info.plist."
+  echo "       No lo subo: la app se cerraria al abrirse en el movil."
+  exit 1
+fi
+echo "    el .ipa lleva la configuracion de Firebase dentro"
 
 # La contrasena, por orden de preferencia:
 #   1. La variable APPLE_APP_PASSWORD, si viene puesta en el entorno.
