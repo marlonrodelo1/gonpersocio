@@ -32,6 +32,24 @@ EXPORT_DIR="$HOME/Desktop/${NOMBRE}-export"
 
 cd "$RAIZ"
 
+# La contrasena se comprueba LA PRIMERA, no al final. Descubrir que falta
+# despues de diez minutos compilando y archivando es tirar el rato: paso dos
+# veces seguidas.
+if [ -n "${APPLE_APP_PASSWORD:-}" ]; then
+  echo "==> Contrasena de Apple: la del entorno"
+elif security find-generic-password -s AC_PASSWORD >/dev/null 2>&1; then
+  echo "==> Contrasena de Apple: la del llavero"
+else
+  echo "ERROR: no hay contrasena de Apple ni en el entorno ni en el llavero."
+  echo
+  echo "  Una de las dos:"
+  echo "    APPLE_APP_PASSWORD='xxxx-xxxx-xxxx-xxxx' $0 $VERSION $BUILD"
+  echo "    security add-generic-password -a $APPLE_ID -w 'xxxx-xxxx-xxxx-xxxx' -s AC_PASSWORD"
+  echo
+  echo "  (en Xcode 26, 'altool --store-password-in-keychain-item' ya no vale)"
+  exit 1
+fi
+
 echo "==> 1/5  Compilando la web"
 npm run build
 
