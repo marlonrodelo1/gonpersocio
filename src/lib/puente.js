@@ -49,7 +49,22 @@ export async function abrirEnWeb(ruta) {
   await Browser.open({ url });
 }
 
-/** Abre una URL externa cualquiera (legales, soporte) fuera de la app. */
+/**
+ * Abre una URL externa cualquiera (legales, soporte) fuera de la app.
+ *
+ * `Browser.open` levanta un navegador dentro de la app (SFSafariViewController
+ * en iOS, Custom Tabs en Android) y ESO SOLO ENTIENDE http y https. Con
+ * `mailto:`, `tel:` o `whatsapp:` no abre nada y tampoco falla: el botón
+ * simplemente no responde, que es lo que pasaba con "Escribir a soporte".
+ *
+ * Esos esquemas los tiene que resolver el sistema operativo, y la forma de
+ * pedírselo desde la webview es una navegación normal: iOS y Android la
+ * interceptan y abren la app que corresponda (Mail, el teléfono, WhatsApp).
+ */
 export async function abrirExterno(url) {
+  if (!/^https?:/i.test(url)) {
+    window.location.href = url;
+    return;
+  }
   await Browser.open({ url });
 }

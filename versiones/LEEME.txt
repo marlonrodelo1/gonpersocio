@@ -41,6 +41,11 @@ COMO SE GENERA LA SIGUIENTE
 
 HISTORIAL
 ---------
+v1.1.3 (versionCode 5) — 26 de julio de 2026. "Escribir a soporte" no hacia nada:
+abria el correo con el navegador interno (Browser.open), que solo entiende http y
+https. Con mailto:, tel: o whatsapp: no abre ni falla, simplemente no responde.
+Ahora esos esquemas se dejan al sistema, que abre la app que toca.
+
 v1.1.2 (versionCode 4) — 26 de julio de 2026. La hora, el wifi y la bateria se
 veian en BLANCO sobre el fondo claro de la app, ilegibles. El codigo ya pedia
 texto oscuro, pero en iOS la barra de estado la controla cada pantalla salvo que
