@@ -82,12 +82,41 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let vivo = true;
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // SALVAVIDAS. `setCargando(false)` vivía dentro del `.then()`, sin `catch`
+    // ni `finally`: si `getSession()` no resolvía —un token de refresco
+    // corrupto en el almacén del móvil, la red cayéndose a mitad del refresco—
+    // la app se quedaba en "Cargando…" PARA SIEMPRE, sin más salida que
+    // desinstalarla. Pasó de verdad en un iPhone tras varios intentos de login
+    // a medias.
+    //
+    // Doce segundos: de sobra para una red mala, poco para que alguien piense
+    // que la app está rota. Al vencer se sale del limbo con el error y su botón
+    // de reintentar, que es lo peor que debería poder pasar. Una pantalla
+    // muerta, no.
+    const salvavidas = setTimeout(() => {
       if (!vivo) return;
-      setUser(session?.user ?? null);
-      if (session?.user) await cargarPerfil();
-      if (vivo) setCargando(false);
-    });
+      console.warn('[auth] getSession no respondió en 12 s');
+      setErrorCarga(true);
+      setCargando(false);
+    }, 12000);
+
+    supabase.auth
+      .getSession()
+      .then(async ({ data: { session } }) => {
+        if (!vivo) return;
+        setUser(session?.user ?? null);
+        if (session?.user) await cargarPerfil();
+      })
+      .catch((e) => {
+        // Sesión ilegible en el almacén: se trata como "no hay sesión". La
+        // pantalla de entrada siempre es una salida; quedarse cargando, no.
+        console.warn('[auth] getSession falló', e?.message);
+        if (vivo) setUser(null);
+      })
+      .finally(() => {
+        clearTimeout(salvavidas);
+        if (vivo) setCargando(false);
+      });
 
     const {
       data: { subscription },
@@ -101,6 +130,7 @@ export function AuthProvider({ children }) {
 
     return () => {
       vivo = false;
+      clearTimeout(salvavidas);
       subscription.unsubscribe();
     };
   }, [cargarPerfil]);
