@@ -41,12 +41,17 @@ COMO SE GENERA LA SIGUIENTE
 
 HISTORIAL
 ---------
-v1.1 (versionCode 2) — 26 de julio de 2026. Icono nuevo: el monograma GS al 74 %
-del cuadro sobre gris (#BFBFBF). El anterior iba pequeno sobre fondo espresso y
-en la pantalla del movil no se leia. Ademas, el arranque de Firebase ya no puede
-tumbar la app: si falta el archivo de configuracion o su clave viene rota, se
-queda sin avisos en vez de cerrarse (eso paso en iOS con una copia truncada del
-plist).
+v1.1.1 (versionCode 3) — 26 de julio de 2026. Arregla que la app se quedara en
+"Cargando..." para siempre cuando la sesion guardada estaba corrupta: ahora sale
+del limbo siempre (catch + finally + un tope de 12 s) y cae al login o al error
+con reintentar. Incluye tambien el icono nuevo de la 1.1.
+
+NOTA: la 1.1 (versionCode 2) no se llego a publicar; se genero y quedo obsoleta
+en cuanto aparecio este arreglo. Su .aab se borro para no confundir.
+
+v1.1 (versionCode 2) — NO PUBLICADA. Icono nuevo: el monograma GS al 74 % del
+cuadro sobre gris (#BFBFBF); el anterior iba pequeno sobre fondo espresso y en el
+movil no se leia. Y el arranque de Firebase dejo de poder tumbar la app.
 
 v1.0 (versionCode 1) — 25 de julio de 2026. Primera version. Firmada con
 gonper-socio-release.jks (alias gonper-socio). Incluye el nombre corregido
