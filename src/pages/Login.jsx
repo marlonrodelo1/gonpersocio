@@ -6,6 +6,7 @@ import { useAuth } from '../context/useAuth';
 import { apiPost } from '../lib/api';
 import LogoGonper from '../components/LogoGonper';
 import { abrirExterno } from '../lib/puente';
+import { PASSWORD_PISTA } from '../lib/password';
 import {
   APP_NOMBRE_LARGO,
   RUTA_INICIO,
@@ -330,7 +331,7 @@ export default function Login() {
               required
               minLength={8}
               autoComplete="new-password"
-              placeholder="Contraseña (mín. 8 caracteres)"
+              placeholder={`Contraseña · ${PASSWORD_PISTA}`}
               className={inputClass}
             />
             <input

@@ -39,6 +39,18 @@ function traducir(mensaje) {
   if (m.includes('rate limit') || m.includes('too many')) {
     return 'Demasiados intentos. Espera un minuto y vuelve a probar.';
   }
+  // La politica de contrasenas del proyecto. Su mensaje trae el abecedario
+  // entero escrito, en ingles, y es lo primero que ve un empleado al estrenar
+  // cuenta: hay que interceptarlo aqui o sale tal cual.
+  if (m.includes('password should contain at least one character')) {
+    return 'A la contrasena le falta una mayuscula, una minuscula o un numero.';
+  }
+  if (m.includes('password should be at least')) {
+    return 'La contrasena debe tener al menos 8 caracteres.';
+  }
+  if (m.includes('new password should be different')) {
+    return 'La contrasena nueva tiene que ser distinta de la anterior.';
+  }
   if (m.includes('network') || m.includes('fetch')) {
     return 'No hay conexión. Comprueba tu internet.';
   }

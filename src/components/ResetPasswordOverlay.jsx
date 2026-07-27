@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../context/useAuth';
 import { RUTA_INICIO } from '../lib/identidad';
+import { PASSWORD_PISTA, validarPassword } from '../lib/password';
 
 const inputClass =
   'w-full rounded-2xl border border-line bg-paper px-5 py-3.5 text-[14.5px] text-ink placeholder:text-stone/55 focus:border-line-2 focus:outline-none';
@@ -29,6 +30,13 @@ export default function ResetPasswordOverlay() {
     setError('');
     if (pass !== pass2) {
       setError('Las contraseñas no coinciden.');
+      return;
+    }
+    // Se comprueba la regla ENTERA antes de llamar a Supabase: si no, la única
+    // pista llega en su mensaje, en inglés.
+    const mala = validarPassword(pass);
+    if (mala) {
+      setError(mala);
       return;
     }
     setCargando(true);
@@ -80,7 +88,7 @@ export default function ResetPasswordOverlay() {
             required
             minLength={8}
             autoComplete="new-password"
-            placeholder="Nueva contraseña (mín. 8)"
+            placeholder={PASSWORD_PISTA}
             className={inputClass}
           />
           <input
