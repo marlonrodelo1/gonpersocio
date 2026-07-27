@@ -563,7 +563,7 @@ export default function ConfigReservas() {
                   opciones={OPCIONES.slotIntervalMin}
                   onChange={elegir('slotIntervalMin')}
                   editable={puedeEditar}
-                  ayuda="No es la duración del servicio: es a qué horas empiezan los huecos que ve el cliente (9:00, 9:15, 9:30… o 9:00, 10:00…). En automático se ajusta solo a lo que dura cada servicio, que es lo que llena mejor el día."
+                  ayuda="No es la duración del servicio: es a qué horas empiezan los huecos que ve el cliente (9:00, 9:15, 9:30… o 9:00, 10:00…). En automático las horas son las mismas elija lo que elija el cliente, y salen de las duraciones de tus servicios, entre 15 y 30 min: si tienes uno de 15 y otro de 20, saldrán cada 15. Para que vayan siempre de media en media, ponlo en cada 30 min — no alarga los servicios cortos, solo hace que empiecen en punto y media."
                 />
               </div>
             ) : null}
