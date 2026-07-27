@@ -41,6 +41,31 @@ COMO SE GENERA LA SIGUIENTE
 
 HISTORIAL
 ---------
+v1.3.0 (versionCode 8) — 27 de julio de 2026. Sigue el repaso de la cuenta de
+empleada, esta vez sobre lo que ve y lo que puede hacer:
+  · NUEVA CITA, paso "Con quien": salia el equipo ENTERO. Una empleada podia
+    elegir a un companero, seguir eligiendo dia, hora y cliente, y el servidor
+    la rechazaba al final ("Solo puedes crear citas a tu nombre") con el cliente
+    delante. Ahora el servidor manda solo a quien puede: el equipo entero si es
+    dueno o tiene el permiso "Tocar citas de companeros", y ella sola si no.
+    Como con una sola opcion no hay nada que preguntar, el paso desaparece: la
+    cita pasa de 5 pasos a 4. Esto tambien lo nota el salon de una sola persona.
+    OJO: el filtro es del BACKEND (gonper). Sin desplegarlo, esta app sigue
+    viendo a todo el equipo.
+  · Si la cuenta perdio su ficha de profesional, ese paso decia "No hay nadie
+    activo en el equipo. Da de alta al equipo desde Equipo" — una pantalla que
+    un empleado no puede abrir. Ahora dice que le pida al dueno que le vuelva a
+    invitar.
+  · COMPARTIR y "Mi web publica" ya salen para todo el equipo. Es el enlace, el
+    QR y el cartel: publico de todos modos, no se edita nada, y el endpoint
+    `/api/panel-app/compartir` ya estaba abierto — solo lo escondia el menu. Un
+    empleado que reparte la tarjeta del salon se llena su propia agenda. Lo que
+    SI sigue siendo del dueno: fotos, promociones y resenas.
+  · El fichero de CLIENTES no cambia: sigue detras del permiso "Entrar al
+    fichero de clientes", apagado por defecto. Se enciende por persona desde el
+    panel web (Configuracion > Equipo); en la app aun no hay ese interruptor.
+Incluye todo lo de la 1.2.0.
+
 v1.2.0 (versionCode 7) — 26 de julio de 2026. Dos cosas que pidio Marlon al
 probar con una cuenta de empleada:
   · El menu lateral y Mi cuenta saludaban con el nombre del NEGOCIO ("Marlon

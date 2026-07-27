@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Pantalla from '../components/Pantalla';
+import AvisoSinFicha from '../components/AvisoSinFicha';
 import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
 import { apiGet, apiPost } from '../lib/api';
@@ -191,8 +192,10 @@ export default function CitaNueva() {
   const [servicioId, setServicioId] = useState('');
   const [partes, setPartes] = useState([]);
 
-  // Paso 3 — profesional
-  const [profesionalId, setProfesionalId] = useState('');
+  // Paso 3 — profesional. Esto es solo lo que se ha TOCADO en la lista; el valor
+  // que acaba yendo a la cita es `profesionalId`, más abajo, porque cuando hay
+  // una sola opción no hace falta tocar nada.
+  const [profesionalTocado, setProfesionalTocado] = useState('');
 
   // Paso 4 — día y hueco
   const [mesOffset, setMesOffset] = useState(0);
@@ -231,6 +234,34 @@ export default function CitaNueva() {
   const servicios = datos?.servicios ?? [];
   const profesionales = datos?.profesionales ?? [];
   const diasCerrados = datos?.diasCerrados ?? [];
+
+  /**
+   * El servidor manda SOLO las personas a cuyo nombre puede crear citas quien
+   * mira: el equipo entero si es dueño o tiene `tocar_citas_ajenas`, y él solo
+   * si no. Con una única opción, "¿Con quién?" deja de ser una pregunta y pasa a
+   * ser un trámite —y es el caso normal en un salón de una persona y en
+   * cualquier empleado sin ese permiso—, así que se elige sola y el paso
+   * desaparece del recorrido: cinco pasos pasan a ser cuatro.
+   *
+   * El paso NO se renumera (sigue habiendo `paso === 4` para día y hora); lo que
+   * cambia es la barra de progreso y el "Paso X de Y", que se calculan sobre los
+   * pasos que esa persona llega a ver.
+   */
+  const unicoProfesional =
+    profesionales.length === 1 ? profesionales[0].id : null;
+  const saltaProfesional = Boolean(unicoProfesional);
+  const pasosVisibles = saltaProfesional
+    ? PASOS.filter((_, i) => i !== 2)
+    : PASOS;
+  const pasoVisible = saltaProfesional && paso > 3 ? paso - 1 : paso;
+
+  /**
+   * Quién atiende la cita. Se DERIVA en vez de guardarse con un efecto que
+   * copiara la única opción al estado: ese efecto encadena un render de más y
+   * deja dos fuentes de verdad que se pueden separar (el contexto se recarga con
+   * "Reintentar" y el estado se quedaría con un id viejo).
+   */
+  const profesionalId = unicoProfesional ?? profesionalTocado;
 
   const servicio = servicios.find((s) => s.id === servicioId) ?? null;
   const esMulti = Boolean(servicio?.multiSeccion);
@@ -474,8 +505,10 @@ export default function CitaNueva() {
 
   const atras = useCallback(() => {
     if (paso === 1) navigate(-1);
-    else setPaso((p) => p - 1);
-  }, [paso, navigate]);
+    // Volver desde "día y hora" con el profesional saltado tiene que devolver al
+    // servicio, no a un paso 3 que esta persona no ha visto nunca.
+    else setPaso((p) => p - (saltaProfesional && p === 4 ? 2 : 1));
+  }, [paso, navigate, saltaProfesional]);
 
   /* ----- crear ----- */
 
@@ -526,7 +559,9 @@ export default function CitaNueva() {
   return (
     <Pantalla
       titulo="Nueva cita"
-      subtitulo={`Paso ${paso} de ${PASOS.length} · ${PASOS[paso - 1]}`}
+      subtitulo={`Paso ${pasoVisible} de ${pasosVisibles.length} · ${
+        pasosVisibles[pasoVisible - 1]
+      }`}
       accion={cabecera}
     >
       {!ctxListo ? <Cargando /> : null}
@@ -543,13 +578,13 @@ export default function CitaNueva() {
         <div className="flex flex-col gap-5">
           {/* ---------- progreso ---------- */}
           <div className="flex items-center gap-1.5" aria-hidden>
-            {PASOS.map((p, i) => (
+            {pasosVisibles.map((p, i) => (
               <span
                 key={p}
                 className="h-[3px] flex-1 rounded-full transition-colors"
                 style={{
                   background:
-                    i < paso ? 'var(--socio-accent)' : 'var(--cream-2)',
+                    i < pasoVisible ? 'var(--socio-accent)' : 'var(--cream-2)',
                 }}
               />
             ))}
@@ -935,15 +970,24 @@ export default function CitaNueva() {
               </h2>
 
               {profesionales.length === 0 ? (
-                <div className="card p-5">
-                  <p className="text-[15px] font-medium text-ink">
-                    No hay nadie activo en el equipo
-                  </p>
-                  <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
-                    Las citas se asignan siempre a una persona. Da de alta al
-                    equipo desde Equipo, en el menú.
-                  </p>
-                </div>
+                // Dos vacíos que se parecen y no son lo mismo: el salón todavía
+                // no tiene equipo (lo arregla el dueño dando de alta a alguien)
+                // o esta cuenta perdió su ficha de profesional (lo arregla el
+                // dueño volviendo a invitarla). Decirle "da de alta al equipo" a
+                // un empleado es mandarle a una pantalla que no puede abrir.
+                datos.equipoVacio === false ? (
+                  <AvisoSinFicha quePasa="Por eso no puedes crear citas todavía." />
+                ) : (
+                  <div className="card p-5">
+                    <p className="text-[15px] font-medium text-ink">
+                      No hay nadie activo en el equipo
+                    </p>
+                    <p className="mt-1 text-[13.5px] leading-relaxed text-stone">
+                      Las citas se asignan siempre a una persona. Da de alta al
+                      equipo desde Equipo, en el menú.
+                    </p>
+                  </div>
+                )
               ) : (
                 <ul className="flex flex-col gap-2">
                   {profesionales.map((p) => (
@@ -951,7 +995,7 @@ export default function CitaNueva() {
                       <Opcion
                         seleccionada={profesionalId === p.id}
                         onClick={() => {
-                          setProfesionalId(p.id);
+                          setProfesionalTocado(p.id);
                           setAncla(null);
                           setExtras([]);
                         }}
@@ -1295,7 +1339,9 @@ export default function CitaNueva() {
             {paso < PASOS.length ? (
               <button
                 type="button"
-                onClick={() => setPaso((p) => p + 1)}
+                onClick={() =>
+                  setPaso((p) => p + (saltaProfesional && p === 2 ? 2 : 1))
+                }
                 disabled={!puedeSeguir}
                 className="gloss-btn tight flex-1 rounded-full px-5 py-3.5 text-[15px] font-medium disabled:opacity-45"
               >

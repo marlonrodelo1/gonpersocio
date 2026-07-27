@@ -42,7 +42,14 @@ function construirNav({ esDueno, puede }) {
   }
   operacion.push({ to: '/numeros', label: 'Números', Icono: Icon.Chart });
 
-  // La web del salón es escaparate del negocio: la lleva quien lo administra.
+  // La web del salón la EDITA quien administra el negocio: fotos, promociones y
+  // reseñas cambian el escaparate y son suyas.
+  //
+  // Compartir no edita nada: es el enlace público, el QR y el cartel, o sea lo
+  // único de la app que TRAE clientes. Un empleado que reparte la tarjeta del
+  // salón llena su propia agenda, y el enlace es público de todos modos —
+  // esconderlo solo obligaba a pedírselo al dueño por WhatsApp. El endpoint
+  // `/api/panel-app/compartir` ya estaba abierto a todo el equipo.
   const web = esDueno
     ? [
         { to: '/compartir', label: 'Compartir', Icono: Icon.Share },
@@ -51,7 +58,7 @@ function construirNav({ esDueno, puede }) {
         { to: '/antes-despues', label: 'Antes y después', Icono: Icon.Sparkle },
         { to: '/resenas', label: 'Reseñas', Icono: Icon.Sparkle },
       ]
-    : [];
+    : [{ to: '/compartir', label: 'Compartir', Icono: Icon.Share }];
 
   // El panel colapsa esto en una sola entrada con tabs; en la app son pantallas
   // sueltas, así que se listan con el estilo de "puntito".
@@ -273,7 +280,9 @@ export default function PanelSidebar() {
               </button>
             )}
 
-            {esDueno && salon?.slug && (
+            {/* Ver la web del salón por fuera. Es una URL pública: la abre
+                cualquiera con el enlace, empleados incluidos. */}
+            {salon?.slug && (
               <button
                 type="button"
                 onClick={() => {

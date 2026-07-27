@@ -463,12 +463,15 @@ function Rutas() {
             </Privada>
           }
         />
+        {/* Sin permiso: el enlace público, el QR y el cartel del salón no son
+            datos del negocio, son su tarjeta de visita. El backend
+            (`/api/panel-app/compartir`) tampoco exige ser dueño. */}
         <Route
           path="/compartir"
           element={
-            <Privada soloAdmin>
+            <Protegida>
               <Compartir />
-            </Privada>
+            </Protegida>
           }
         />
         <Route
