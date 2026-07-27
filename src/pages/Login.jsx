@@ -222,7 +222,17 @@ export default function Login() {
           </div>
         ) : null}
 
-        {modo !== 'recuperar' ? (
+        {/*
+          Apple y Google SOLO en "Entrar".
+
+          Antes se pintaban tambien en "Crear cuenta", y esa via no da de alta
+          ningun negocio: crea el usuario en Supabase y lo deja en la pantalla
+          "Esta cuenta no gestiona ningun negocio", cuyo unico boton es Salir.
+          O sea, quien venia a registrarse llegaba a un callejon sin salida y se
+          iba. Para darse de alta hay que usar el formulario de email, que es el
+          que llama a /registro y crea el salon.
+        */}
+        {modo === 'entrar' ? (
           <div className="flex flex-col gap-2.5">
             <button
               type="button"

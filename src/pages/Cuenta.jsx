@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { Icon } from '../components/icons';
 import Pantalla from '../components/Pantalla';
+import { apiPost } from '../lib/api';
 import { useAuth } from '../context/useAuth';
 import { EMAIL_SOPORTE, URL_PRIVACIDAD, URL_TERMINOS } from '../lib/identidad';
 import { abrirExterno } from '../lib/puente';
@@ -33,7 +34,13 @@ const PLANES = {
   studio: 'Studio',
   pro: 'Pro',
   plus: 'Plus',
+  // Faltaba, asi que a un salon dado de baja se le enseñaba la palabra cruda
+  // 'cancelado' como si fuera el nombre de su plan.
+  cancelado: 'Sin plan',
 };
+
+/** Planes de pago. Cualquier otro valor NO da acceso por si solo. */
+const PLANES_DE_PAGO = new Set(['basico', 'solo', 'studio', 'pro', 'plus']);
 
 const ROLES = {
   dueno: 'Dueño',
@@ -65,9 +72,43 @@ function fechaCorta(iso, tz) {
  * Traduce plan + trial a algo que un dueño entienda de un vistazo.
  * `activa` decide si se enseña el aviso neutro con el correo de soporte.
  */
+/** Colores por tono, para no repetir la paleta en cada rama. */
+const TONOS = {
+  ok: { punto: '#6F8460', texto: '#4A5A3D', fondo: 'rgba(111,132,96,0.12)' },
+  aviso: { punto: '#C58E2C', texto: '#7A5A1B', fondo: 'rgba(197,142,44,0.12)' },
+  alerta: { punto: '#B14848', texto: '#7C2E2E', fondo: 'rgba(177,72,72,0.12)' },
+};
+
 function estadoCuenta(salon) {
   const plan = salon?.plan ?? null;
   const etiqueta = plan ? (PLANES[plan] ?? plan) : '—';
+
+  /*
+    El servidor manda el estado ya resuelto en `salon.suscripcion`, calculado
+    con el mismo modulo que usa el muro del panel web. Es la via buena y se
+    prefiere siempre que llegue.
+
+    Antes se decidia aqui abajo, y solo se contemplaba el caso 'trial': con
+    cualquier otro plan se caia en el "Cuenta activa · Tienes todo en marcha"
+    verde del final. A un salon CANCELADO la app le decia que iba todo bien
+    mientras la web le cerraba la puerta. Y desde el movil no habia forma de
+    hacerlo mejor: para distinguir un plan de cortesia hace falta saber si hay
+    suscripcion de Stripe, un dato que no viaja al telefono.
+
+    Lo de abajo se queda como respaldo por si el movil habla con un backend
+    viejo que todavia no manda este campo.
+  */
+  const s = salon?.suscripcion;
+  if (s && typeof s.titulo === 'string') {
+    const tono = TONOS[s.tono] ?? TONOS.aviso;
+    return {
+      activa: !s.bloquea,
+      etiqueta,
+      titulo: s.titulo,
+      detalle: s.detalle,
+      ...tono,
+    };
+  }
 
   if (salon?.activo === false) {
     return {
@@ -117,14 +158,25 @@ function estadoCuenta(salon) {
     };
   }
 
+  // Respaldo: solo se dice "activa" con un plan de pago de verdad. Antes este
+  // return era el cajon de sastre de TODO lo que no fuera 'trial', asi que un
+  // salon 'cancelado' salia en verde con un "Tienes todo en marcha" falso.
+  if (!plan || !PLANES_DE_PAGO.has(plan)) {
+    return {
+      activa: false,
+      etiqueta,
+      titulo: 'Cuenta sin suscripción',
+      detalle: 'Actívala para seguir usando la app con normalidad.',
+      ...TONOS.alerta,
+    };
+  }
+
   return {
     activa: true,
     etiqueta,
     titulo: 'Cuenta activa',
-    detalle: 'Tienes todo en marcha.',
-    punto: '#6F8460',
-    texto: '#4A5A3D',
-    fondo: 'rgba(111,132,96,0.12)',
+    detalle: 'Tu suscripción está al día.',
+    ...TONOS.ok,
   };
 }
 
@@ -149,6 +201,15 @@ export default function Cuenta() {
   const { user, salon, rol, nombre, logout } = useAuth();
   const [saliendo, setSaliendo] = useState(false);
 
+  // Borrado de cuenta (requisito de la App Store). Tres estados: si el bloque
+  // esta desplegado, lo que ha tecleado, y si la llamada esta en vuelo.
+  const [borrando, setBorrando] = useState(false);
+  const [textoBorrado, setTextoBorrado] = useState('');
+  const [borrandoEnCurso, setBorrandoEnCurso] = useState(false);
+  const [errorBorrado, setErrorBorrado] = useState(null);
+
+  const esDueno = rol === 'dueno';
+
   const tz = salon?.timezone || 'Europe/Madrid';
   const estado = estadoCuenta(salon);
   const finPrueba =
@@ -172,6 +233,30 @@ export default function Cuenta() {
       await logout();
     } finally {
       setSaliendo(false);
+    }
+  }
+
+  /**
+   * Borra la cuenta y cierra sesion.
+   *
+   * El servidor vuelve a exigir la palabra ELIMINAR: la comprobacion de aqui es
+   * solo para no dejar pulsar el boton por error, no es la que manda.
+   *
+   * Tras borrar se hace logout SIEMPRE, aunque la respuesta venga con un
+   * borrado parcial: la sesion apunta a un usuario que ya no existe y dejarla
+   * abierta solo produce errores raros por toda la app.
+   */
+  async function borrarCuenta() {
+    setBorrandoEnCurso(true);
+    setErrorBorrado(null);
+    try {
+      await apiPost('/cuenta/eliminar', { confirmacion: textoBorrado.trim() });
+      await logout();
+    } catch (e) {
+      setErrorBorrado(
+        e?.message || 'No se ha podido borrar la cuenta. Intentalo de nuevo.',
+      );
+      setBorrandoEnCurso(false);
     }
   }
 
@@ -353,6 +438,99 @@ export default function Cuenta() {
               Privacidad
             </button>
           </p>
+        </section>
+
+        {/* ============================================
+            BORRAR CUENTA
+            ============================================
+            Obligatorio: la guia de revision de la App Store (5.1.1(v)) exige
+            que toda app que permita CREAR una cuenta permita BORRARLA desde
+            dentro. Desde que la app dejo de ser solo "iniciar sesion" y anadio
+            el registro, no cumpliamos.
+
+            Va la ultima y en rojo a proposito, y pide teclear ELIMINAR: el
+            servidor rechaza cualquier otra cosa, asi que no basta con un toque
+            accidental. */}
+        <section className="card flex flex-col gap-3 p-5 md:p-7">
+          <header className="flex flex-col gap-1">
+            <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+              Zona delicada
+            </span>
+            <h2 className="tight text-[18px] font-medium text-ink">
+              Borrar mi cuenta
+            </h2>
+            <p className="text-[13px] leading-relaxed text-stone">
+              {esDueno
+                ? 'Se borrara tu negocio entero: la agenda, los clientes, los servicios y las cuentas de tu equipo. Si tienes una suscripcion activa, se cancela. No se puede deshacer.'
+                : 'Perderas el acceso a este negocio y se borrara tu cuenta. Las citas que ya has atendido se quedan en el historial del salon. No se puede deshacer.'}
+            </p>
+          </header>
+
+          {!borrando ? (
+            <button
+              type="button"
+              onClick={() => setBorrando(true)}
+              className="tight inline-flex items-center gap-2 self-start rounded-full border px-4 py-2 text-[13.5px] font-medium transition"
+              style={{
+                borderColor: 'rgba(177,72,72,0.4)',
+                color: '#7C2E2E',
+              }}
+            >
+              Quiero borrar mi cuenta
+            </button>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <label
+                htmlFor="confirmar_borrado"
+                className="text-[12.5px] text-stone"
+              >
+                Escribe <strong>ELIMINAR</strong> para confirmar:
+              </label>
+              <input
+                id="confirmar_borrado"
+                value={textoBorrado}
+                onChange={(e) => setTextoBorrado(e.target.value)}
+                autoCapitalize="characters"
+                autoCorrect="off"
+                placeholder="ELIMINAR"
+                className="w-full rounded-2xl border border-line bg-paper px-4 py-3 text-[14.5px] text-ink placeholder:text-stone/50 focus:border-line-2 focus:outline-none"
+              />
+              {errorBorrado ? (
+                <p className="text-[13px]" style={{ color: '#7C2E2E' }}>
+                  {errorBorrado}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={borrarCuenta}
+                  disabled={
+                    borrandoEnCurso || textoBorrado.trim().toUpperCase() !== 'ELIMINAR'
+                  }
+                  className="tight inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-medium transition disabled:opacity-50"
+                  style={{
+                    borderColor: 'rgba(177,72,72,0.4)',
+                    color: '#7C2E2E',
+                    background: '#F1D6D6',
+                  }}
+                >
+                  {borrandoEnCurso ? 'Borrando…' : 'Borrar definitivamente'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBorrando(false);
+                    setTextoBorrado('');
+                    setErrorBorrado(null);
+                  }}
+                  disabled={borrandoEnCurso}
+                  className="tight inline-flex items-center gap-2 rounded-full border border-line bg-paper px-4 py-2 text-[13.5px] font-medium text-ink transition disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </Pantalla>
