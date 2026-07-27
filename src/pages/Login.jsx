@@ -223,16 +223,16 @@ export default function Login() {
         ) : null}
 
         {/*
-          Apple y Google SOLO en "Entrar".
+          Apple y Google valen para ENTRAR y para CREAR CUENTA.
 
-          Antes se pintaban tambien en "Crear cuenta", y esa via no da de alta
-          ningun negocio: crea el usuario en Supabase y lo deja en la pantalla
-          "Esta cuenta no gestiona ningun negocio", cuyo unico boton es Salir.
-          O sea, quien venia a registrarse llegaba a un callejon sin salida y se
-          iba. Para darse de alta hay que usar el formulario de email, que es el
-          que llama a /registro y crea el salon.
+          Durante un tiempo el alta por aqui era un callejon sin salida: creaba
+          el usuario en Supabase pero ningun negocio, y dejaba al recien llegado
+          en una pantalla cuyo unico boton era Salir. Ya no: si la cuenta entra
+          sin salon, <SinSalon> le pide el nombre del negocio y lo crea con el
+          mismo nucleo que el alta por email (misma prueba de 7 dias, mismos
+          servicios de ejemplo).
         */}
-        {modo === 'entrar' ? (
+        {modo !== 'recuperar' ? (
           <div className="flex flex-col gap-2.5">
             <button
               type="button"

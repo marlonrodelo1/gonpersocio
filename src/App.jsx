@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import {
   BrowserRouter,
   Navigate,
@@ -12,6 +12,7 @@ import { Browser } from '@capacitor/browser';
 
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/useAuth';
+import { apiPost } from './lib/api';
 import { supabase } from './lib/supabase';
 import { isNative, platform } from './lib/capacitor';
 import { RUTA_INICIO } from './lib/identidad';
@@ -280,30 +281,151 @@ function ErrorConexion({ onReintentar }) {
   );
 }
 
+const TIPOS_NEGOCIO = [
+  { id: 'barberia', nombre: 'Barbería' },
+  { id: 'peluqueria', nombre: 'Peluquería' },
+  { id: 'estetica', nombre: 'Estética' },
+  { id: 'manicura', nombre: 'Uñas / manicura' },
+  { id: 'otro', nombre: 'Otro' },
+];
+
 /**
- * Sesión válida pero SIN salón vinculado. NO se crea el salón desde aquí: el
- * alta (nombre + tipo + prueba) vive en el registro por email ("Crear cuenta")
- * y en la web. Google/Apple solo sirven para ENTRAR a un negocio que ya existe.
+ * Sesión válida pero SIN salón vinculado: es quien acaba de entrar por primera
+ * vez con Google o Apple. El usuario lo crea el propio OAuth, pero el NEGOCIO
+ * no existe todavía.
+ *
+ * Antes esta pantalla era un callejón sin salida: decía "esta cuenta no
+ * gestiona ningún negocio" y el único botón era Salir. Quien venía a darse de
+ * alta con Google llegaba aquí y se iba, aunque el backend ya tenía hecho el
+ * endpoint que le crea el salón. Solo faltaba esta pantalla.
+ *
+ * Pide lo mínimo —nombre y tipo— porque es exactamente lo que necesita
+ * `crearSalonConSeeds`, el mismo núcleo que usa el alta por email y la web:
+ * crea el salón con su prueba de 7 días, los servicios de ejemplo, los horarios
+ * y la ficha del dueño. El resto se ajusta luego desde Configuración.
  */
 function SinSalon() {
-  const { logout } = useAuth();
+  const { logout, recargarPerfil, user } = useAuth();
+  const [nombre, setNombre] = useState('');
+  const [tipo, setTipo] = useState('barberia');
+  const [creando, setCreando] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function crear(e) {
+    e.preventDefault();
+    const limpio = nombre.trim();
+    if (limpio.length < 2) {
+      setError('Escribe el nombre de tu negocio.');
+      return;
+    }
+    setCreando(true);
+    setError(null);
+    try {
+      await apiPost('/onboarding', {
+        salonNombre: limpio,
+        tipoNegocio: tipo,
+        aceptaTerminos: true,
+      });
+      // El perfil se vuelve a pedir: en cuanto trae salón, <Protegida> deja de
+      // pintar esta pantalla y entra al panel. No hace falta navegar a mano.
+      await recargarPerfil();
+    } catch (err) {
+      setError(err?.message || 'No se ha podido crear el negocio.');
+      setCreando(false);
+    }
+  }
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-cream p-8 text-center">
-      <h1 className="tight text-[20px] font-semibold text-ink">
-        Esta cuenta no gestiona ningún negocio
-      </h1>
-      <p className="max-w-sm text-[14px] leading-relaxed text-stone">
-        Con esta cuenta no hay ningún salón. Si eres un salón nuevo, crea tu
-        cuenta con email (pestaña "Crear cuenta") o desde gonperstudio.shop. Si
-        eres cliente y quieres reservar, usa la app de Gonper.
-      </p>
-      <button
-        type="button"
-        className="gloss-btn tight mt-2 rounded-full px-6 py-3 text-[14px] font-medium"
-        onClick={logout}
+    <div className="flex min-h-screen flex-col items-center justify-center bg-cream p-6">
+      <form
+        onSubmit={crear}
+        className="card flex w-full max-w-sm flex-col gap-4 p-6"
       >
-        Salir
-      </button>
+        <header className="flex flex-col gap-1">
+          <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+            Casi está
+          </span>
+          <h1 className="tight text-[20px] font-semibold text-ink">
+            Crea tu negocio
+          </h1>
+          <p className="text-[13.5px] leading-relaxed text-stone">
+            Entraste como {user?.email || 'tu cuenta'}. Solo falta el nombre para
+            empezar tus 7 días de prueba.
+          </p>
+        </header>
+
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="salon_nombre"
+            className="text-[11px] uppercase tracking-[0.2em] text-stone/80"
+          >
+            Nombre del negocio
+          </label>
+          <input
+            id="salon_nombre"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            maxLength={120}
+            autoFocus
+            placeholder="Ej. Imperio Cuts"
+            className="w-full rounded-2xl border border-line bg-paper px-4 py-3 text-[15px] text-ink placeholder:text-stone/50 focus:border-line-2 focus:outline-none"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="salon_tipo"
+            className="text-[11px] uppercase tracking-[0.2em] text-stone/80"
+          >
+            Qué haces
+          </label>
+          <select
+            id="salon_tipo"
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value)}
+            className="w-full appearance-none rounded-2xl border border-line bg-paper px-4 py-3 text-[15px] text-ink focus:border-line-2 focus:outline-none"
+          >
+            {TIPOS_NEGOCIO.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.nombre}
+              </option>
+            ))}
+          </select>
+          <p className="text-[12px] text-stone/80">
+            Solo sirve para dejarte unos servicios de ejemplo. Los cambias
+            después.
+          </p>
+        </div>
+
+        {error ? (
+          <p
+            className="rounded-2xl px-4 py-3 text-[13.5px]"
+            style={{
+              background: '#F1D6D6',
+              color: '#7C2E2E',
+            }}
+          >
+            {error}
+          </p>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={creando}
+          className="gloss-btn tight w-full rounded-full py-3 text-[15px] font-medium disabled:opacity-60"
+        >
+          {creando ? 'Creando tu negocio…' : 'Empezar los 7 días gratis'}
+        </button>
+
+        <button
+          type="button"
+          onClick={logout}
+          disabled={creando}
+          className="text-[13px] text-stone underline underline-offset-4 disabled:opacity-60"
+        >
+          Salir con otra cuenta
+        </button>
+      </form>
     </div>
   );
 }
