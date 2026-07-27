@@ -6,6 +6,7 @@ import { useAuth } from '../context/useAuth';
 import Pantalla from '../components/Pantalla';
 import CitaFila from '../components/CitaFila';
 import AvisoSinFicha from '../components/AvisoSinFicha';
+import AvisoConfigPendiente from '../components/AvisoConfigPendiente';
 import { Icon } from '../components/icons';
 
 /**
@@ -203,6 +204,7 @@ export default function Hoy() {
     <Pantalla titulo="Hoy." saludo={saludo} subtitulo={fechaTxt} accion={nuevaCita}>
       <div className="flex flex-col gap-6">
         {sinFicha ? <AvisoSinFicha /> : null}
+        <AvisoConfigPendiente />
 
         {/* KPIs */}
         <div className="grid grid-cols-3 gap-3">

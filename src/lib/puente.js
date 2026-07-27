@@ -24,6 +24,14 @@ import { WEB_PANEL } from './identidad';
 
 /** Rutas del panel que la app tiene permitido abrir. Lista cerrada a propósito. */
 const RUTAS_PERMITIDAS = new Set([
+  // Destinos del aviso "termina de configurar tu negocio en la web". Quien se
+  // da de alta desde el movil arranca con servicios de ejemplo y horarios por
+  // defecto; la galeria, el logo y la portada se hacen mucho mejor desde un
+  // ordenador.
+  '/panel/config',
+  '/panel/config/horario',
+  '/panel/servicios',
+  '/panel/galeria',
   '/panel/config/cobros',
   '/panel/config/equipo',
   '/panel/config/equipo/nuevo',
