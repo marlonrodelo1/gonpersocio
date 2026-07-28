@@ -56,6 +56,20 @@ npm run build
 echo "==> 2/5  Sincronizando con el proyecto iOS"
 npx cap sync ios
 
+# `cap sync` puede regenerar el Info.plist y llevarse por delante lo que no sea
+# de Capacitor: el deep link, la barra de estado y los permisos de camara. Por
+# eso preparar.sh se lanza AQUI y en cada publicacion, no una sola vez al
+# principio: comprueba antes de tocar, asi que repetirlo no duplica nada.
+#
+# El "Hacer foto" de Galeria se quedo muerto en produccion justo por esto: sin
+# NSCameraUsageDescription, iOS corta la peticion de camara sin decir nada.
+# Depender de que alguien se acordara de lanzar el script a mano ya fallo una
+# vez; encadenado, no puede volver a pasar.
+#
+# Su codigo de salida solo avisa de que falta el GoogleService-Info.plist, que
+# se comprueba justo debajo con mas detalle, asi que aqui no corta la subida.
+bash scripts/ios/preparar.sh || true
+
 # Antes de gastar diez minutos en compilar y subir, comprobar que la
 # configuracion de Firebase esta donde tiene que estar. La primera version se
 # subio sin ella y la app se cerraba nada mas abrirse en el iPhone: el build no

@@ -44,6 +44,33 @@ else
   echo "    anadido"
 fi
 
+echo "==> Permisos de camara y fotos en el Info.plist"
+# El boton "Hacer foto" de Galeria y de Antes/Despues abre la camara con un
+# <input type="file" capture>. En iOS eso NO funciona si el Info.plist no
+# declara para que se quiere la camara: el sistema corta la peticion y el boton
+# se queda muerto, sin error ni aviso. Es exactamente el fallo que reporto
+# Marlon ("le doy a tomar fotos y no hace nada").
+#
+# Se anaden las dos: la camara para hacer la foto y la fototeca para el boton
+# de al lado, el del carrete. El texto sale tal cual en el dialogo que ve el
+# dueno, asi que se explica en su idioma y diciendo para que sirve.
+anadir_texto_permiso() {
+  local clave="$1"
+  local texto="$2"
+  if $PB -c "Print :$clave" "$INFO" >/dev/null 2>&1; then
+    echo "    $clave ya estaba"
+  else
+    $PB -c "Add :$clave string $texto" "$INFO"
+    echo "    $clave anadido"
+  fi
+}
+anadir_texto_permiso NSCameraUsageDescription \
+  "Para hacer fotos de tus trabajos y publicarlas en la galeria de tu negocio."
+anadir_texto_permiso NSPhotoLibraryUsageDescription \
+  "Para elegir fotos de tu carrete y publicarlas en la galeria de tu negocio."
+anadir_texto_permiso NSPhotoLibraryAddUsageDescription \
+  "Para guardar en tu carrete las fotos que hagas desde la app."
+
 echo "==> Barra de estado (hora, wifi y bateria en negro)"
 # En iOS, `StatusBar.setStyle()` NO hace nada mientras el Info.plist no diga que
 # la barra la controla la app y no cada pantalla: por defecto iOS ignora al
