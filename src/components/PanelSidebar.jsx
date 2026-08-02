@@ -140,7 +140,9 @@ export default function PanelSidebar() {
         }`}
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
-        {/* Marca */}
+        {/* Marca. Aquí había una etiqueta "Beta" junto al nombre: fuera. La guía
+            2.2 de la App Store rechaza lo que parece una versión de pruebas, y
+            ese rótulo sale en la primera pantalla que ve el revisor. */}
         <div className="flex items-center gap-2.5 px-6 pt-6 pb-5">
           <Link to="/hoy" onClick={cerrar} className="flex items-center gap-2.5">
             <LogoGonper tamano={26} />
@@ -148,9 +150,6 @@ export default function PanelSidebar() {
               {APP_NOMBRE}
             </span>
           </Link>
-          <span className="ml-auto text-[10px] uppercase tracking-[0.18em] text-stone/70">
-            Beta
-          </span>
         </div>
 
         {/* Selector de salón → Mi cuenta */}

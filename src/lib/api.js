@@ -59,7 +59,10 @@ async function pedir(path, opciones = {}, _reintento = false) {
   // devuelve sesión (refresh token inválido → sesión muerta), supabase-js emite
   // SIGNED_OUT y la app redirige a login sola; no forzamos nada aquí para no
   // echar al usuario por un corte de red transitorio.
-  if (res.status === 401 && !_reintento) {
+  // `reintentarAuth: false` lo usa /me: ahí un 401 no significa "token malo"
+  // sino "esta cuenta aún no gestiona ningún salón", y refrescar por eso
+  // encadenaba refresco → TOKEN_REFRESHED → recargar perfil → 401 → refresco.
+  if (res.status === 401 && !_reintento && opciones.reintentarAuth !== false) {
     const { data } = await supabase.auth.refreshSession();
     if (data?.session) {
       return pedir(path, opciones, true);
@@ -94,8 +97,8 @@ async function pedir(path, opciones = {}, _reintento = false) {
   return cuerpo;
 }
 
-export function apiGet(path) {
-  return pedir(path);
+export function apiGet(path, opciones) {
+  return pedir(path, opciones);
 }
 
 export function apiPost(path, body) {

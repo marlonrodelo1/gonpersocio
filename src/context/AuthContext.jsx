@@ -70,7 +70,8 @@ export function AuthProvider({ children }) {
   /** Trae salón + rol del backend. null si el usuario no tiene salón. */
   const cargarPerfil = useCallback(async () => {
     try {
-      const datos = await apiGet('/me');
+      // Sin reintento de sesión: ver la nota de `reintentarAuth` en lib/api.js.
+      const datos = await apiGet('/me', { reintentarAuth: false });
       setPerfil(datos);
       setErrorCarga(false);
       return datos;
@@ -130,13 +131,20 @@ export function AuthProvider({ children }) {
         if (vivo) setCargando(false);
       });
 
+    // El callback NO puede ser async ni esperar a nada: supabase-js aguarda a
+    // los suscriptores antes de resolver el refresco de token. Con `await
+    // cargarPerfil()` aquí se montaba una espera circular —/me devolvía 401,
+    // api.js refrescaba el token, el refresco emitía TOKEN_REFRESHED, eso
+    // reentraba aquí y volvía a pedir /me— que dejaba la app colgada hasta el
+    // salvavidas de 12 s. La app de clientes nunca lo sufrió porque su callback
+    // tampoco espera. Se lanza y se olvida, como allí.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (evento, session) => {
+    } = supabase.auth.onAuthStateChange((evento, session) => {
       if (!vivo) return;
       setUser(session?.user ?? null);
       if (evento === 'PASSWORD_RECOVERY') setModoRecuperacion(true);
-      if (session?.user) await cargarPerfil();
+      if (session?.user) cargarPerfil();
       else setPerfil(null);
     });
 

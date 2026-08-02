@@ -430,10 +430,26 @@ function SinSalon() {
   );
 }
 
+/**
+ * Pantalla de entrada. Con sesión abierta no se pinta: se sale de aquí.
+ *
+ * Pedía `user && perfil`, y ese `&& perfil` es lo que tumbó la primera revisión
+ * de la App Store (2.1(a): "when we tried to sign in with Apple, we remained in
+ * the login screen"). Quien entra con Apple o Google por primera vez SÍ tiene
+ * sesión, pero todavía no tiene salón: `/me` responde 401 y `perfil` se queda a
+ * null, que es un estado legítimo (ver `cargarPerfil` en AuthContext). Con la
+ * condición antigua el guard volvía a pintar el login una y otra vez: el
+ * revisor se identificó con éxito y no salió nunca de la pantalla de entrar.
+ *
+ * Basta con que haya sesión. A partir de ahí manda <Protegida>, que ya sabe
+ * distinguir "sin salón" (→ alta del negocio) de "el backend no responde"
+ * (→ reintentar). El alta por email no lo destapó nunca porque crea cuenta y
+ * salón a la vez, así que por esa vía `perfil` jamás llega vacío.
+ */
 function SoloInvitado({ children }) {
-  const { user, perfil, cargando } = useAuth();
+  const { user, cargando } = useAuth();
   if (cargando) return <Cargando />;
-  if (user && perfil) return <Navigate to={RUTA_INICIO} replace />;
+  if (user) return <Navigate to={RUTA_INICIO} replace />;
   return children;
 }
 

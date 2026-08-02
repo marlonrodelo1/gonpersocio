@@ -34,14 +34,34 @@ echo "    copiado"
 echo "==> Deep link ($BUNDLE) en el Info.plist"
 # Sin esto, volver del login con Apple/Google o de pagar en Stripe deja al
 # usuario tirado en Safari en vez de devolverlo a la app.
-if $PB -c "Print :CFBundleURLTypes" "$INFO" >/dev/null 2>&1; then
+#
+# OJO CON LA COMPROBACION. Antes miraba solo si EXISTIA la clave
+# CFBundleURLTypes y, si existia, no tocaba nada. Pero ese array puede existir
+# por otro motivo —el esquema inverso de Google que mete Firebase, por
+# ejemplo— y entonces el script decia "ya estaba" y se iba tan tranquilo sin
+# haber anadido NUNCA el esquema de la app. El binario salia sin deep link y
+# el fallo no daba la cara hasta que alguien pulsaba "Continuar con Apple".
+# Ahora se busca el esquema CONCRETO, y si el array ya existe se anade dentro.
+if $PB -c "Print :CFBundleURLTypes" "$INFO" 2>/dev/null | grep -q "$BUNDLE"; then
   echo "    ya estaba, no lo toco"
 else
-  $PB -c "Add :CFBundleURLTypes array" "$INFO"
-  $PB -c "Add :CFBundleURLTypes:0 dict" "$INFO"
-  $PB -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$INFO"
-  $PB -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string $BUNDLE" "$INFO"
-  echo "    anadido"
+  if ! $PB -c "Print :CFBundleURLTypes" "$INFO" >/dev/null 2>&1; then
+    $PB -c "Add :CFBundleURLTypes array" "$INFO"
+  fi
+  # Se anade como entrada NUEVA del array para no pisar la que hubiera.
+  N=$($PB -c "Print :CFBundleURLTypes" "$INFO" 2>/dev/null | grep -c "^    Dict {" || true)
+  $PB -c "Add :CFBundleURLTypes:$N dict" "$INFO"
+  $PB -c "Add :CFBundleURLTypes:$N:CFBundleURLName string $BUNDLE" "$INFO"
+  $PB -c "Add :CFBundleURLTypes:$N:CFBundleURLSchemes array" "$INFO"
+  $PB -c "Add :CFBundleURLTypes:$N:CFBundleURLSchemes:0 string $BUNDLE" "$INFO"
+  echo "    anadido (entrada $N)"
+fi
+
+# Comprobacion final, pase lo que pase por arriba. Este esquema es lo que
+# tumbo la revision 1.0(14) de la App Store, asi que aqui no se sigue a ciegas.
+if ! $PB -c "Print :CFBundleURLTypes" "$INFO" 2>/dev/null | grep -q "$BUNDLE"; then
+  echo "ERROR: el Info.plist sigue sin el esquema $BUNDLE"
+  exit 1
 fi
 
 echo "==> Permisos de camara y fotos en el Info.plist"
