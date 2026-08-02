@@ -216,7 +216,8 @@ function Cargando() {
 
 /** Exige sesión Y salón. Un usuario sin salón no tiene nada que gestionar. */
 function Protegida({ children }) {
-  const { user, perfil, cargando, errorCarga, recargarPerfil } = useAuth();
+  const { user, perfil, cargando, errorCarga, perfilCargando, recargarPerfil } =
+    useAuth();
   const { pathname, search } = useLocation();
 
   if (cargando) return <Cargando />;
@@ -224,6 +225,10 @@ function Protegida({ children }) {
     const destino = encodeURIComponent(pathname + search);
     return <Navigate to={`/login?next=${destino}`} replace />;
   }
+  // Mientras /me está en vuelo todavía no se sabe si hay salón. Sin esta línea
+  // se colaba un parpadeo de la pantalla de "crea tu negocio" en cada login,
+  // porque `perfil` aún es null y <SinSalon /> es la rama por defecto.
+  if (!perfil && perfilCargando) return <Cargando />;
   // Fallo de RED/servidor al cargar el perfil: NO es "sin salón". Un dueño con
   // negocio no debe ver "no gestiona negocio" solo porque el backend no
   // respondió — le ofrecemos reintentar.

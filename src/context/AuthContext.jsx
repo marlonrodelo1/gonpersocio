@@ -65,10 +65,15 @@ export function AuthProvider({ children }) {
   // true cuando /me NO se pudo cargar por RED/servidor (no por falta de salón).
   // Sirve para no confundir "el backend no responde" con "no tienes negocio".
   const [errorCarga, setErrorCarga] = useState(false);
+  // true mientras /me está en vuelo. Sin esto, "todavía no sé si tienes salón"
+  // y "no tienes salón" son el mismo estado (perfil null) y la pantalla de alta
+  // del negocio parpadeaba un segundo en cada login antes de entrar al panel.
+  const [perfilCargando, setPerfilCargando] = useState(false);
   const refrescando = useRef(false);
 
   /** Trae salón + rol del backend. null si el usuario no tiene salón. */
   const cargarPerfil = useCallback(async () => {
+    setPerfilCargando(true);
     try {
       // Sin reintento de sesión: ver la nota de `reintentarAuth` en lib/api.js.
       const datos = await apiGet('/me', { reintentarAuth: false });
@@ -89,6 +94,8 @@ export function AuthProvider({ children }) {
         setErrorCarga(true);
       }
       return null;
+    } finally {
+      setPerfilCargando(false);
     }
   }, []);
 
@@ -283,6 +290,7 @@ export function AuthProvider({ children }) {
       puede: (permiso) => esDueno || permisos?.[permiso] === true,
       cargando,
       errorCarga,
+      perfilCargando,
       modoRecuperacion,
       login,
       entrarConGoogle,
@@ -298,6 +306,7 @@ export function AuthProvider({ children }) {
     perfil,
     cargando,
     errorCarga,
+    perfilCargando,
     modoRecuperacion,
     login,
     entrarConGoogle,
