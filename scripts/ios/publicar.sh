@@ -70,6 +70,21 @@ npx cap sync ios
 # se comprueba justo debajo con mas detalle, asi que aqui no corta la subida.
 bash scripts/ios/preparar.sh || true
 
+# El deep link SI corta. Ese `|| true` de arriba se tragaba tambien este fallo,
+# y es justo el que tumbo la revision 1.0(14) de la App Store: sin el esquema en
+# el Info.plist, volver del login con Apple deja al usuario tirado en Safari. Se
+# comprueba aqui, en el proyecto que se va a compilar, y no se sube nada si
+# falta. Diez minutos perdidos valen menos que otra ronda de revision.
+ESQUEMA="shop.gonperstudio.socio"
+if ! /usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" ios/App/App/Info.plist 2>/dev/null \
+  | grep -q "$ESQUEMA"; then
+  echo "ERROR: el Info.plist no declara el esquema $ESQUEMA"
+  echo "       Sin el, 'Continuar con Apple' no vuelve nunca a la app."
+  echo "       Mira que ha dicho preparar.sh justo arriba."
+  exit 1
+fi
+echo "==> Deep link verificado: $ESQUEMA"
+
 # Antes de gastar diez minutos en compilar y subir, comprobar que la
 # configuracion de Firebase esta donde tiene que estar. La primera version se
 # subio sin ella y la app se cerraba nada mas abrirse en el iPhone: el build no
