@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Icon } from './icons';
 import LogoGonper from './LogoGonper';
 import { useAuth } from '../context/useAuth';
+import { platform } from '../lib/capacitor';
 import { abrirEnWeb, abrirExterno } from '../lib/puente';
 import { APP_NOMBRE, WEB_PANEL } from '../lib/identidad';
 
@@ -262,8 +263,15 @@ export default function PanelSidebar() {
               <span className="tight">Mi cuenta</span>
             </Link>
             {/* Lo que se paga y lo que se publica son del dueño. Un empleado
-                que abriera la suscripción vería la factura del negocio. */}
-            {esDueno && (
+                que abriera la suscripción vería la factura del negocio.
+
+                En iOS este ítem NO existe: es un enlace directo a contratar el
+                plan fuera de la app, y eso es lo que prohíbe la guía 3.1.1 de
+                la App Store. En la revisión de la 1.0 (16) el revisor llegó por
+                aquí a la página de precios y abrió expediente con las cinco
+                preguntas de pagos. La suscripción del negocio se gestiona en el
+                panel web; la app en iOS ni la nombra. */}
+            {esDueno && platform() !== 'ios' && (
               <button
                 type="button"
                 onClick={() => {

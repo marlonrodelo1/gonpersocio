@@ -1,7 +1,18 @@
 import { Clock } from 'lucide-react';
 
 import { useAuth } from '../context/useAuth';
+import { platform } from '../lib/capacitor';
 import { abrirEnWeb } from '../lib/puente';
+
+/**
+ * En iOS el aviso es SOLO informativo: sin botón de pago y sin frases que
+ * inviten a contratar ("activa la suscripción", precios). La guía 3.1.1 de la
+ * App Store prohíbe dirigir a comprar fuera de la app, y en la revisión de la
+ * 1.0 (16) el revisor llegó desde aquí a la página de precios y abrió las cinco
+ * preguntas de pagos. Decir cuántos días quedan es legítimo; a pagar se llega
+ * desde el panel web, no desde este binario.
+ */
+const SIN_COMPRA = platform() === 'ios';
 
 /**
  * Aviso del estado de la cuenta. Se pinta en todas las pantallas (va dentro de
@@ -33,13 +44,16 @@ export default function TrialBanner() {
   if (s && typeof s.titulo === 'string') {
     // Suscripción al día: no hay nada que avisar.
     if (s.planActivo) return null;
+    // El `detalle` del servidor lleva la invitación a pagar (y en cortesía, el
+    // precio). En iOS se queda solo el `titulo`: "Quedan 5 días de prueba".
+    const texto = SIN_COMPRA ? `${s.titulo}.` : `${s.titulo}. ${s.detalle}`;
     return (
       <Aviso
         expirada={Boolean(s.bloquea)}
-        texto={`${s.titulo}. ${s.detalle}`}
+        texto={texto}
         // A un empleado no se le manda a facturación: la web se la cierra y
         // solo conseguiría mandarle a una pantalla que no puede usar.
-        conBoton={s.puedeGestionarPago !== false}
+        conBoton={!SIN_COMPRA && s.puedeGestionarPago !== false}
       />
     );
   }
@@ -57,7 +71,7 @@ export default function TrialBanner() {
       ? 'Prueba gratis · queda 1 día.'
       : `Prueba gratis · quedan ${dias} días.`;
 
-  return <Aviso expirada={expirada} texto={texto} conBoton />;
+  return <Aviso expirada={expirada} texto={texto} conBoton={!SIN_COMPRA} />;
 }
 
 function Aviso({ expirada, texto, conBoton }) {
