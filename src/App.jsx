@@ -316,6 +316,46 @@ function SinSalon() {
   const [creando, setCreando] = useState(false);
   const [error, setError] = useState(null);
 
+  // En iOS NO hay alta del negocio. La revisión de la 1.0 (17) rechazó la app
+  // por la guía 3.1.1 citando literalmente "the app includes an account
+  // registration feature for businesses": para Apple, dar de alta el negocio
+  // es el primer paso de contratar una suscripción que se paga fuera. Patrón
+  // Netflix: en iOS solo se entra con una cuenta que ya existe, y quien no
+  // tiene negocio ve una pantalla informativa SIN formulario, SIN precios y
+  // SIN enlaces (mencionar la web donde registrarse también cuenta como
+  // dirigir a la compra). Android y web siguen dando el alta completa.
+  if (platform() === 'ios') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-cream p-6">
+        <div className="card flex w-full max-w-sm flex-col gap-4 p-6">
+          <header className="flex flex-col gap-1">
+            <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+              Gonper Socio
+            </span>
+            <h1 className="tight text-[22px] font-medium text-ink">
+              Esta cuenta no gestiona ningún negocio
+            </h1>
+          </header>
+          <p className="text-[14px] leading-relaxed text-stone">
+            Entraste como <strong>{user?.email}</strong>. Gonper Socio es la app
+            para dueños y equipos de negocios que ya trabajan con Gonper Studio.
+          </p>
+          <p className="text-[14px] leading-relaxed text-stone">
+            Si tu negocio ya está dado de alta, entra con la cuenta del negocio o
+            pide al dueño que te invite desde Equipo.
+          </p>
+          <button
+            type="button"
+            onClick={logout}
+            className="gloss-btn tight mt-1 inline-flex h-12 items-center justify-center rounded-full px-5 text-[15px] font-medium"
+          >
+            Salir con otra cuenta
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   async function crear(e) {
     e.preventDefault();
     const limpio = nombre.trim();

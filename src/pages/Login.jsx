@@ -5,6 +5,7 @@ import CampoPassword from '../components/CampoPassword';
 import { useAuth } from '../context/useAuth';
 import { apiPost } from '../lib/api';
 import LogoGonper from '../components/LogoGonper';
+import { platform } from '../lib/capacitor';
 import { abrirExterno } from '../lib/puente';
 import { PASSWORD_PISTA } from '../lib/password';
 import {
@@ -16,6 +17,14 @@ import {
 
 const inputClass =
   'w-full rounded-2xl border border-line bg-paper px-5 py-3.5 text-[14.5px] text-ink placeholder:text-stone/55 focus:border-line-2 focus:outline-none';
+
+/**
+ * En iOS no existe "Crear cuenta": la revisión de la 1.0 (17) rechazó la app
+ * por la guía 3.1.1 citando la función de registro de negocios como acceso a
+ * una suscripción que se contrata fuera. Patrón Netflix: en iOS solo se entra
+ * con una cuenta existente. Android y web conservan el alta completa.
+ */
+const SIN_REGISTRO = platform() === 'ios';
 
 /** Tipos de negocio, iguales a los del signup de la web. */
 const TIPOS = [
@@ -198,8 +207,9 @@ export default function Login() {
           <p className="mt-4 text-[14px] text-stone">{subtitulo}</p>
         </div>
 
-        {/* Selector entrar / crear cuenta. En "recuperar" no aplica. */}
-        {modo !== 'recuperar' ? (
+        {/* Selector entrar / crear cuenta. En "recuperar" no aplica y en iOS
+            no existe: sin registro, la única pestaña sería "Entrar". */}
+        {modo !== 'recuperar' && !SIN_REGISTRO ? (
           <div className="flex gap-1 rounded-full border border-line bg-paper p-1">
             <button
               type="button"
