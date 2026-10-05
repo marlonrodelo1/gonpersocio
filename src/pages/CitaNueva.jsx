@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { App as CapApp } from '@capacitor/app';
 
 import Pantalla from '../components/Pantalla';
 import AvisoSinFicha from '../components/AvisoSinFicha';
 import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
 import { apiGet, apiPost } from '../lib/api';
+import { isNative } from '../lib/capacitor';
 import { telefonoEsValido } from '../lib/telefono';
 
 /**
@@ -138,6 +140,43 @@ function Interruptor({ activo, onCambiar, etiqueta }) {
   );
 }
 
+/**
+ * Fila del resumen final. Con `onCambiar` lleva su "Cambiar", que salta directo
+ * a ese paso: equivocarse de servicio no obliga a deshacer la cita entera. El
+ * hueco del botón se reserva también en las filas sin él (precio) para que los
+ * valores queden alineados.
+ */
+function FilaResumen({ etiqueta, onCambiar, largo, children }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="shrink-0 text-stone">{etiqueta}</dt>
+      <dd className="flex min-w-0 items-baseline justify-end gap-2">
+        <span
+          className={
+            largo
+              ? 'min-w-0 text-right text-[13.5px] text-ink'
+              : 'tight min-w-0 truncate text-right font-medium text-ink'
+          }
+        >
+          {children}
+        </span>
+        {onCambiar ? (
+          <button
+            type="button"
+            onClick={onCambiar}
+            aria-label={`Cambiar ${etiqueta.toLowerCase()}`}
+            className="-my-1 w-[62px] shrink-0 py-1 text-right text-[13px] font-medium text-stone underline underline-offset-2"
+          >
+            Cambiar
+          </button>
+        ) : (
+          <span className="w-[62px] shrink-0" aria-hidden />
+        )}
+      </dd>
+    </div>
+  );
+}
+
 /** Tarjeta seleccionable: la unidad de todos los pasos con lista. */
 function Opcion({ seleccionada, onClick, children, disabled }) {
   return (
@@ -165,6 +204,9 @@ export default function CitaNueva() {
   const { salon } = useAuth();
 
   const [paso, setPaso] = useState(1);
+  // Se ha saltado a un paso desde el "Cambiar" del resumen: al seguir, se vuelve
+  // al resumen en vez de repasar los pasos que ya estaban bien.
+  const [volverAResumen, setVolverAResumen] = useState(false);
 
   // Contexto (catálogo + equipo + días cerrados)
   const [intentoCtx, setIntentoCtx] = useState(0);
@@ -497,18 +539,84 @@ export default function CitaNueva() {
 
   /* ----- navegación entre pasos ----- */
 
-  const puedeSeguir =
-    (paso === 1 && Boolean(cliente)) ||
-    (paso === 2 && Boolean(servicioId) && !faltanPartes) ||
-    (paso === 3 && Boolean(profesionalId)) ||
-    (paso === 4 && Boolean(ancla));
+  const pasoCompleto = {
+    1: Boolean(cliente),
+    2: Boolean(servicioId) && !faltanPartes,
+    3: Boolean(profesionalId),
+    4: Boolean(ancla),
+  };
+  const puedeSeguir = Boolean(pasoCompleto[paso]);
+  const todoCompleto = [1, 2, 3, 4].every((n) => pasoCompleto[n]);
+
+  /**
+   * Viniendo del resumen no se repasan los pasos que siguen bien: se salta al
+   * primero que se haya quedado a medias (cambiar el servicio o el profesional
+   * borra la hora) o, si no queda ninguno, de vuelta al resumen.
+   */
+  const seguir = () => {
+    let siguiente = paso + (saltaProfesional && paso === 2 ? 2 : 1);
+    if (volverAResumen) {
+      siguiente = PASOS.length;
+      for (let n = paso + 1; n < PASOS.length; n += 1) {
+        if (!pasoCompleto[n]) {
+          siguiente = n;
+          break;
+        }
+      }
+    }
+    if (siguiente === PASOS.length) setVolverAResumen(false);
+    setPaso(siguiente);
+  };
+
+  const corregir = (n) => {
+    setVolverAResumen(true);
+    setPaso(n);
+  };
+
+  // En el paso 1 con la ficha nueva abierta, "atrás" la cierra (como su botón
+  // Cancelar) en vez de salir de la cita con lo tecleado.
+  const fichaAbierta = paso === 1 && creandoFicha && !sinDirectorio;
+  const atrasSale = paso === 1 && !fichaAbierta;
 
   const atras = useCallback(() => {
-    if (paso === 1) navigate(-1);
-    // Volver desde "día y hora" con el profesional saltado tiene que devolver al
-    // servicio, no a un paso 3 que esta persona no ha visto nunca.
-    else setPaso((p) => p - (saltaProfesional && p === 4 ? 2 : 1));
-  }, [paso, navigate, saltaProfesional]);
+    if (enviando || guardandoFicha) return;
+    if (paso > 1) {
+      // Volver desde "día y hora" con el profesional saltado tiene que devolver
+      // al servicio, no a un paso 3 que esta persona no ha visto nunca.
+      setPaso((p) => p - (saltaProfesional && p === 4 ? 2 : 1));
+    } else if (fichaAbierta) {
+      setCreandoFicha(false);
+      setErrorFicha(null);
+    } else {
+      navigate(-1);
+    }
+  }, [paso, navigate, saltaProfesional, enviando, guardandoFicha, fichaAbierta]);
+
+  /**
+   * El botón "atrás" de Android hace lo mismo que el de la pantalla: un paso
+   * atrás. Sin listener, Capacitor tira del historial del WebView y saca de la
+   * cita entera, perdiendo todo lo rellenado. Solo vive mientras esta pantalla
+   * está montada: al salir, Android recupera su comportamiento normal (el
+   * plugin mira si hay listeners en cada pulsación).
+   */
+  const atrasRef = useRef(atras);
+  useEffect(() => {
+    atrasRef.current = atras;
+  }, [atras]);
+
+  useEffect(() => {
+    if (!isNative()) return undefined;
+    const sub = CapApp.addListener('backButton', () => atrasRef.current());
+    return () => {
+      sub.then((s) => s.remove()).catch(() => {});
+    };
+  }, []);
+
+  // Cada paso empieza arriba: volviendo del calendario a la lista de servicios
+  // la pantalla se quedaba a media altura.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [paso]);
 
   /* ----- crear ----- */
 
@@ -544,15 +652,17 @@ export default function CitaNueva() {
 
   /* ---------------- render ---------------- */
 
+  // Mismo botón que el "Volver" de CitaDetalle. Antes era una flecha suelta en
+  // `--on-chrome` (crema) heredada de la cabecera oscura: sobre la barra crema
+  // de ahora no se veía, y parecía que no había forma de volver.
   const cabecera = (
     <button
       type="button"
       onClick={atras}
-      aria-label="Volver"
-      className="-mr-1 shrink-0 rounded-full p-2"
-      style={{ color: 'var(--on-chrome)' }}
+      className="card-tight tight inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-[13px] font-medium text-ink"
     >
-      <Icon.Arrow width="22" height="22" style={{ transform: 'rotate(180deg)' }} />
+      <Icon.Arrow width="14" height="14" style={{ transform: 'rotate(180deg)' }} />
+      {atrasSale ? 'Salir' : 'Atrás'}
     </button>
   );
 
@@ -851,6 +961,9 @@ export default function CitaNueva() {
                       <Opcion
                         seleccionada={servicioId === s.id}
                         onClick={() => {
+                          // Volver a tocar el que ya estaba no es cambiarlo: no
+                          // borra las partes ni la hora ya elegidas.
+                          if (s.id === servicioId) return;
                           setServicioId(s.id);
                           setPartes([]);
                           setAncla(null);
@@ -995,6 +1108,7 @@ export default function CitaNueva() {
                       <Opcion
                         seleccionada={profesionalId === p.id}
                         onClick={() => {
+                          if (p.id === profesionalId) return;
                           setProfesionalTocado(p.id);
                           setAncla(null);
                           setExtras([]);
@@ -1226,7 +1340,7 @@ export default function CitaNueva() {
                     height="17"
                     className="mt-0.5 shrink-0 text-stone"
                   />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="tight text-[15.5px] font-medium text-ink">
                       {fechaLarga(fechaSel)}
                     </p>
@@ -1236,43 +1350,44 @@ export default function CitaNueva() {
                       {textoDuracion(duracionTotal)}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => corregir(4)}
+                    aria-label="Cambiar día y hora"
+                    className="-my-1 w-[62px] shrink-0 py-1 text-right text-[13px] font-medium text-stone underline underline-offset-2"
+                  >
+                    Cambiar
+                  </button>
                 </div>
 
                 <div className="rule" />
 
-                <dl className="flex flex-col gap-2 text-[14px]">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <dt className="shrink-0 text-stone">Cliente</dt>
-                    <dd className="tight min-w-0 truncate text-right font-medium text-ink">
-                      {cliente?.nombre}
-                    </dd>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <dt className="shrink-0 text-stone">Servicio</dt>
-                    <dd className="tight min-w-0 truncate text-right font-medium text-ink">
-                      {servicio?.nombre}
-                    </dd>
-                  </div>
+                <dl className="flex flex-col gap-2.5 text-[14px]">
+                  <FilaResumen etiqueta="Cliente" onCambiar={() => corregir(1)}>
+                    {cliente?.nombre}
+                  </FilaResumen>
+                  <FilaResumen etiqueta="Servicio" onCambiar={() => corregir(2)}>
+                    {servicio?.nombre}
+                  </FilaResumen>
                   {partesElegidas.length > 0 ? (
-                    <div className="flex items-baseline justify-between gap-3">
-                      <dt className="shrink-0 text-stone">Partes</dt>
-                      <dd className="min-w-0 text-right text-[13.5px] text-ink">
-                        {partesElegidas.map((p) => p.nombre).join(', ')}
-                      </dd>
-                    </div>
+                    <FilaResumen
+                      etiqueta="Partes"
+                      largo
+                      onCambiar={() => corregir(2)}
+                    >
+                      {partesElegidas.map((p) => p.nombre).join(', ')}
+                    </FilaResumen>
                   ) : null}
-                  <div className="flex items-baseline justify-between gap-3">
-                    <dt className="shrink-0 text-stone">Profesional</dt>
-                    <dd className="tight min-w-0 truncate text-right font-medium text-ink">
-                      {profesionales.find((p) => p.id === profesionalId)?.nombre}
-                    </dd>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <dt className="shrink-0 text-stone">Precio</dt>
-                    <dd className="tabular text-right font-medium text-ink">
-                      {textoPrecioCita}
-                    </dd>
-                  </div>
+                  {/* Con una sola persona posible no hay nada que cambiar. */}
+                  <FilaResumen
+                    etiqueta="Profesional"
+                    onCambiar={saltaProfesional ? undefined : () => corregir(3)}
+                  >
+                    {profesionales.find((p) => p.id === profesionalId)?.nombre}
+                  </FilaResumen>
+                  <FilaResumen etiqueta="Precio">
+                    <span className="tabular">{textoPrecioCita}</span>
+                  </FilaResumen>
                 </dl>
               </div>
 
@@ -1336,16 +1451,29 @@ export default function CitaNueva() {
 
           {/* ---------- avanzar ---------- */}
           <div className="flex items-center gap-2 pb-2">
+            {paso > 1 ? (
+              <button
+                type="button"
+                onClick={atras}
+                disabled={enviando}
+                className="card-tight tight inline-flex shrink-0 items-center gap-2 rounded-full px-5 py-3.5 text-[15px] font-medium text-ink disabled:opacity-45"
+              >
+                <Icon.Arrow
+                  width="15"
+                  height="15"
+                  style={{ transform: 'rotate(180deg)' }}
+                />
+                Atrás
+              </button>
+            ) : null}
             {paso < PASOS.length ? (
               <button
                 type="button"
-                onClick={() =>
-                  setPaso((p) => p + (saltaProfesional && p === 2 ? 2 : 1))
-                }
+                onClick={seguir}
                 disabled={!puedeSeguir}
                 className="gloss-btn tight flex-1 rounded-full px-5 py-3.5 text-[15px] font-medium disabled:opacity-45"
               >
-                Continuar
+                {volverAResumen && todoCompleto ? 'Volver al resumen' : 'Continuar'}
               </button>
             ) : (
               <button
