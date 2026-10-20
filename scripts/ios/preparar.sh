@@ -31,6 +31,16 @@ echo "==> AppDelegate con Firebase y token FCM"
 cp scripts/ios/AppDelegate.swift ios/App/App/AppDelegate.swift
 echo "    copiado"
 
+# Y si algun dia se regenera ios/ con @capacitor/cli >= 8.5, la plantilla trae su
+# propio SceneDelegate.swift (ya dado de alta en el target) y chocaria con la
+# clase de AppDelegate.swift ("invalid redeclaration of 'SceneDelegate'"). Se
+# vacia: un .swift vacio compila y no hay que tocar project.pbxproj. Va pegado
+# a la copia del AppDelegate para que ningun fallo de mas abajo lo salte.
+if [ -f ios/App/App/SceneDelegate.swift ] && grep -q "class SceneDelegate" ios/App/App/SceneDelegate.swift; then
+  printf '// Vacio a proposito: SceneDelegate vive en AppDelegate.swift (scripts/ios/).\n' > ios/App/App/SceneDelegate.swift
+  echo "    SceneDelegate.swift de la plantilla vaciado"
+fi
+
 echo "==> Deep link ($BUNDLE) en el Info.plist"
 # Sin esto, volver del login con Apple/Google o de pagar en Stripe deja al
 # usuario tirado en Safari en vez de devolverlo a la app.
@@ -121,6 +131,40 @@ else
   echo "    Sin el, las notificaciones no funcionan."
   FALTA=1
 fi
+
+echo "==> Ciclo de vida UIScene en el Info.plist (obligatorio con Xcode 27)"
+# Compilada con el SDK de iOS 27, una app sin UIApplicationSceneManifest se
+# cierra al abrirse en iOS 27: pantalla negra en menos de medio segundo, siempre.
+# Le paso a un barbero de Imperio el 20-10-2026 con la 1.5.0, compilada con
+# Xcode 27. En iOS 26 arranca igual, asi que no se ve hasta que alguien
+# actualiza el iPhone.
+#
+# Se reescribe entero cada vez (Delete + Add): repetirlo deja siempre lo mismo
+# y pisa cualquier manifiesto viejo o distinto. Main.storyboard sigue creando la
+# ventana con CAPBridgeViewController; la clase SceneDelegate esta dentro de
+# AppDelegate.swift (copiado arriba), que ya es del target.
+#
+# Va al final de todo, a proposito: con `set -e`, si esto fallara se saltaria
+# todo lo que viniera detras, y publicar.sh se traga el fallo de este script
+# con `|| true`. Por eso publicar.sh lo vuelve a comprobar y ahi SI corta.
+ESC=":UIApplicationSceneManifest"
+CONF="$ESC:UISceneConfigurations:UIWindowSceneSessionRoleApplication:0"
+$PB -c "Delete $ESC" "$INFO" 2>/dev/null || true
+$PB -c "Add $ESC dict" "$INFO"
+$PB -c "Add $ESC:UIApplicationSupportsMultipleScenes bool false" "$INFO"
+$PB -c "Add $ESC:UISceneConfigurations dict" "$INFO"
+$PB -c "Add $ESC:UISceneConfigurations:UIWindowSceneSessionRoleApplication array" "$INFO"
+$PB -c "Add $CONF dict" "$INFO"
+$PB -c "Add $CONF:UISceneConfigurationName string Default Configuration" "$INFO"
+$PB -c "Add $CONF:UISceneDelegateClassName string \$(PRODUCT_MODULE_NAME).SceneDelegate" "$INFO"
+$PB -c "Add $CONF:UISceneStoryboardFile string Main" "$INFO"
+if [ "$($PB -c "Print $CONF:UISceneDelegateClassName" "$INFO" 2>/dev/null)" != '$(PRODUCT_MODULE_NAME).SceneDelegate' ] \
+  || [ "$($PB -c "Print $CONF:UISceneConfigurationName" "$INFO" 2>/dev/null)" != "Default Configuration" ] \
+  || [ "$($PB -c "Print $CONF:UISceneStoryboardFile" "$INFO" 2>/dev/null)" != "Main" ]; then
+  echo "ERROR: el Info.plist no quedo con el manifiesto de escenas"
+  exit 1
+fi
+echo "    manifiesto de escenas escrito"
 
 echo
 echo "Hecho. Lo que queda es en Xcode (npx cap open ios), target App, una sola vez:"

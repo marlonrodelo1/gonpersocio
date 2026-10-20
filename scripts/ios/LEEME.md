@@ -49,18 +49,19 @@ chmod +x scripts/ios/publicar.sh
 
 Y copiar `GoogleService-Info.plist` a `ios/App/App/`.
 
-### Dos cosas que se copian por terminal
+### Lo que se aplica por terminal
 
 ```bash
-# 1. El AppDelegate con Firebase y el token FCM (ver el porqué dentro del archivo)
-cp scripts/ios/AppDelegate.swift ios/App/App/AppDelegate.swift
-
-# 2. El deep link en el Info.plist, para volver a la app tras el login o Stripe
-/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" ios/App/App/Info.plist
-/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" ios/App/App/Info.plist
-/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" ios/App/App/Info.plist
-/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string shop.gonperstudio.socio" ios/App/App/Info.plist
+./scripts/ios/preparar.sh
 ```
+
+Copia el AppDelegate (Firebase, token FCM y el `SceneDelegate`; ver el porqué
+dentro del archivo) y escribe en el Info.plist el deep link, los permisos de
+cámara y fotos, la barra de estado y el **manifiesto de escenas (UIScene)**.
+`publicar.sh` lo vuelve a lanzar en cada versión, así que no hay que acordarse.
+
+Sin UIScene, compilada con Xcode 27, la app se cierra al abrirse en iOS 27
+(pantalla negra, siempre). Pasó con la 1.5.0 el 20-10-2026.
 
 ### Los tres pasos que sí piden Xcode
 
@@ -95,13 +96,35 @@ Compila la web, sincroniza, pone la versión, archiva, exporta el `.ipa` y lo
 sube a App Store Connect. El número de build **tiene que subir siempre**: Apple
 rechaza uno repetido y no se puede bajar.
 
+Antes de compilar corta si falta el deep link, la configuración de Firebase o el
+ciclo de vida UIScene; y después de archivar vuelve a mirar UIScene **dentro del
+binario** e imprime el SDK y el Xcode con los que se compiló.
+
+Para probar en el simulador antes de subir (sobre todo en iOS 27):
+
+```bash
+./scripts/ios/probar-simulador.sh       # el iOS más nuevo instalado
+./scripts/ios/probar-simulador.sh 26    # y uno anterior
+```
+
+Arranca la app, mira si sigue viva a los 10 segundos y si la web se ha cargado
+una sola vez, y prueba un enlace con la app abierta y con la app cerrada. Deja
+capturas en el Escritorio. Si no hay simulador de iOS 27:
+`xcodebuild -downloadPlatform iOS`.
+
+**Si la versión anterior ya está aprobada o publicada, sube también la versión,
+no solo el build** (de 1.5.0 a 1.5.1): App Store Connect no deja añadir builds
+a una versión ya publicada.
+
 La contraseña de Apple se guarda una vez en el llavero y el script la lee de
 ahí:
 
 ```bash
-xcrun altool --store-password-in-keychain-item AC_PASSWORD \
-  -u rogofoodcanarias@gmail.com -p <contraseña-específica-de-app>
+security add-generic-password -a rogofoodcanarias@gmail.com -w 'xxxx-xxxx-xxxx-xxxx' -s AC_PASSWORD
 ```
+
+Si prefieres pasarla suelta: `APPLE_APP_PASSWORD='xxxx-xxxx-xxxx-xxxx' ./scripts/ios/publicar.sh 1.5.1 19`.
+(El `xcrun altool --store-password-in-keychain-item` de antes ya no vale desde Xcode 26.)
 
 ---
 

@@ -11,10 +11,11 @@
 #
 # La contrasena de Apple NO se escribe aqui. Guardala una vez en el llavero:
 #
-#   xcrun altool --store-password-in-keychain-item AC_PASSWORD \
-#     -u rogofoodcanarias@gmail.com -p <contrasena-especifica-de-app>
+#   security add-generic-password -a rogofoodcanarias@gmail.com \
+#     -w 'xxxx-xxxx-xxxx-xxxx' -s AC_PASSWORD
 #
-# y el script la lee de ahi. Asi no queda en el historial del terminal ni en
+# (el `xcrun altool --store-password-in-keychain-item` de antes ya no vale desde
+# Xcode 26) y el script la lee de ahi. Asi no queda en el historial del terminal ni en
 # ningun archivo.
 
 set -euo pipefail
@@ -85,6 +86,32 @@ if ! /usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" ios/App/App/Info.plist
 fi
 echo "==> Deep link verificado: $ESQUEMA"
 
+# UIScene tambien corta. Compilada con Xcode 27 y sin el manifiesto de escenas,
+# la app se cierra al abrirse en cuanto el iPhone tiene iOS 27 (paso con la
+# 1.5.0, 20-10-2026). preparar.sh lo escribe, pero su fallo se traga arriba con
+# `|| true`, asi que aqui se comprueba en el proyecto que se va a compilar.
+DELEGADO_ESCENA="$(/usr/libexec/PlistBuddy -c 'Print :UIApplicationSceneManifest:UISceneConfigurations:UIWindowSceneSessionRoleApplication:0:UISceneDelegateClassName' ios/App/App/Info.plist 2>/dev/null || true)"
+if [[ "$DELEGADO_ESCENA" != *.SceneDelegate ]]; then
+  echo "ERROR: el Info.plist no declara el manifiesto de escenas (UIApplicationSceneManifest)."
+  echo "       Con Xcode 27 la app se cerraria al abrirse en iOS 27. Mira preparar.sh arriba."
+  exit 1
+fi
+APPDELEGATE_TXT="$(cat ios/App/App/AppDelegate.swift)"
+if [[ "$APPDELEGATE_TXT" != *"configurationForConnecting"* || "$APPDELEGATE_TXT" != *"class SceneDelegate"* ]]; then
+  echo "ERROR: ios/App/App/AppDelegate.swift no trae el SceneDelegate."
+  echo "       cp scripts/ios/AppDelegate.swift ios/App/App/AppDelegate.swift"
+  exit 1
+fi
+# Con una plantilla de Capacitor >= 8.5 habria un segundo SceneDelegate en su
+# propio archivo y el archive moriria con "invalid redeclaration". preparar.sh
+# lo vacia; si no llego a hacerlo, mejor saberlo ahora que a mitad de compilar.
+if [ -f ios/App/App/SceneDelegate.swift ] && [[ "$(cat ios/App/App/SceneDelegate.swift)" == *"class SceneDelegate"* ]]; then
+  echo "ERROR: ios/App/App/SceneDelegate.swift (de la plantilla) sigue declarando SceneDelegate."
+  echo "       Choca con el de AppDelegate.swift. Vuelve a lanzar: bash scripts/ios/preparar.sh"
+  exit 1
+fi
+echo "==> UIScene verificado: $DELEGADO_ESCENA"
+
 # Antes de gastar diez minutos en compilar y subir, comprobar que la
 # configuracion de Firebase esta donde tiene que estar. La primera version se
 # subio sin ella y la app se cerraba nada mas abrirse en el iPhone: el build no
@@ -125,6 +152,19 @@ xcodebuild -project App.xcodeproj -scheme App -configuration Release \
   -allowProvisioningUpdates \
   DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic \
   clean archive
+
+# Lo que de verdad va dentro del binario, no lo que dice el proyecto: el
+# manifiesto de escenas con la variable ya resuelta (App.SceneDelegate) y el
+# SDK con el que se compilo. Si sale iphoneos27 sin escenas, se cierra en iOS 27.
+INFO_ARCHIVE="$ARCHIVE/Products/Applications/App.app/Info.plist"
+DELEGADO_BINARIO="$(/usr/libexec/PlistBuddy -c 'Print :UIApplicationSceneManifest:UISceneConfigurations:UIWindowSceneSessionRoleApplication:0:UISceneDelegateClassName' "$INFO_ARCHIVE" 2>/dev/null || true)"
+echo "    SDK: $(/usr/libexec/PlistBuddy -c 'Print :DTSDKName' "$INFO_ARCHIVE" 2>/dev/null || echo '?')  Xcode: $(/usr/libexec/PlistBuddy -c 'Print :DTXcode' "$INFO_ARCHIVE" 2>/dev/null || echo '?')"
+if [[ "$DELEGADO_BINARIO" != *.SceneDelegate || "$DELEGADO_BINARIO" == *'$('* ]]; then
+  echo "ERROR: el binario no adopta UIScene (UISceneDelegateClassName='$DELEGADO_BINARIO')."
+  echo "       Se cerraria al abrirse en iOS 27. No lo subo."
+  exit 1
+fi
+echo "    el binario adopta UIScene ($DELEGADO_BINARIO)"
 
 echo "==> 5/5  Exportando el .ipa y subiendo"
 xcodebuild -exportArchive \
