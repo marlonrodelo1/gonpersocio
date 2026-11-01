@@ -59,9 +59,10 @@ async function pedir(path, opciones = {}, _reintento = false) {
   // devuelve sesión (refresh token inválido → sesión muerta), supabase-js emite
   // SIGNED_OUT y la app redirige a login sola; no forzamos nada aquí para no
   // echar al usuario por un corte de red transitorio.
-  // `reintentarAuth: false` lo usa /me: ahí un 401 no significa "token malo"
-  // sino "esta cuenta aún no gestiona ningún salón", y refrescar por eso
-  // encadenaba refresco → TOKEN_REFRESHED → recargar perfil → 401 → refresco.
+  // `reintentarAuth: false` lo usa /me: refrescar desde ahí encadenaba
+  // refresco → TOKEN_REFRESHED → recargar perfil → /me → refresco. Además /me
+  // ya no contesta 401 a una sesión caída (contesta 419 `sesion_no_valida`) y
+  // el refresco de verdad lo hace supabase-js por su cuenta.
   if (res.status === 401 && !_reintento && opciones.reintentarAuth !== false) {
     const { data } = await supabase.auth.refreshSession();
     if (data?.session) {

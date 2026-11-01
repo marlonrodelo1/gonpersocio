@@ -216,8 +216,15 @@ function Cargando() {
 
 /** Exige sesión Y salón. Un usuario sin salón no tiene nada que gestionar. */
 function Protegida({ children }) {
-  const { user, perfil, cargando, errorCarga, perfilCargando, recargarPerfil } =
-    useAuth();
+  const {
+    user,
+    perfil,
+    cargando,
+    errorCarga,
+    perfilCargando,
+    recargarPerfil,
+    logout,
+  } = useAuth();
   const { pathname, search } = useLocation();
 
   if (cargando) return <Cargando />;
@@ -229,10 +236,18 @@ function Protegida({ children }) {
   // se colaba un parpadeo de la pantalla de "crea tu negocio" en cada login,
   // porque `perfil` aún es null y <SinSalon /> es la rama por defecto.
   if (!perfil && perfilCargando) return <Cargando />;
-  // Fallo de RED/servidor al cargar el perfil: NO es "sin salón". Un dueño con
-  // negocio no debe ver "no gestiona negocio" solo porque el backend no
-  // respondió — le ofrecemos reintentar.
-  if (!perfil && errorCarga) return <ErrorConexion onReintentar={recargarPerfil} />;
+  // Fallo de red, de servidor o de sesión al cargar el perfil: NO es "sin
+  // salón". Un dueño con negocio no debe ver "no gestiona negocio" solo porque
+  // el backend no respondió o su token no valía — le ofrecemos reintentar.
+  if (!perfil && errorCarga) {
+    return (
+      <ErrorConexion
+        tipo={errorCarga}
+        onReintentar={recargarPerfil}
+        onSalir={logout}
+      />
+    );
+  }
   if (!perfil) return <SinSalon />;
   return children;
 }
@@ -266,22 +281,84 @@ function Privada({ permiso, soloAdmin, children }) {
   );
 }
 
-/** No se pudo conectar con el servidor (red/backend), no falta de salón. */
-function ErrorConexion({ onReintentar }) {
+/**
+ * No se pudo cargar el perfil (red, backend o sesión), no falta de salón.
+ *
+ * Lleva "Salir" porque sin perfil no se pinta la barra lateral, que es donde
+ * vive el otro botón de salir: si el fallo no se arregla reintentando (sesión
+ * cerrada desde otro dispositivo), esta es la única puerta.
+ *
+ * Con `tipo === 'sesion'` el servidor no acepta el token: pedir que revise
+ * internet a quien tiene la sesión caída le haría pulsar Reintentar sin fin, así
+ * que lo principal pasa a ser volver a entrar.
+ */
+function ErrorConexion({ tipo, onReintentar, onSalir }) {
+  const [saliendo, setSaliendo] = useState(false);
+  const deSesion = tipo === 'sesion';
+
+  async function salir() {
+    setSaliendo(true);
+    try {
+      await onSalir();
+    } finally {
+      setSaliendo(false);
+    }
+  }
+
+  const botonPrincipal =
+    'gloss-btn tight mt-2 rounded-full px-6 py-3 text-[14px] font-medium disabled:opacity-60';
+  const botonSecundario =
+    'text-[13px] text-stone underline underline-offset-4 disabled:opacity-60';
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-cream p-8 text-center">
-      <h1 className="tight text-[20px] font-semibold text-ink">No hay conexión</h1>
+      <h1 className="tight text-[20px] font-semibold text-ink">
+        {deSesion ? 'Tu sesión ha caducado' : 'No hay conexión'}
+      </h1>
       <p className="max-w-sm text-[14px] leading-relaxed text-stone">
-        No hemos podido conectar con el servidor. Comprueba tu internet e
-        inténtalo de nuevo.
+        {deSesion
+          ? 'Vuelve a entrar con tu cuenta para seguir. Tu negocio y tus citas están intactos.'
+          : 'No hemos podido conectar con el servidor. Comprueba tu internet e inténtalo de nuevo.'}
       </p>
-      <button
-        type="button"
-        className="gloss-btn tight mt-2 rounded-full px-6 py-3 text-[14px] font-medium"
-        onClick={onReintentar}
-      >
-        Reintentar
-      </button>
+      {deSesion ? (
+        <>
+          <button
+            type="button"
+            className={botonPrincipal}
+            onClick={salir}
+            disabled={saliendo}
+          >
+            {saliendo ? 'Saliendo…' : 'Volver a entrar'}
+          </button>
+          <button
+            type="button"
+            className={botonSecundario}
+            onClick={onReintentar}
+            disabled={saliendo}
+          >
+            Reintentar
+          </button>
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            className={botonPrincipal}
+            onClick={onReintentar}
+            disabled={saliendo}
+          >
+            Reintentar
+          </button>
+          <button
+            type="button"
+            className={botonSecundario}
+            onClick={salir}
+            disabled={saliendo}
+          >
+            {saliendo ? 'Saliendo…' : 'Salir con otra cuenta'}
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -481,8 +558,9 @@ function SinSalon() {
  * Pedía `user && perfil`, y ese `&& perfil` es lo que tumbó la primera revisión
  * de la App Store (2.1(a): "when we tried to sign in with Apple, we remained in
  * the login screen"). Quien entra con Apple o Google por primera vez SÍ tiene
- * sesión, pero todavía no tiene salón: `/me` responde 401 y `perfil` se queda a
- * null, que es un estado legítimo (ver `cargarPerfil` en AuthContext). Con la
+ * sesión, pero todavía no tiene salón: `/me` responde 403 `sin_salon` (entonces
+ * era un 401) y `perfil` se queda a null, que es un estado legítimo (ver
+ * `cargarPerfil` en AuthContext). Con la
  * condición antigua el guard volvía a pintar el login una y otra vez: el
  * revisor se identificó con éxito y no salió nunca de la pantalla de entrar.
  *
