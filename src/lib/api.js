@@ -110,6 +110,10 @@ export function apiPatch(path, body) {
   return pedir(path, { method: 'PATCH', body: body ?? {} });
 }
 
+export function apiPut(path, body) {
+  return pedir(path, { method: 'PUT', body: body ?? {} });
+}
+
 export function apiDelete(path, body) {
   return pedir(
     path,

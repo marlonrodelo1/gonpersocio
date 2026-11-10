@@ -45,6 +45,7 @@ const Cuenta = lazy(() => import('./pages/Cuenta'));
 const CitaNueva = lazy(() => import('./pages/CitaNueva'));
 const ConfigSalon = lazy(() => import('./pages/ConfigSalon'));
 const ConfigReservas = lazy(() => import('./pages/ConfigReservas'));
+const ConfigWeb = lazy(() => import('./pages/ConfigWeb'));
 const Equipo = lazy(() => import('./pages/Equipo'));
 const Cobros = lazy(() => import('./pages/Cobros'));
 
@@ -758,6 +759,16 @@ function Rutas() {
           element={
             <Privada soloAdmin>
               <ConfigReservas />
+            </Privada>
+          }
+        />
+        {/* Logo, portada y buscador: el escaparate es cosa del dueño, como la
+            galería. El backend también exige dueño para escribir. */}
+        <Route
+          path="/config/web"
+          element={
+            <Privada soloAdmin>
+              <ConfigWeb />
             </Privada>
           }
         />

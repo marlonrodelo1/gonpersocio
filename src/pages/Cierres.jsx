@@ -1,100 +1,125 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import Pantalla from '../components/Pantalla';
 import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
+import {
+  DIA_RE,
+  HORA_RE,
+  diaEnZona,
+  diaLargo,
+  diaSemana,
+  horaEnZona,
+  instanteEnZona,
+  sumarDias,
+} from '../lib/zona';
 
 /**
- * Cierres: los días y ratos en los que el salón no acepta reservas.
+ * Cierres: los días y ratos en los que el salón (o alguien del equipo) no
+ * acepta reservas.
  *
  * Esta pantalla se usa de pie y con prisa —"me tengo que ir", "mañana no
- * abro"—, así que lo primero que aparece son botones de un toque. Un
- * datetime-local aquí sería un castigo: son cuatro campos y un teclado para
- * decir algo que cabe en una frase.
+ * abro"—, así que lo primero que aparece son atajos de un toque. Pero un toque
+ * ya no guarda a ciegas: antes de cerrar se enseña un resumen (cuándo, a quién
+ * afecta) y cuántas citas reservadas caen dentro, que pregunta el servidor en
+ * `/cierres/previsualizar`. Desde el móvil se cerraba sin saberlo y los
+ * clientes que ya tenían hora seguían recibiendo su recordatorio sin que nadie
+ * les avisara. Bloquear no cancela ninguna cita: solo se avisa.
  *
- * Las fechas se calculan en la hora del móvil y se mandan en ISO UTC; el
- * listado se vuelve a formatear en la zona del salón, que es la que manda. En
- * la práctica coinciden (el dueño está en su salón), pero si viaja, lo que ve
- * escrito sigue siendo la hora a la que su puerta está cerrada.
+ * LA HORA ES LA DEL SALÓN, no la del móvil. Las horas sueltas de un día viajan
+ * como `dia` + `horaInicio` + `horaFin` y el servidor las convierte con la zona
+ * guardada del salón; lo que va por días enteros se calcula aquí con esa misma
+ * zona (`lib/zona.js`). Antes todo salía de la hora del teléfono, y un dueño de
+ * viaje cerraba unas horas distintas de las que veía escritas.
+ *
+ * A QUIÉN AFECTA. El dueño elige entre todo el salón o una persona del equipo
+ * (sin elegir, se cerraba siempre el salón entero aunque pensara en un solo
+ * barbero). A un empleado con `cerrar_franjas` el servidor le pone SIEMPRE su
+ * propia ficha, mande lo que mande; aquí solo se le explica.
  */
 
-/* ---------- fechas, sin librerías ---------- */
-
-function alCuartoSiguiente(d) {
-  const resto = d.getMinutes() % 15;
-  if (resto !== 0) d.setMinutes(d.getMinutes() + (15 - resto), 0, 0);
-  else d.setSeconds(0, 0);
-  return d;
-}
-
-function finDelDia(d) {
-  const f = new Date(d);
-  f.setHours(23, 59, 0, 0);
-  return f;
-}
-
-function inicioDelDia(d) {
-  const f = new Date(d);
-  f.setHours(0, 0, 0, 0);
-  return f;
-}
-
-/** 'YYYY-MM-DD' (input date) → Date local a la hora indicada. */
-function desdeYmd(ymd, h, m) {
-  const [y, mes, d] = ymd.split('-').map(Number);
-  return new Date(y, mes - 1, d, h, m, 0, 0);
-}
-
-function aYmd(d) {
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
+/* ---------- atajos ---------- */
 
 const PRESETS = [
-  {
-    id: 'resto-hoy',
-    label: 'Lo que queda de hoy',
-    hint: 'Cierro y no vuelvo',
-    compute: () => [alCuartoSiguiente(new Date()), finDelDia(new Date())],
-  },
-  {
-    id: 'tarde-hoy',
-    label: 'La tarde de hoy',
-    hint: 'De 15:00 al cierre',
-    compute: () => {
-      const desde = new Date();
-      desde.setHours(15, 0, 0, 0);
-      return [desde, finDelDia(new Date())];
-    },
-  },
-  {
-    id: 'manana',
-    label: 'Mañana, día completo',
-    hint: 'No abro en todo el día',
-    compute: () => {
-      const d = new Date();
-      d.setDate(d.getDate() + 1);
-      return [inicioDelDia(d), finDelDia(d)];
-    },
-  },
-  {
-    id: 'resto-semana',
-    label: 'Lo que queda de semana',
-    hint: 'Hasta el domingo',
-    compute: () => {
-      const desde = alCuartoSiguiente(new Date());
-      const domingo = new Date();
-      // getDay(): 0 = domingo. Si hoy ya es domingo, el rango acaba hoy.
-      const faltan = (7 - domingo.getDay()) % 7;
-      domingo.setDate(domingo.getDate() + faltan);
-      return [desde, finDelDia(domingo)];
-    },
-  },
+  { id: 'resto-hoy', label: 'Lo que queda de hoy', hint: 'Cierro y no vuelvo' },
+  { id: 'tarde-hoy', label: 'La tarde de hoy', hint: 'De 15:00 al cierre' },
+  { id: 'manana', label: 'Mañana, día completo', hint: 'No abro en todo el día' },
+  { id: 'resto-semana', label: 'Lo que queda de semana', hint: 'Hasta el domingo' },
 ];
 
-/* ---------- formateo en la zona del salón ---------- */
+function aMinutos(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function aHora(minutos) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(Math.floor(minutos / 60))}:${p(minutos % 60)}`;
+}
+
+/**
+ * El siguiente cuarto de hora a partir de 'HH:mm'. Si ya no queda ninguno en el
+ * día, la hora tal cual; null si el día se ha acabado.
+ */
+function cuartoSiguiente(hhmm) {
+  const ahora = aMinutos(hhmm);
+  const siguiente = Math.ceil(ahora / 15) * 15;
+  if (siguiente <= 23 * 60 + 45) return aHora(siguiente);
+  if (ahora < 23 * 60 + 59) return aHora(ahora);
+  return null;
+}
+
+/**
+ * Lo que se mandaría para un atajo, con su resumen legible. Las franjas de un
+ * solo día van como día + horas (el servidor hace la cuenta de husos); la de
+ * varios días, en ISO calculado con la zona del salón.
+ */
+function franjaDeAtajo(id, tz) {
+  const ahora = new Date();
+  const hoy = diaEnZona(ahora, tz);
+
+  if (id === 'resto-hoy') {
+    const inicio = cuartoSiguiente(horaEnZona(ahora, tz));
+    if (!inicio) return { error: 'El día ya ha terminado en el salón. Cierra mañana.' };
+    return {
+      cuerpo: { dia: hoy, horaInicio: inicio, horaFin: '23:59' },
+      titulo: `Hoy, ${diaLargo(hoy).toLowerCase()}`,
+      detalle: `De ${inicio} al cierre`,
+    };
+  }
+  if (id === 'tarde-hoy') {
+    return {
+      cuerpo: { dia: hoy, horaInicio: '15:00', horaFin: '23:59' },
+      titulo: `Hoy, ${diaLargo(hoy).toLowerCase()}`,
+      detalle: 'De 15:00 al cierre',
+    };
+  }
+  if (id === 'manana') {
+    const manana = sumarDias(hoy, 1);
+    return {
+      cuerpo: { dia: manana, horaInicio: '00:00', horaFin: '23:59' },
+      titulo: `Mañana, ${diaLargo(manana).toLowerCase()}`,
+      detalle: 'Todo el día',
+    };
+  }
+  // Lo que queda de semana: desde ahora hasta el domingo por la noche.
+  const domingo = sumarDias(hoy, (7 - diaSemana(hoy)) % 7);
+  return {
+    cuerpo: {
+      desde: ahora.toISOString(),
+      hasta: instanteEnZona(domingo, '23:59', tz).toISOString(),
+    },
+    titulo:
+      domingo === hoy
+        ? `Hoy, ${diaLargo(hoy).toLowerCase()}`
+        : `De hoy al ${diaLargo(domingo).toLowerCase()}`,
+    detalle: 'Desde ahora hasta el domingo a las 23:59',
+  };
+}
+
+/* ---------- formateo del listado en la zona del salón ---------- */
 
 function partes(iso, tz) {
   const d = new Date(iso);
@@ -143,6 +168,141 @@ function enCurso(desdeIso, hastaIso) {
   return Date.parse(desdeIso) <= ahora && ahora <= Date.parse(hastaIso);
 }
 
+/* ---------- piezas ---------- */
+
+const labelClass = 'text-[11px] uppercase tracking-[0.2em] text-stone/80';
+
+function Aviso({ tipo, texto }) {
+  if (!texto) return null;
+  const estilo =
+    tipo === 'ok'
+      ? { background: 'var(--sage-soft)', color: 'var(--sage-deep)' }
+      : tipo === 'atencion'
+        ? { background: 'rgba(197,142,44,0.12)', color: '#7A5A1B' }
+        : { background: '#F1D6D6', color: '#7C2E2E' };
+  return (
+    <p role="status" className="rounded-xl px-3.5 py-2.5 text-[13.5px] leading-snug" style={estilo}>
+      {texto}
+    </p>
+  );
+}
+
+/** "Todo el salón" o una persona del equipo. Solo para quien manda. */
+function SelectorDestino({ equipo, valor, onChange, disabled }) {
+  const opciones = [{ id: '', nombre: 'Todo el salón', colorHex: null }, ...equipo];
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className={labelClass}>¿A quién afecta?</span>
+      <div className="flex flex-wrap gap-2">
+        {opciones.map((p) => {
+          const elegido = p.id === valor;
+          return (
+            <button
+              key={p.id || 'salon'}
+              type="button"
+              aria-pressed={elegido}
+              disabled={disabled}
+              onClick={() => onChange(p.id)}
+              className="tight inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13.5px] transition disabled:opacity-60"
+              style={
+                elegido
+                  ? { background: 'var(--ink)', borderColor: 'var(--ink)', color: 'var(--paper)' }
+                  : { background: 'var(--paper)', borderColor: 'var(--line)', color: 'var(--ink)' }
+              }
+            >
+              {p.colorHex ? (
+                <span
+                  aria-hidden
+                  className="size-2 rounded-full"
+                  style={{ background: p.colorHex }}
+                />
+              ) : null}
+              {p.nombre}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[12px] leading-snug text-stone">
+        {valor
+          ? 'Solo se cierra su agenda: el resto del equipo sigue recibiendo reservas.'
+          : 'Nadie del salón podrá recibir reservas en esas horas.'}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * El paso de "¿seguro?": cuándo, a quién y cuántas citas hay dentro. El
+ * recuento lo da el servidor con las mismas reglas con las que luego cierra.
+ */
+function Confirmacion({ pendiente, preview, guardando, onConfirmar, onCambiar }) {
+  const listo = preview?.clave === pendiente.clave;
+  const datos = listo && !preview.error ? preview.datos : null;
+  const error = listo ? preview.error : null;
+  // Un 400/403/409 es que el servidor NO va a aceptar este cierre (franja mal
+  // formada, sin permiso, cuenta sin ficha): no tiene sentido ofrecer cerrar.
+  // Cualquier otro fallo (red, servidor) solo impide CONTAR, no cerrar.
+  const rechazo = error && [400, 403, 409].includes(error.status);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+          Revisa antes de cerrar
+        </span>
+        <p className="tight text-[17px] font-medium text-ink">{pendiente.titulo}</p>
+        <p className="tabular text-[14px] text-ink">{pendiente.detalle}</p>
+        <p className="text-[13px] text-stone">Afecta a: {pendiente.destinoTexto}</p>
+        {pendiente.cuerpo.motivo ? (
+          <p className="text-[13px] text-stone">Motivo: {pendiente.cuerpo.motivo}</p>
+        ) : null}
+      </div>
+
+      {!listo ? (
+        <p className="text-[13px] text-stone" aria-busy="true">
+          Comprobando si hay citas reservadas en esa franja…
+        </p>
+      ) : rechazo ? (
+        <Aviso tipo="error" texto={error.message} />
+      ) : error ? (
+        <Aviso
+          tipo="atencion"
+          texto="No hemos podido comprobar si hay citas en esa franja. Puedes cerrar igualmente."
+        />
+      ) : datos?.citasAfectadas > 0 ? (
+        <Aviso
+          tipo="atencion"
+          texto={
+            datos.aviso ||
+            `En esa franja hay ${datos.citasAfectadas} citas reservadas. Bloquear no las cancela.`
+          }
+        />
+      ) : (
+        <Aviso tipo="ok" texto="No hay ninguna cita reservada en esa franja." />
+      )}
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onConfirmar}
+          disabled={guardando || !listo || rechazo}
+          className="gloss-btn tight flex-1 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-50"
+        >
+          {guardando ? 'Cerrando…' : 'Sí, cerrar'}
+        </button>
+        <button
+          type="button"
+          onClick={onCambiar}
+          disabled={guardando}
+          className="rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
+        >
+          Cambiar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- pantalla ---------- */
 
 export default function Cierres() {
@@ -151,14 +311,35 @@ export default function Cierres() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
+  // Valores iniciales de los formularios, en la hora del SALÓN.
+  const [inicial] = useState(() => {
+    const ahora = new Date();
+    const tz = salon?.timezone;
+    const hoy = diaEnZona(ahora, tz);
+    const desde = cuartoSiguiente(horaEnZona(ahora, tz)) ?? '10:00';
+    const hasta = aHora(Math.min(aMinutos(desde) + 60, 23 * 60 + 59));
+    return { hoy, desde: desde < hasta ? desde : '10:00', hasta: desde < hasta ? hasta : '11:00' };
+  });
+
   const [guardando, setGuardando] = useState(false);
   const [motivo, setMotivo] = useState('');
-  const [avisoForm, setAvisoForm] = useState(null); // { tipo, texto }
-  const [abiertoOtras, setAbiertoOtras] = useState(false);
-  const [diaDesde, setDiaDesde] = useState(() => aYmd(new Date()));
-  const [diaHasta, setDiaHasta] = useState(() => aYmd(new Date()));
-  const [confirmando, setConfirmando] = useState(null); // id pendiente de confirmar
+  const [destino, setDestino] = useState(''); // '' = todo el salón
+  const [avisoForm, setAvisoForm] = useState(null); // { tipo, texto, extra }
+  const [abierto, setAbierto] = useState(null); // 'horas' | 'dias' | null
+  const [dia, setDia] = useState(inicial.hoy);
+  const [horaDesde, setHoraDesde] = useState(inicial.desde);
+  const [horaHasta, setHoraHasta] = useState(inicial.hasta);
+  const [diaDesde, setDiaDesde] = useState(inicial.hoy);
+  const [diaHasta, setDiaHasta] = useState(inicial.hoy);
+  const [confirmando, setConfirmando] = useState(null); // id pendiente de quitar
   const [borrando, setBorrando] = useState(null);
+
+  // El cierre preparado y su recuento de citas. El recuento se guarda con la
+  // clave del cierre al que responde: si se cambia de idea mientras llega, una
+  // respuesta vieja no puede pintar el aviso de otra franja.
+  const [pendiente, setPendiente] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const ultimaClave = useRef(0);
 
   const [intento, setIntento] = useState(0);
 
@@ -185,6 +366,25 @@ export default function Cierres() {
     };
   }, [intento]);
 
+  // El equipo, para el "¿a quién afecta?". Solo lo necesita quien manda: a un
+  // empleado el servidor le cierra siempre su propia agenda.
+  const [equipo, setEquipo] = useState([]);
+  useEffect(() => {
+    if (!esDueno) return undefined;
+    let vivo = true;
+    apiGet('/equipo')
+      .then((d) => {
+        if (vivo) setEquipo((d?.equipo ?? []).filter((p) => p.activo));
+      })
+      .catch(() => {
+        // Sin la lista se cierra el salón entero, como antes: no es motivo
+        // para bloquear la pantalla.
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [esDueno]);
+
   /** Vuelve a pedir la lista sin vaciar la pantalla (tras crear o borrar). */
   const refrescar = useCallback(() => setIntento((n) => n + 1), []);
 
@@ -196,38 +396,135 @@ export default function Cierres() {
 
   const tz = datos?.timezone ?? salon?.timezone ?? undefined;
   const puedeEditar = datos?.puedeEditar ?? false;
+  // Con una sola persona en el equipo, elegir entre "todo el salón" y ella es
+  // elegir entre lo mismo: no se pregunta.
+  const eligeDestino = esDueno && equipo.length > 1;
+  const destinoValido = eligeDestino && equipo.some((p) => p.id === destino) ? destino : '';
 
-  const crear = async (desde, hasta) => {
-    if (
-      !(desde instanceof Date) ||
-      !(hasta instanceof Date) ||
-      Number.isNaN(desde.getTime()) ||
-      Number.isNaN(hasta.getTime())
-    ) {
-      setAvisoForm({ tipo: 'error', texto: 'Esas fechas no son válidas.' });
+  const textoDestino = () => {
+    if (!esDueno) return 'solo tu agenda';
+    if (!destinoValido) return 'todo el salón';
+    const p = equipo.find((x) => x.id === destinoValido);
+    return `solo ${p?.nombre ?? 'esa persona'}`;
+  };
+
+  /** Prepara un cierre y pide al servidor cuántas citas pilla, sin guardar. */
+  const preparar = (franja) => {
+    if (franja.error) {
+      setAvisoForm({ tipo: 'error', texto: franja.error });
       return;
     }
-    if (hasta <= desde) {
+    const cuerpo = {
+      ...franja.cuerpo,
+      motivo: motivo.trim() || null,
+      ...(esDueno && destinoValido ? { profesionalId: destinoValido } : {}),
+    };
+    ultimaClave.current += 1;
+    const clave = ultimaClave.current;
+    setAvisoForm(null);
+    setPreview(null);
+    setPendiente({
+      clave,
+      cuerpo,
+      titulo: franja.titulo,
+      detalle: franja.detalle,
+      destinoTexto: textoDestino(),
+    });
+    apiPost('/cierres/previsualizar', cuerpo)
+      .then((d) => {
+        if (ultimaClave.current === clave) setPreview({ clave, datos: d });
+      })
+      .catch((e) => {
+        if (ultimaClave.current === clave) setPreview({ clave, error: e });
+      });
+  };
+
+  const prepararHoras = () => {
+    const hoy = diaEnZona(new Date(), tz);
+    if (!DIA_RE.test(dia)) {
+      setAvisoForm({ tipo: 'error', texto: 'Elige el día.' });
+      return;
+    }
+    if (!HORA_RE.test(horaDesde) || !HORA_RE.test(horaHasta)) {
+      setAvisoForm({ tipo: 'error', texto: 'Escribe la hora de inicio y la de fin.' });
+      return;
+    }
+    if (horaHasta <= horaDesde) {
       setAvisoForm({
         tipo: 'error',
-        texto: 'Ese rango ya ha pasado. Elige otro.',
+        texto: 'La hora de fin tiene que ser posterior a la de inicio.',
       });
       return;
     }
+    if (dia < hoy) {
+      setAvisoForm({ tipo: 'error', texto: 'Ese día ya ha pasado.' });
+      return;
+    }
+    if (dia === hoy && horaHasta <= horaEnZona(new Date(), tz)) {
+      setAvisoForm({ tipo: 'error', texto: 'Esas horas ya han pasado hoy.' });
+      return;
+    }
+    preparar({
+      cuerpo: { dia, horaInicio: horaDesde, horaFin: horaHasta },
+      titulo: diaLargo(dia),
+      detalle: `De ${horaDesde} a ${horaHasta}`,
+    });
+  };
 
+  const prepararDias = () => {
+    const hoy = diaEnZona(new Date(), tz);
+    if (!DIA_RE.test(diaDesde) || !DIA_RE.test(diaHasta)) {
+      setAvisoForm({ tipo: 'error', texto: 'Elige los dos días.' });
+      return;
+    }
+    if (diaHasta < diaDesde) {
+      setAvisoForm({ tipo: 'error', texto: 'El último día no puede ser antes del primero.' });
+      return;
+    }
+    if (diaHasta < hoy) {
+      setAvisoForm({ tipo: 'error', texto: 'Esas fechas ya han pasado. Elige otras.' });
+      return;
+    }
+    const unDia = diaDesde === diaHasta;
+    preparar({
+      // Un solo día va como día + horas, igual que el resto de franjas de un
+      // día; varios días, en ISO con la zona del salón.
+      cuerpo: unDia
+        ? { dia: diaDesde, horaInicio: '00:00', horaFin: '23:59' }
+        : {
+            desde: instanteEnZona(diaDesde, '00:00', tz).toISOString(),
+            hasta: instanteEnZona(diaHasta, '23:59', tz).toISOString(),
+          },
+      titulo: unDia
+        ? diaLargo(diaDesde)
+        : `Del ${diaLargo(diaDesde).toLowerCase()} al ${diaLargo(diaHasta).toLowerCase()}`,
+      detalle: unDia ? 'Todo el día' : 'Días completos',
+    });
+  };
+
+  const cancelarPendiente = () => {
+    ultimaClave.current += 1;
+    setPendiente(null);
+    setPreview(null);
+  };
+
+  const confirmar = async () => {
+    if (!pendiente) return;
     setGuardando(true);
     setAvisoForm(null);
     try {
-      await apiPost('/cierres', {
-        desde: desde.toISOString(),
-        hasta: hasta.toISOString(),
-        motivo: motivo.trim() || null,
-      });
+      const res = await apiPost('/cierres', pendiente.cuerpo);
+      ultimaClave.current += 1;
+      setPendiente(null);
+      setPreview(null);
       setMotivo('');
-      setAbiertoOtras(false);
+      setAbierto(null);
       setAvisoForm({
         tipo: 'ok',
         texto: 'Cerrado. Nadie podrá reservar en esas horas.',
+        // El recuento DESPUÉS de guardar: si entró una reserva mientras se
+        // confirmaba, aquí sale.
+        extra: res?.avisoCitas ?? null,
       });
       refrescar();
     } catch (e) {
@@ -256,6 +553,17 @@ export default function Cierres() {
       setBorrando(null);
     }
   };
+
+  /** De quién es un cierre de la lista, en palabras. */
+  const quienDe = (c) => {
+    if (!c.profesionalId) return 'Todo el salón';
+    if (datos?.profesionalId && c.profesionalId === datos.profesionalId) {
+      return esDueno ? `Solo ${c.profesionalNombre ?? 'tú'} (tú)` : 'Solo tú';
+    }
+    return `Solo ${c.profesionalNombre ?? 'un profesional'}`;
+  };
+
+  const ocupado = guardando || Boolean(pendiente);
 
   return (
     <Pantalla titulo="Cierres" subtitulo={salon?.nombre}>
@@ -293,140 +601,211 @@ export default function Cierres() {
                   Cierres y vacaciones
                 </span>
                 <h2 className="tight text-[20px] font-medium text-ink">
-                  Cerrar el salón
+                  {esDueno ? 'Cerrar horas o días' : 'Bloquear tu agenda'}
                 </h2>
                 <p className="text-[13px] leading-relaxed text-stone">
-                  Toca una opción y listo. Los clientes dejarán de ver esos
-                  huecos al instante.
+                  {esDueno
+                    ? 'Elige un atajo o unas horas. Antes de cerrar verás si hay citas dentro.'
+                    : 'Solo se cierran tus horas: el resto del salón sigue abierto. Antes de cerrar verás si tienes citas dentro.'}
                 </p>
               </header>
 
-              <div className="grid grid-cols-2 gap-2">
-                {PRESETS.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    disabled={guardando}
-                    onClick={() => {
-                      const [desde, hasta] = p.compute();
-                      crear(desde, hasta);
-                    }}
-                    className="tight flex flex-col items-start gap-0.5 rounded-xl border border-line bg-paper px-3.5 py-3 text-left transition hover:bg-cream disabled:opacity-50"
-                  >
-                    <span className="text-[14px] font-medium leading-snug text-ink">
-                      {p.label}
-                    </span>
-                    <span className="text-[12px] leading-snug text-stone/70">
-                      {p.hint}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="cierre_motivo"
-                  className="text-[11px] uppercase tracking-[0.2em] text-stone/80"
-                >
-                  Motivo (opcional)
-                </label>
-                <input
-                  id="cierre_motivo"
-                  type="text"
-                  value={motivo}
-                  onChange={(e) => setMotivo(e.target.value)}
-                  maxLength={200}
-                  disabled={guardando}
-                  placeholder="Médico, vacaciones, festivo…"
-                  className="field-input"
+              {pendiente ? (
+                <Confirmacion
+                  pendiente={pendiente}
+                  preview={preview}
+                  guardando={guardando}
+                  onConfirmar={confirmar}
+                  onCambiar={cancelarPendiente}
                 />
-              </div>
+              ) : (
+                <>
+                  {eligeDestino ? (
+                    <SelectorDestino
+                      equipo={equipo}
+                      valor={destinoValido}
+                      onChange={setDestino}
+                      disabled={ocupado}
+                    />
+                  ) : null}
 
-              {/* Vacaciones y festivos: no caben en un preset, pero tampoco
-                  necesitan horas. Dos fechas y fuera. */}
-              <div className="flex flex-col gap-3 border-t border-line pt-4">
-                <button
-                  type="button"
-                  onClick={() => setAbiertoOtras((v) => !v)}
-                  className="tight self-start text-[13.5px] font-medium text-ink underline underline-offset-4"
-                >
-                  {abiertoOtras ? 'Ocultar otras fechas' : 'Otras fechas (vacaciones)'}
-                </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    {PRESETS.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        disabled={ocupado}
+                        onClick={() => preparar(franjaDeAtajo(p.id, tz))}
+                        className="tight flex flex-col items-start gap-0.5 rounded-xl border border-line bg-paper px-3.5 py-3 text-left transition hover:bg-cream disabled:opacity-50"
+                      >
+                        <span className="text-[14px] font-medium leading-snug text-ink">
+                          {p.label}
+                        </span>
+                        <span className="text-[12px] leading-snug text-stone/70">
+                          {p.hint}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
 
-                {abiertoOtras ? (
-                  <div className="flex flex-col gap-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex flex-col gap-1.5">
-                        <label
-                          htmlFor="cierre_desde"
-                          className="text-[11px] uppercase tracking-[0.2em] text-stone/80"
-                        >
-                          Desde
-                        </label>
-                        <input
-                          id="cierre_desde"
-                          type="date"
-                          value={diaDesde}
-                          onChange={(e) => {
-                            setDiaDesde(e.target.value);
-                            if (e.target.value > diaHasta) {
-                              setDiaHasta(e.target.value);
-                            }
-                          }}
-                          disabled={guardando}
-                          className="field-input"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <label
-                          htmlFor="cierre_hasta"
-                          className="text-[11px] uppercase tracking-[0.2em] text-stone/80"
-                        >
-                          Hasta (incluido)
-                        </label>
-                        <input
-                          id="cierre_hasta"
-                          type="date"
-                          value={diaHasta}
-                          min={diaDesde}
-                          onChange={(e) => setDiaHasta(e.target.value)}
-                          disabled={guardando}
-                          className="field-input"
-                        />
-                      </div>
-                    </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="cierre_motivo" className={labelClass}>
+                      Motivo (opcional)
+                    </label>
+                    <input
+                      id="cierre_motivo"
+                      type="text"
+                      value={motivo}
+                      onChange={(e) => setMotivo(e.target.value)}
+                      maxLength={200}
+                      disabled={ocupado}
+                      placeholder="Médico, vacaciones, festivo…"
+                      className="field-input"
+                    />
+                  </div>
+
+                  {/* Unas horas de un día concreto: el médico del jueves, una
+                      salida a media mañana. Lo que los atajos no cubren. */}
+                  <div className="flex flex-col gap-3 border-t border-line pt-4">
                     <button
                       type="button"
-                      disabled={guardando}
-                      onClick={() =>
-                        crear(
-                          desdeYmd(diaDesde, 0, 0),
-                          desdeYmd(diaHasta, 23, 59),
-                        )
-                      }
-                      className="gloss-btn tight rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-50"
+                      onClick={() => setAbierto((v) => (v === 'horas' ? null : 'horas'))}
+                      aria-expanded={abierto === 'horas'}
+                      className="tight self-start text-[13.5px] font-medium text-ink underline underline-offset-4"
                     >
-                      {guardando ? 'Guardando…' : 'Cerrar esos días'}
+                      {abierto === 'horas' ? 'Ocultar' : 'Unas horas de un día concreto'}
                     </button>
+
+                    {abierto === 'horas' ? (
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-1.5">
+                          <label htmlFor="cierre_dia" className={labelClass}>
+                            Día
+                          </label>
+                          <input
+                            id="cierre_dia"
+                            type="date"
+                            value={dia}
+                            min={inicial.hoy}
+                            onChange={(e) => setDia(e.target.value)}
+                            disabled={ocupado}
+                            className="field-input"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-1.5">
+                            <label htmlFor="cierre_hora_desde" className={labelClass}>
+                              Desde
+                            </label>
+                            <input
+                              id="cierre_hora_desde"
+                              type="time"
+                              step={900}
+                              value={horaDesde}
+                              onChange={(e) => setHoraDesde(e.target.value)}
+                              disabled={ocupado}
+                              className="field-input tabular"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label htmlFor="cierre_hora_hasta" className={labelClass}>
+                              Hasta
+                            </label>
+                            <input
+                              id="cierre_hora_hasta"
+                              type="time"
+                              step={900}
+                              value={horaHasta}
+                              onChange={(e) => setHoraHasta(e.target.value)}
+                              disabled={ocupado}
+                              className="field-input tabular"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-[12px] leading-snug text-stone">
+                          Horas del salón
+                          {tz ? ` (${tz.split('/').pop().replace('_', ' ')})` : ''}
+                          , aunque tu móvil esté en otra zona.
+                        </p>
+                        <button
+                          type="button"
+                          disabled={ocupado}
+                          onClick={prepararHoras}
+                          className="gloss-btn tight rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-50"
+                        >
+                          Revisar y cerrar esas horas
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
+
+                  {/* Vacaciones y festivos: días enteros, sin horas. */}
+                  <div className="flex flex-col gap-3 border-t border-line pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setAbierto((v) => (v === 'dias' ? null : 'dias'))}
+                      aria-expanded={abierto === 'dias'}
+                      className="tight self-start text-[13.5px] font-medium text-ink underline underline-offset-4"
+                    >
+                      {abierto === 'dias' ? 'Ocultar' : 'Varios días (vacaciones)'}
+                    </button>
+
+                    {abierto === 'dias' ? (
+                      <div className="flex flex-col gap-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-1.5">
+                            <label htmlFor="cierre_desde" className={labelClass}>
+                              Desde
+                            </label>
+                            <input
+                              id="cierre_desde"
+                              type="date"
+                              value={diaDesde}
+                              min={inicial.hoy}
+                              onChange={(e) => {
+                                setDiaDesde(e.target.value);
+                                if (e.target.value > diaHasta) {
+                                  setDiaHasta(e.target.value);
+                                }
+                              }}
+                              disabled={ocupado}
+                              className="field-input"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label htmlFor="cierre_hasta" className={labelClass}>
+                              Hasta (incluido)
+                            </label>
+                            <input
+                              id="cierre_hasta"
+                              type="date"
+                              value={diaHasta}
+                              min={diaDesde}
+                              onChange={(e) => setDiaHasta(e.target.value)}
+                              disabled={ocupado}
+                              className="field-input"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={ocupado}
+                          onClick={prepararDias}
+                          className="gloss-btn tight rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-50"
+                        >
+                          Revisar y cerrar esos días
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </>
+              )}
 
               {avisoForm ? (
-                <p
-                  role="status"
-                  className="rounded-xl px-3.5 py-2.5 text-[13.5px]"
-                  style={
-                    avisoForm.tipo === 'ok'
-                      ? {
-                          background: 'var(--sage-soft)',
-                          color: 'var(--sage-deep)',
-                        }
-                      : { background: '#F1D6D6', color: '#7C2E2E' }
-                  }
-                >
-                  {avisoForm.texto}
-                </p>
+                <div className="flex flex-col gap-2">
+                  <Aviso tipo={avisoForm.tipo} texto={avisoForm.texto} />
+                  {avisoForm.extra ? <Aviso tipo="atencion" texto={avisoForm.extra} /> : null}
+                </div>
               ) : null}
             </section>
           ) : (
@@ -451,8 +830,8 @@ export default function Cierres() {
                   No tienes ningún cierre puesto
                 </p>
                 <p className="max-w-xs text-[12.5px] leading-relaxed text-stone">
-                  Tu salón acepta reservas en todo tu horario. Cuando cierres un
-                  día o una tarde, aparecerá aquí.
+                  Se aceptan reservas en todo tu horario. Cuando cierres un día o
+                  unas horas, aparecerá aquí.
                 </p>
               </div>
             ) : (
@@ -473,6 +852,11 @@ export default function Cierres() {
                           </p>
                           <p className="tabular mt-0.5 text-[13px] text-stone">
                             {detalle}
+                          </p>
+                          {/* De quién es: un cierre de un solo barbero no
+                              puede leerse como el salón entero cerrado. */}
+                          <p className="mt-1 text-[12.5px] font-medium text-ink/80">
+                            {quienDe(c)}
                           </p>
                           {c.motivo ? (
                             <p className="mt-1 break-words text-[13px] text-stone">

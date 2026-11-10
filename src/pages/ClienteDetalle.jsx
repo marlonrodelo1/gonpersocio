@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import Pantalla from '../components/Pantalla';
+import Interruptor from '../components/Interruptor';
 import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
-import { apiGet } from '../lib/api';
+import { apiGet, apiPatch } from '../lib/api';
 import { metaEstado } from '../lib/estado-cita';
+import { telefonoEsValido } from '../lib/telefono';
 
 /**
  * Ficha del cliente.
@@ -18,7 +20,184 @@ import { metaEstado } from '../lib/estado-cita';
  * El análisis de 30 días solo llega si el plan del salón lo incluye. Cuando no,
  * se dice en una frase y punto: la app no puede mostrar precios de plan ni
  * botones de contratar, así que aquí no hay ninguna invitación a comprar.
+ *
+ * EDITAR (nombre, teléfono, email, notas privadas y "requiere depósito") es
+ * solo de quien manda, igual que en la web: un empleado con el fichero de
+ * clientes LEE la ficha, pero exigir depósito a alguien es una decisión de
+ * dinero. Se manda solo lo que cambia: la edición web arrastra campos que su
+ * formulario no enseña y los deja en blanco; aquí no se tocan.
  */
+
+/** Mismo criterio que el servidor para dar un email por bueno. */
+function emailValido(s) {
+  return /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.[a-zA-Z]{2,}$/.test(s);
+}
+
+const NOTAS_MAX = 2000;
+
+/**
+ * Formulario de la ficha. El teléfono se manda TAL CUAL se teclea: el servidor
+ * lo pasa a +34… y es el único que decide el formato guardado. Aquí solo se
+ * comprueba para no dejar guardar algo que se va a rechazar.
+ */
+function EditarCliente({ cliente, onGuardado, onCancelar }) {
+  const [nombre, setNombre] = useState(cliente.nombre ?? '');
+  const [telefono, setTelefono] = useState(cliente.telefono ?? '');
+  const [email, setEmail] = useState(cliente.email ?? '');
+  const [notas, setNotas] = useState(cliente.notasPrivadas ?? '');
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState(null);
+
+  const guardar = async () => {
+    const cambios = {};
+    const n = nombre.trim();
+    if (!n) {
+      setError('El nombre no puede quedarse vacío.');
+      return;
+    }
+    if (n !== cliente.nombre) cambios.nombre = n;
+
+    const t = telefono.trim();
+    if (t !== (cliente.telefono ?? '')) {
+      if (t && !telefonoEsValido(t)) {
+        setError(
+          'Ese teléfono no parece válido: son 9 dígitos, o con el prefijo del país si es de fuera de España.',
+        );
+        return;
+      }
+      cambios.telefono = t || null;
+    }
+
+    const e = email.trim().toLowerCase();
+    if (e !== (cliente.email ?? '').toLowerCase()) {
+      if (e && !emailValido(e)) {
+        setError('Ese email no parece correcto.');
+        return;
+      }
+      cambios.email = e || null;
+    }
+
+    const nt = notas.trim();
+    if (nt !== (cliente.notasPrivadas ?? '').trim()) cambios.notasPrivadas = nt || null;
+
+    if (Object.keys(cambios).length === 0) {
+      onCancelar();
+      return;
+    }
+
+    setGuardando(true);
+    setError(null);
+    try {
+      const res = await apiPatch(`/clientes/${cliente.id}`, cambios);
+      onGuardado(res?.cliente ?? cambios);
+    } catch (err) {
+      setError(err?.message || 'No se han podido guardar los cambios.');
+      setGuardando(false);
+    }
+  };
+
+  const etiqueta = 'text-[11px] uppercase tracking-[0.2em] text-stone/80';
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="cli_nombre" className={etiqueta}>
+          Nombre
+        </label>
+        <input
+          id="cli_nombre"
+          type="text"
+          value={nombre}
+          maxLength={120}
+          autoCapitalize="words"
+          disabled={guardando}
+          onChange={(ev) => setNombre(ev.target.value)}
+          className="field-input"
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="cli_telefono" className={etiqueta}>
+          Teléfono (opcional)
+        </label>
+        <input
+          id="cli_telefono"
+          type="tel"
+          inputMode="tel"
+          value={telefono}
+          maxLength={30}
+          disabled={guardando}
+          placeholder="612 345 678"
+          onChange={(ev) => setTelefono(ev.target.value)}
+          className="field-input tabular"
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="cli_email" className={etiqueta}>
+          Email (opcional)
+        </label>
+        <input
+          id="cli_email"
+          type="email"
+          inputMode="email"
+          autoCapitalize="none"
+          autoCorrect="off"
+          value={email}
+          maxLength={200}
+          disabled={guardando}
+          onChange={(ev) => setEmail(ev.target.value)}
+          className="field-input"
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="cli_notas" className={etiqueta}>
+          Notas privadas (opcional)
+        </label>
+        <textarea
+          id="cli_notas"
+          value={notas}
+          maxLength={NOTAS_MAX}
+          rows={4}
+          disabled={guardando}
+          placeholder="Alergias, cómo le gusta el corte, si suele llegar tarde…"
+          onChange={(ev) => setNotas(ev.target.value)}
+          className="field-input resize-none leading-relaxed"
+        />
+        <p className="text-[12px] text-stone">
+          Solo las ve el salón. El cliente nunca.
+        </p>
+      </div>
+
+      {error ? (
+        <p
+          role="status"
+          className="rounded-xl px-3.5 py-2.5 text-[13.5px] leading-snug"
+          style={{ background: '#F1D6D6', color: '#7C2E2E' }}
+        >
+          {error}
+        </p>
+      ) : null}
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={guardar}
+          disabled={guardando}
+          className="gloss-btn tight flex-1 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
+        >
+          {guardando ? 'Guardando…' : 'Guardar'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancelar}
+          disabled={guardando}
+          className="rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function iniciales(nombre) {
   return (nombre || '')
@@ -167,11 +346,21 @@ function FilaCita({ cita, tz }) {
 
 export default function ClienteDetalle() {
   const { id } = useParams();
-  const { salon } = useAuth();
+  const { salon, esDueno } = useAuth();
   const tz = salon?.timezone || 'Europe/Madrid';
 
   const [intento, setIntento] = useState(0);
   const [res, setRes] = useState(null);
+
+  // Edición (solo dueño): el formulario abierto, y el interruptor del depósito
+  // con su propio guardado, que es de un toque como en la web. Se guarda el id
+  // de la ficha que se edita, no un booleano: saltar a otro cliente desde un
+  // enlace no puede dejar abierto el formulario de la ficha anterior.
+  const [editandoId, setEditandoId] = useState(null);
+  const editando = editandoId === id;
+  const [aviso, setAviso] = useState(null); // { id, tipo, texto }
+  const [cambiandoDeposito, setCambiandoDeposito] = useState(false);
+  const avisoFicha = aviso?.id === id ? aviso : null;
 
   // La respuesta se guarda con la clave (ficha + intento) que la pidió, y
   // "cargando" es simplemente que aún no ha llegado la de la clave actual. Sin
@@ -201,6 +390,36 @@ export default function ClienteDetalle() {
   const datos = listo && !res.error ? res.datos : null;
 
   const reintentar = useCallback(() => setIntento((n) => n + 1), []);
+
+  /** Mete en la ficha cargada lo que el servidor confirma que guardó. */
+  const aplicarCliente = useCallback((cambios) => {
+    setRes((prev) =>
+      prev?.datos
+        ? {
+            ...prev,
+            datos: {
+              ...prev.datos,
+              cliente: { ...prev.datos.cliente, ...cambios },
+            },
+          }
+        : prev,
+    );
+  }, []);
+
+  const cambiarDeposito = async (actual) => {
+    setCambiandoDeposito(true);
+    setAviso(null);
+    try {
+      const r = await apiPatch(`/clientes/${id}`, { requiereDeposito: !actual });
+      aplicarCliente({
+        requiereDeposito: r?.cliente?.requiereDeposito ?? !actual,
+      });
+    } catch (e) {
+      setAviso({ id, tipo: 'error', texto: e?.message || 'No se ha podido guardar.' });
+    } finally {
+      setCambiandoDeposito(false);
+    }
+  };
 
   const volver = (
     <Link
@@ -322,49 +541,122 @@ export default function ClienteDetalle() {
             última cita para ver por dónde te escribió.
           </p>
         ) : null}
+
+        {/* Depósito: de un toque, como el botón Activar/Quitar de la web. */}
+        {esDueno ? (
+          <>
+            <div className="rule my-4" />
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="tight text-[14px] font-medium text-ink">
+                  Pedirle depósito al reservar
+                </p>
+                <p className="text-[12.5px] leading-snug text-stone">
+                  {cliente.requiereDeposito
+                    ? 'Activado: tendrá que pagar una parte por adelantado.'
+                    : 'Desactivado: reserva como todos.'}
+                </p>
+              </div>
+              <Interruptor
+                activo={cliente.requiereDeposito === true}
+                ocupado={cambiandoDeposito}
+                onCambiar={() => cambiarDeposito(cliente.requiereDeposito === true)}
+                etiqueta={
+                  cliente.requiereDeposito
+                    ? 'Dejar de pedirle depósito'
+                    : 'Pedirle depósito al reservar'
+                }
+              />
+            </div>
+          </>
+        ) : null}
+
+        {avisoFicha ? (
+          <p
+            role="status"
+            className="mt-3 rounded-xl px-3.5 py-2.5 text-[13px] leading-snug"
+            style={
+              avisoFicha.tipo === 'ok'
+                ? { background: 'var(--sage-soft)', color: 'var(--sage-deep)' }
+                : { background: '#F1D6D6', color: '#7C2E2E' }
+            }
+          >
+            {avisoFicha.texto}
+          </p>
+        ) : null}
       </header>
 
       {/* Datos de contacto: filas con badge de icono, igual que el panel. */}
       <section className="card mt-5 p-5">
-        <div className="mb-4 text-[10px] uppercase tracking-[0.22em] text-stone/70">
-          Datos de contacto
-        </div>
-        <div className="flex flex-col gap-3">
-          <FilaContacto
-            badge={<Icon.Phone width="13" height="13" />}
-            valor={cliente.telefono}
-            vacio="— sin teléfono"
-          />
-          <FilaContacto
-            badge={<span className="text-[12px]">@</span>}
-            valor={cliente.email}
-            vacio="— sin email"
-          />
-          {cliente.whatsappPhone ? (
-            <FilaContacto
-              badge={<span className="text-[11px]">WA</span>}
-              valor={cliente.whatsappPhone}
-            />
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-stone/70">
+            {editando ? 'Editar ficha' : 'Datos de contacto'}
+          </div>
+          {esDueno && !editando ? (
+            <button
+              type="button"
+              onClick={() => {
+                setAviso(null);
+                setEditandoId(id);
+              }}
+              className="card-tight tight inline-flex items-center gap-1.5 px-3 py-1.5 text-[12.5px] font-medium text-ink hover:bg-cream"
+            >
+              Editar
+            </button>
           ) : null}
         </div>
 
-        {cliente.notasPrivadas ? (
-          <>
-            <div className="rule my-5" />
-            <div className="mb-2 text-[10px] uppercase tracking-[0.22em] text-stone/70">
-              Notas privadas
-            </div>
-            <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink">
-              {cliente.notasPrivadas}
-            </p>
-          </>
+        {editando ? (
+          <EditarCliente
+            cliente={cliente}
+            onGuardado={(guardado) => {
+              aplicarCliente(guardado);
+              setEditandoId(null);
+              setAviso({ id, tipo: 'ok', texto: 'Ficha guardada.' });
+            }}
+            onCancelar={() => setEditandoId(null)}
+          />
         ) : (
           <>
-            <div className="rule my-5" />
-            <p className="font-serif-it text-[13px] text-stone/70">
-              Sin notas. Edita el cliente desde el panel para añadir información
-              interna.
-            </p>
+            <div className="flex flex-col gap-3">
+              <FilaContacto
+                badge={<Icon.Phone width="13" height="13" />}
+                valor={cliente.telefono}
+                vacio="— sin teléfono"
+              />
+              <FilaContacto
+                badge={<span className="text-[12px]">@</span>}
+                valor={cliente.email}
+                vacio="— sin email"
+              />
+              {cliente.whatsappPhone ? (
+                <FilaContacto
+                  badge={<span className="text-[11px]">WA</span>}
+                  valor={cliente.whatsappPhone}
+                />
+              ) : null}
+            </div>
+
+            {cliente.notasPrivadas ? (
+              <>
+                <div className="rule my-5" />
+                <div className="mb-2 text-[10px] uppercase tracking-[0.22em] text-stone/70">
+                  Notas privadas
+                </div>
+                <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink">
+                  {cliente.notasPrivadas}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="rule my-5" />
+                <p className="font-serif-it text-[13px] text-stone/70">
+                  {esDueno
+                    ? 'Sin notas. Pulsa Editar para apuntar algo que solo vea el salón.'
+                    : 'Sin notas.'}
+                </p>
+              </>
+            )}
           </>
         )}
       </section>

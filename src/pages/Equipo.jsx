@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Icon } from '../components/icons';
+import Interruptor from '../components/Interruptor';
 import Pantalla from '../components/Pantalla';
 import { useAuth } from '../context/useAuth';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
@@ -92,30 +93,6 @@ function Avatar({ profesional }) {
     >
       {iniciales(profesional.nombre)}
     </span>
-  );
-}
-
-/** Interruptor accesible. Sin `<input>` para no arrastrar estilos del sistema. */
-function Interruptor({ activo, ocupado, onCambiar, etiqueta }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={activo}
-      aria-label={etiqueta}
-      disabled={ocupado}
-      onClick={onCambiar}
-      className="relative h-[28px] w-[48px] shrink-0 rounded-full border transition disabled:opacity-50"
-      style={{
-        background: activo ? 'var(--socio-accent)' : 'var(--cream-2)',
-        borderColor: activo ? 'var(--socio-accent)' : 'var(--line-2)',
-      }}
-    >
-      <span
-        className="absolute top-[3px] block h-[20px] w-[20px] rounded-full bg-paper shadow-sm transition-all"
-        style={{ left: activo ? 23 : 3 }}
-      />
-    </button>
   );
 }
 
@@ -247,6 +224,87 @@ function Aviso({ tipo, texto }) {
   );
 }
 
+/* ---------- permisos ---------- */
+
+/**
+ * Qué puede hacer en la app un trabajador con cuenta propia: ver la agenda de
+ * todos, cerrarse franjas, entrar al fichero de clientes y tocar citas de
+ * compañeros. Es la sección "Permisos" de Equipo en el ordenador.
+ *
+ * Cada interruptor guarda AL TOCARLO y manda solo ese permiso: no hay un
+ * "Guardar" que pueda pisar lo que se cambió entretanto desde el ordenador. Los
+ * textos de cada permiso vienen del servidor (`catalogoPermisos`) para que la
+ * app y la web expliquen lo mismo con las mismas palabras.
+ *
+ * Solo aparece si el servidor manda `permisos`: a un dueño o administrador no
+ * se le recorta nada, y una ficha sin cuenta no tiene nada que recortar.
+ */
+function PermisosTrabajador({ profesional, catalogo, onGuardado }) {
+  const [guardando, setGuardando] = useState(null); // clave en vuelo
+  const [error, setError] = useState(null);
+
+  const cambiar = async (clave) => {
+    const actual = profesional.permisos?.[clave] === true;
+    setGuardando(clave);
+    setError(null);
+    try {
+      const res = await apiPatch(`/equipo/${profesional.id}/permisos`, {
+        [clave]: !actual,
+      });
+      // Se pinta lo que el servidor dice que ha quedado, no lo que se pidió.
+      if (res?.permisos) onGuardado({ id: profesional.id, permisos: res.permisos });
+    } catch (e) {
+      setError(e?.message || 'No se ha podido guardar el permiso.');
+    } finally {
+      setGuardando(null);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-line pt-4">
+      <div className="flex flex-col gap-0.5">
+        <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+          Permisos
+        </span>
+        <p className="tight text-[15px] font-medium text-ink">
+          Qué puede hacer {profesional.nombre} en la app
+        </p>
+        <p className="text-[12.5px] leading-snug text-stone">
+          Cada cambio se guarda al momento y le vale desde ya.
+        </p>
+      </div>
+
+      <ul className="flex flex-col divide-y divide-line/70 overflow-hidden rounded-2xl border border-line bg-paper">
+        {catalogo.map((p) => {
+          const activo = profesional.permisos?.[p.clave] === true;
+          return (
+            <li key={p.clave} className="flex items-start justify-between gap-3 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[14px] font-medium leading-snug text-ink">
+                  {p.titulo}
+                </p>
+                {p.descripcion ? (
+                  <p className="mt-0.5 text-[12.5px] leading-snug text-stone">
+                    {p.descripcion}
+                  </p>
+                ) : null}
+              </div>
+              <Interruptor
+                activo={activo}
+                ocupado={guardando !== null}
+                onCambiar={() => cambiar(p.clave)}
+                etiqueta={`${p.titulo}: ${activo ? 'quitar' : 'dar'} a ${profesional.nombre}`}
+              />
+            </li>
+          );
+        })}
+      </ul>
+
+      {error ? <Aviso tipo="error" texto={error} /> : null}
+    </div>
+  );
+}
+
 /* ---------- alta ---------- */
 
 function FormularioNuevo({ colorInicial, onCreado, onCancelar }) {
@@ -335,7 +393,7 @@ function FormularioNuevo({ colorInicial, onCreado, onCancelar }) {
 
 /* ---------- fila ---------- */
 
-function Tarjeta({ profesional, puedeEditar, onGuardado, onBorrado }) {
+function Tarjeta({ profesional, puedeEditar, catalogoPermisos, onGuardado, onBorrado }) {
   const [abierto, setAbierto] = useState(false);
   const [nombre, setNombre] = useState(profesional.nombre);
   const [color, setColor] = useState(profesional.colorHex);
@@ -535,6 +593,14 @@ function Tarjeta({ profesional, puedeEditar, onGuardado, onBorrado }) {
               Cancelar
             </button>
           </div>
+
+          {profesional.permisos && catalogoPermisos.length > 0 ? (
+            <PermisosTrabajador
+              profesional={profesional}
+              catalogo={catalogoPermisos}
+              onGuardado={onGuardado}
+            />
+          ) : null}
 
           <div className="border-t border-line pt-3">
             {profesional.tieneCuenta ? (
@@ -791,6 +857,7 @@ export default function Equipo() {
                     key={p.id}
                     profesional={p}
                     puedeEditar={puedeEditar}
+                    catalogoPermisos={datos.catalogoPermisos ?? []}
                     onGuardado={aplicarCambio}
                     onBorrado={aplicarBorrado}
                   />
@@ -830,7 +897,7 @@ export default function Equipo() {
 
           <p className="px-1 text-[13px] leading-relaxed text-stone">
             {puedeEditar
-              ? 'El color es lo que distingue a cada persona en la agenda. Las fotos de perfil se suben desde el ordenador.'
+              ? 'El color es lo que distingue a cada persona en la agenda. Lo que puede hacer en la app quien entra con su cuenta se cambia en Editar. Las fotos de perfil se suben desde el ordenador.'
               : 'Este es el equipo del salón. Lo gestiona el dueño.'}
           </p>
         </div>

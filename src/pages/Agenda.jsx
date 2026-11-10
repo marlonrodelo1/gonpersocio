@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 
 import Pantalla from '../components/Pantalla';
 import AvisoSinFicha from '../components/AvisoSinFicha';
+import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
 import { apiGet } from '../lib/api';
+import { colorProfesional, estiloCitaProfesional } from '../lib/color-profesional';
 
 /**
  * Agenda del negocio.
@@ -116,6 +119,16 @@ function fechaDeClave(clave) {
   return new Date(y, m - 1, d, 12, 0, 0, 0);
 }
 
+/** Date -> "2026-07-20" en la hora del teléfono. */
+function claveDeFecha(fecha) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${fecha.getFullYear()}-${p(fecha.getMonth() + 1)}-${p(fecha.getDate())}`;
+}
+
+const CLAVE_DIA = /^\d{4}-\d{2}-\d{2}$/;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function horaEn(iso, timezone) {
   return new Intl.DateTimeFormat('es-ES', {
     hour: '2-digit',
@@ -127,10 +140,39 @@ function horaEn(iso, timezone) {
 export default function Agenda() {
   const { salon, perfil } = useAuth();
 
-  const [vista, setVista] = useState('dia');
-  const [anclaMs, setAnclaMs] = useState(() => Date.now());
-  const [soloMias, setSoloMias] = useState(false);
+  // Día, vista y filtro viven en la URL (`?vista=semana&dia=2026-11-16&mias=1`)
+  // y no en estado local: al abrir una cita y volver atrás, la pantalla se
+  // monta de nuevo y con estado local regresaba siempre a hoy. Así se vuelve a
+  // la misma semana que se estaba mirando.
+  const [params, setParams] = useSearchParams();
+  const vista = params.get('vista') === 'semana' ? 'semana' : 'dia';
+  const soloMias = params.get('mias') === '1';
+  // Barbero elegido en los chips (`?profesional=<id>`). También en la URL, por
+  // lo mismo que el día: volver de una cita no puede soltar el filtro. Un valor
+  // que no es un id se ignora en vez de mandarlo y recibir un error.
+  const profesionalParam = params.get('profesional');
+  const profesionalElegido =
+    profesionalParam && UUID_RE.test(profesionalParam) ? profesionalParam : null;
+  const diaParam = params.get('dia');
+  const [hoyMs] = useState(() => Date.now());
+  const anclaMs =
+    diaParam && CLAVE_DIA.test(diaParam) ? fechaDeClave(diaParam).getTime() : hoyMs;
   const [intento, setIntento] = useState(0);
+
+  // `replace`: cambiar de día no debe llenar el historial; el botón Atrás tiene
+  // que sacar de la agenda, no deshacer cada flecha pulsada.
+  const actualizar = (cambios) =>
+    setParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        for (const [clave, valor] of Object.entries(cambios)) {
+          if (valor == null) p.delete(clave);
+          else p.set(clave, valor);
+        }
+        return p;
+      },
+      { replace: true },
+    );
 
   const { inicio, fin } = useMemo(
     () => calcularRango(vista, anclaMs),
@@ -145,7 +187,7 @@ export default function Agenda() {
   // el efecto, y de paso al cambiar de semana nunca se ve un instante con los
   // datos de la anterior.
   const [resultado, setResultado] = useState(null);
-  const peticion = `${desdeISO}|${hastaISO}|${soloMias ? 1 : 0}|${intento}`;
+  const peticion = `${desdeISO}|${hastaISO}|${soloMias ? 1 : 0}|${profesionalElegido ?? ''}|${intento}`;
   const alDia = resultado?.peticion === peticion;
   const datos = alDia ? resultado.datos : null;
   const error = alDia ? resultado.error : null;
@@ -155,7 +197,10 @@ export default function Agenda() {
     let vivo = true;
 
     const params = new URLSearchParams({ desde: desdeISO, hasta: hastaISO });
-    if (soloMias) params.set('mio', '1');
+    // Con un barbero elegido manda ese filtro (el servidor ignora `mio` si llega
+    // `profesional`, y solo lo obedece a quien ve la agenda del salón entero).
+    if (profesionalElegido) params.set('profesional', profesionalElegido);
+    else if (soloMias) params.set('mio', '1');
 
     apiGet(`/agenda?${params.toString()}`)
       .then((d) => {
@@ -168,18 +213,13 @@ export default function Agenda() {
     return () => {
       vivo = false;
     };
-  }, [peticion, desdeISO, hastaISO, soloMias]);
+  }, [peticion, desdeISO, hastaISO, soloMias, profesionalElegido]);
 
-  const mover = useCallback(
-    (signo) => {
-      setAnclaMs((ms) => {
-        const d = new Date(ms);
-        d.setDate(d.getDate() + signo * (vista === 'semana' ? 7 : 1));
-        return d.getTime();
-      });
-    },
-    [vista],
-  );
+  const mover = (signo) => {
+    const d = new Date(anclaMs);
+    d.setDate(d.getDate() + signo * (vista === 'semana' ? 7 : 1));
+    actualizar({ dia: claveDeFecha(d) });
+  };
 
   const timezone = datos?.timezone ?? 'Europe/Madrid';
 
@@ -203,6 +243,16 @@ export default function Agenda() {
     return mapa;
   }, [datos]);
 
+  // Los chips de barbero salen de la ÚLTIMA respuesta que llegó, aunque sea de
+  // otra semana o de otro filtro: si dependieran de la que está en vuelo,
+  // desaparecerían y volverían a aparecer en cada toque. Solo los recibe quien
+  // ve la agenda del salón entero, y con una sola persona no hay nada que elegir.
+  const ultimos = resultado?.datos ?? null;
+  const equipoChips = ultimos?.puedeFiltrarPorProfesional
+    ? (ultimos.equipo ?? [])
+    : [];
+  const conChips = equipoChips.length > 1;
+
   // El interruptor solo aparece si la cuenta está vinculada a un profesional
   // (es lo que pasa con los trabajadores). A un dueño sin ficha propia el
   // filtro le devolvería cero citas y parecería que la agenda está rota.
@@ -210,18 +260,50 @@ export default function Agenda() {
   // Y si `alcanceForzado` viene a true, el servidor YA está filtrando por su
   // cuenta: enseñar un interruptor apagado sería mentir sobre lo que se está
   // viendo, y apagarlo no traería ni una cita más.
+  //
+  // Con chips sobra: "solo mis citas" es el chip de uno mismo, y dos filtros
+  // que dicen lo mismo acaban contradiciéndose. Como los chips, se decide con
+  // la última respuesta que llegó: con la que está en vuelo, el interruptor
+  // aparecía y desaparecía en cada cambio de día.
   const puedeFiltrarMias =
-    (datos?.puedeFiltrarMias ?? Boolean(perfil?.profesionalId)) &&
-    datos?.alcanceForzado !== true;
+    ultimos !== null &&
+    !conChips &&
+    (ultimos.puedeFiltrarMias ?? Boolean(perfil?.profesionalId)) &&
+    ultimos.alcanceForzado !== true;
+
+  // Chip marcado: el barbero de la URL; o el propio si se venía de "Solo mis
+  // citas" (así lo que se ve marcado es lo que se está filtrando de verdad).
+  const chipActivo =
+    profesionalElegido ??
+    (soloMias && perfil?.profesionalId ? perfil.profesionalId : null);
+
+  const elegirProfesional = (id) =>
+    actualizar({ profesional: id, mias: null });
 
   const hayContenido =
     (datos?.citas?.length ?? 0) > 0 || (datos?.cierres?.length ?? 0) > 0;
+
+  // "Nueva cita" abre el alta con el día que se está mirando ya elegido. En la
+  // vista de semana es el día de referencia (hoy, o el que se navegó). Un día
+  // pasado no se puede reservar: CitaNueva lo descarta y abre en blanco.
+  const nuevaCita = (
+    <Link
+      to={`/citas/nueva?dia=${claveDeFecha(new Date(anclaMs))}`}
+      aria-label="Nueva cita"
+      className="tight inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[13.5px] font-medium"
+      style={{ background: 'var(--chrome)', color: 'var(--on-chrome)' }}
+    >
+      <Icon.Plus width="15" height="15" />
+      Nueva cita
+    </Link>
+  );
 
   return (
     <Pantalla
       titulo={tituloRango(vista, inicio, fin)}
       subtitulo="Agenda"
       saludo={salon?.nombre ? `· ${salon.nombre}` : undefined}
+      accion={nuevaCita}
     >
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
@@ -259,7 +341,7 @@ export default function Agenda() {
                   key={valor}
                   type="button"
                   aria-pressed={vista === valor}
-                  onClick={() => setVista(valor)}
+                  onClick={() => actualizar({ vista: valor === 'dia' ? null : valor })}
                   className={`tight flex-1 rounded-full px-3 py-1.5 text-[13.5px] ${
                     vista === valor
                       ? 'bg-ink font-medium text-cream'
@@ -272,7 +354,7 @@ export default function Agenda() {
             </div>
             <button
               type="button"
-              onClick={() => setAnclaMs(Date.now())}
+              onClick={() => actualizar({ dia: null })}
               className="card-tight tight shrink-0 px-4 py-2 text-[13.5px] text-ink"
             >
               Hoy
@@ -284,7 +366,7 @@ export default function Agenda() {
               type="button"
               role="switch"
               aria-checked={soloMias}
-              onClick={() => setSoloMias((v) => !v)}
+              onClick={() => actualizar({ mias: soloMias ? null : '1' })}
               className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-paper px-4 py-3 text-left"
             >
               <span className="text-[14px] text-ink">Solo mis citas</span>
@@ -300,6 +382,15 @@ export default function Agenda() {
                 />
               </span>
             </button>
+          )}
+
+          {conChips && (
+            <ChipsEquipo
+              equipo={equipoChips}
+              activo={chipActivo}
+              miId={perfil?.profesionalId ?? null}
+              onElegir={elegirProfesional}
+            />
           )}
         </div>
 
@@ -365,6 +456,49 @@ export default function Agenda() {
         )}
       </div>
     </Pantalla>
+  );
+}
+
+/**
+ * Un chip por barbero, en el orden del salón, más "Todos". Se desplaza de lado
+ * si no cabe: con ocho personas, partir la fila en tres líneas empujaría la
+ * agenda fuera de la pantalla.
+ */
+function ChipsEquipo({ equipo, activo, miId, onElegir }) {
+  const opciones = [{ id: null, nombre: 'Todos', color: null }, ...equipo];
+  return (
+    <div
+      role="group"
+      aria-label="Ver la agenda de"
+      className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0"
+    >
+      {opciones.map((p) => {
+        const elegido = (p.id ?? null) === (activo ?? null);
+        return (
+          <button
+            key={p.id ?? 'todos'}
+            type="button"
+            aria-pressed={elegido}
+            onClick={() => onElegir(p.id)}
+            className="tight inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13.5px] transition"
+            style={
+              elegido
+                ? { background: 'var(--ink)', borderColor: 'var(--ink)', color: 'var(--paper)' }
+                : { background: 'var(--paper)', borderColor: 'var(--line)', color: 'var(--ink)' }
+            }
+          >
+            {p.id ? (
+              <span
+                aria-hidden
+                className="size-2 rounded-full"
+                style={{ background: colorProfesional(p.color) }}
+              />
+            ) : null}
+            {p.id && p.id === miId ? `${p.nombre} (tú)` : p.nombre}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -453,14 +587,18 @@ function SeccionDia({ dia, esHoy, citas, cierres, timezone }) {
 
 function TarjetaCita({ cita, timezone }) {
   const meta = ESTADOS[cita.estado] ?? ESTADOS.pendiente;
+  // Franja + fondo suave del color del barbero: de un vistazo se ve de quién
+  // es cada cita (petición de Imperio, nov-2026).
+  const colorBarbero = colorProfesional(cita.profesional?.color);
 
+  // Se abre como en Hoy: la ficha de la cita es la misma pantalla para
+  // cualquier día, y desde ahí se confirma, cancela o modifica.
   return (
-    <article
-      className="rounded-2xl border border-line bg-paper p-3.5"
-      style={{
-        borderLeftColor: cita.profesional?.color || '#8A8174',
-        borderLeftWidth: 3,
-      }}
+    <Link
+      to={`/citas/${cita.id}`}
+      aria-label={`Abrir la cita de ${cita.cliente?.nombre ?? 'cliente'} a las ${horaEn(cita.inicio, timezone)}`}
+      className="block rounded-2xl border border-line p-3.5 transition active:brightness-95"
+      style={estiloCitaProfesional(colorBarbero)}
     >
       <div className="flex items-baseline justify-between gap-3">
         <span className="tabular tight text-[15px] font-medium text-ink">
@@ -474,9 +612,18 @@ function TarjetaCita({ cita, timezone }) {
       <p className="tight mt-2 truncate text-[14.5px] font-medium text-ink">
         {cita.cliente?.nombre}
       </p>
-      <p className="mt-0.5 truncate text-[12.5px] text-stone">
-        {cita.servicio?.nombre}
-        {cita.profesional?.nombre ? ` · ${cita.profesional.nombre}` : ''}
+      <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12.5px] text-stone">
+        <span className="truncate">{cita.servicio?.nombre}</span>
+        {cita.profesional?.nombre && (
+          <span className="flex shrink-0 items-center gap-1">
+            <span
+              aria-hidden
+              className="size-2 rounded-full"
+              style={{ background: colorBarbero }}
+            />
+            {cita.profesional.nombre}
+          </span>
+        )}
       </p>
 
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
@@ -495,8 +642,9 @@ function TarjetaCita({ cita, timezone }) {
             A domicilio
           </span>
         )}
+        <ChevronRight size={17} aria-hidden className="ml-auto text-stone/60" />
       </div>
-    </article>
+    </Link>
   );
 }
 
@@ -516,6 +664,16 @@ function TarjetaCierre({ cierre, timezone }) {
                 cierre.fin,
                 timezone,
               )}`}
+          {/* De quién es: sin esto, el médico de un barbero se pintaba igual
+              que el salón entero cerrado. Un backend viejo sin el campo no
+              dice nada, antes que decir "todo el salón" sin saberlo. */}
+          {cierre.profesionalId === undefined
+            ? null
+            : ` · ${
+                cierre.profesionalId
+                  ? `Solo ${cierre.profesionalNombre ?? 'un profesional'}`
+                  : 'Todo el salón'
+              }`}
         </p>
       </div>
     </div>

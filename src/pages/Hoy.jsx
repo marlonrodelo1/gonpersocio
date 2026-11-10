@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 
 import { apiGet } from '../lib/api';
+import { diaEnZona } from '../lib/zona';
 import { useAuth } from '../context/useAuth';
 import Pantalla from '../components/Pantalla';
 import CitaFila from '../components/CitaFila';
 import AvisoSinFicha from '../components/AvisoSinFicha';
 import AvisoConfigPendiente from '../components/AvisoConfigPendiente';
 import { Icon } from '../components/icons';
+
+/** Ventana del aviso de citas sin confirmar, la misma que en el panel web. */
+const VENTANA_PENDIENTES_MS = 4 * 60 * 60 * 1000;
 
 /**
  * Inicio. Maquetado como `/panel/hoy` del panel web: topbar con saludo serif,
@@ -69,6 +74,129 @@ function diaRelativo(iso, tz, fechaHoy) {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
+/**
+ * Cuándo afecta HOY una franja bloqueada. Puede venir de ayer (vacaciones que
+ * ya estaban en marcha) o seguir mañana, así que no basta con "inicio – fin".
+ */
+function horarioBloqueo(b, tz, fecha) {
+  const empiezaHoy = diaEnZona(new Date(b.inicio), tz) === fecha;
+  const acabaHoy = diaEnZona(new Date(b.fin), tz) === fecha;
+  const desde = empiezaHoy ? horaDe(b.inicio, tz) : null;
+  const hasta = acabaHoy ? horaDe(b.fin, tz) : null;
+  if (!desde && !hasta) return 'Todo el día';
+  if (desde && hasta) {
+    return desde === '00:00' && hasta === '23:59' ? 'Todo el día' : `${desde} – ${hasta}`;
+  }
+  if (hasta) return `Hasta las ${hasta}`;
+  return desde === '00:00' ? 'Todo el día (sigue mañana)' : `Desde las ${desde} (sigue mañana)`;
+}
+
+/** De quién es el cierre. Un backend viejo sin el campo no dice nada. */
+function quienBloqueo(b) {
+  if (b.profesionalId === undefined) return null;
+  return b.profesionalId
+    ? `Solo ${b.profesionalNombre ?? 'un profesional'}`
+    : 'Todo el salón';
+}
+
+/**
+ * Franjas bloqueadas del día: cuándo, a quién afecta y por qué. Antes era un
+ * contador ("Tienes 2 franjas bloqueadas") que no decía ni de quién eran: el
+ * médico de un barbero se leía igual que el salón entero cerrado.
+ */
+function FranjasBloqueadas({ bloqueos, tz, fecha, puedeGestionar }) {
+  return (
+    <div
+      className="card-tight flex flex-col gap-2.5 px-4 py-3.5"
+      style={{ background: 'rgba(197,142,44,0.08)', borderColor: 'rgba(197,142,44,0.35)' }}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span
+          className="tight inline-flex items-center gap-2 text-[13.5px] font-medium"
+          style={{ color: '#7A5A1B' }}
+        >
+          <Lock size={14} />
+          {bloqueos.length === 1
+            ? 'Una franja bloqueada hoy'
+            : `${bloqueos.length} franjas bloqueadas hoy`}
+        </span>
+        {/* Sin el permiso, /cierres rebota a Hoy: el enlace no se enseña. */}
+        {puedeGestionar ? (
+          <Link
+            to="/cierres"
+            className="shrink-0 text-[12.5px] text-stone underline decoration-line-2 underline-offset-4 hover:text-ink"
+          >
+            Gestionar
+          </Link>
+        ) : null}
+      </div>
+      <ul className="flex flex-col divide-y divide-[rgba(197,142,44,0.2)]">
+        {bloqueos.map((b) => {
+          const quien = quienBloqueo(b);
+          return (
+            <li key={b.id} className="flex items-start justify-between gap-3 py-2 first:pt-0 last:pb-0">
+              <div className="min-w-0">
+                <p className="tabular text-[13.5px] font-medium text-ink">
+                  {horarioBloqueo(b, tz, fecha)}
+                  {quien ? <span className="font-normal text-stone"> · {quien}</span> : null}
+                </p>
+                {b.motivo ? (
+                  <p className="mt-0.5 break-words text-[12.5px] text-stone">{b.motivo}</p>
+                ) : null}
+              </div>
+              {b.activo ? (
+                <span
+                  className="pill shrink-0"
+                  style={{ background: 'rgba(197,142,44,0.18)', color: '#7A5A1B' }}
+                >
+                  Ahora
+                </span>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * "N citas sin confirmar en las próximas 4 h", como el aviso del panel web. Se
+ * calcula aquí con las citas que ya trae /hoy (estado e inicio): no hace falta
+ * otra petición. Lleva a la primera, que es donde se confirma.
+ */
+function AvisoPendientes({ citas, tz }) {
+  const siguiente = citas[0];
+  const n = citas.length;
+  return (
+    <Link
+      to={`/citas/${siguiente.id}`}
+      className="flex items-center gap-3 rounded-2xl border px-4 py-3 transition hover:brightness-[0.98]"
+      style={{ background: 'rgba(197,142,44,0.12)', borderColor: 'rgba(197,142,44,0.4)' }}
+    >
+      <span
+        className="flex size-9 shrink-0 items-center justify-center rounded-full"
+        style={{ background: 'rgba(197,142,44,0.2)', color: '#C58E2C' }}
+      >
+        <Icon.Bell width="17" height="17" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="tight block text-[14px] font-medium text-ink">
+          {n === 1
+            ? '1 cita sin confirmar en las próximas 4 h'
+            : `${n} citas sin confirmar en las próximas 4 h`}
+        </span>
+        <span className="block truncate text-[12.5px] text-stone">
+          La siguiente: {horaDe(siguiente.inicio, tz)} ·{' '}
+          {siguiente.cliente?.nombre ?? 'Sin nombre'}
+          {siguiente.servicio?.nombre ? ` · ${siguiente.servicio.nombre}` : ''}
+        </span>
+      </span>
+      <span className="shrink-0 text-stone/60">→</span>
+    </Link>
+  );
+}
+
 function KpiCard({ label, value }) {
   return (
     <div className="card flex flex-col gap-1 px-3 py-3 md:px-4 md:py-4">
@@ -88,6 +216,9 @@ export default function Hoy() {
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [intento, setIntento] = useState(0);
+  // Cuándo llegaron los datos: "las próximas 4 h" se cuentan desde ahí, que es
+  // el momento al que corresponde la lista (y así el render no lee el reloj).
+  const [recibidoMs, setRecibidoMs] = useState(null);
 
   useEffect(() => {
     let vivo = true;
@@ -95,6 +226,7 @@ export default function Hoy() {
       .then((d) => {
         if (!vivo) return;
         setDatos(d);
+        setRecibidoMs(Date.now());
         setError(null);
       })
       .catch((e) => {
@@ -200,6 +332,20 @@ export default function Hoy() {
   const restantes = kpis?.restantes ?? 0;
   const noShows = kpis?.noShows ?? 0;
 
+  // Sin confirmar que empiezan en las próximas 4 h. 'nuevo' cuenta igual que
+  // 'pendiente': las dos esperan a que alguien las confirme (es como las suma
+  // el KPI de pendientes del servidor). OJO: /hoy solo trae las citas de HOY,
+  // así que a última hora no ve las de primera hora de mañana.
+  const pendientesProximas = recibidoMs
+    ? citas
+        .filter((c) => {
+          if (c.estado !== 'pendiente' && c.estado !== 'nuevo') return false;
+          const ini = Date.parse(c.inicio);
+          return ini >= recibidoMs && ini <= recibidoMs + VENTANA_PENDIENTES_MS;
+        })
+        .sort((a, b) => Date.parse(a.inicio) - Date.parse(b.inicio))
+    : [];
+
   return (
     <Pantalla titulo="Hoy." saludo={saludo} subtitulo={fechaTxt} accion={nuevaCita}>
       <div className="flex flex-col gap-6">
@@ -239,18 +385,19 @@ export default function Hoy() {
           </Link>
         ) : null}
 
+        {/* Citas sin confirmar que se acercan */}
+        {pendientesProximas.length > 0 ? (
+          <AvisoPendientes citas={pendientesProximas} tz={tz} />
+        ) : null}
+
         {/* Franjas bloqueadas */}
         {bloqueos.length > 0 ? (
-          <div
-            className="card-tight flex flex-col gap-2 px-4 py-3"
-            style={{ background: 'rgba(197,142,44,0.10)', borderColor: 'rgba(197,142,44,0.35)' }}
-          >
-            <span className="tight text-[13.5px] font-medium" style={{ color: '#7A5A1B' }}>
-              {bloqueos.length === 1
-                ? 'Tienes una franja bloqueada'
-                : `Tienes ${bloqueos.length} franjas bloqueadas`}
-            </span>
-          </div>
+          <FranjasBloqueadas
+            bloqueos={bloqueos}
+            tz={tz}
+            fecha={fecha}
+            puedeGestionar={puede('cerrar_franjas')}
+          />
         ) : null}
 
         {/* Agenda del día */}

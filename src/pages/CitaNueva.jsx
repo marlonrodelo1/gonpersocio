@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { App as CapApp } from '@capacitor/app';
 
 import Pantalla from '../components/Pantalla';
 import AvisoSinFicha from '../components/AvisoSinFicha';
+import CalendarioMes from '../components/CalendarioMes';
+import RejillaHuecos from '../components/RejillaHuecos';
 import { Icon } from '../components/icons';
 import { useAuth } from '../context/useAuth';
 import { apiGet, apiPost } from '../lib/api';
 import { isNative } from '../lib/capacitor';
 import { telefonoEsValido } from '../lib/telefono';
+import { DIA_RE, diaEnZona } from '../lib/zona';
 
 /**
  * Nueva cita: meter en la agenda a quien acaba de entrar por la puerta.
@@ -31,7 +34,6 @@ import { telefonoEsValido } from '../lib/telefono';
  */
 
 const PASOS = ['Cliente', 'Servicio', 'Profesional', 'Día y hora', 'Confirmar'];
-const DIAS_CABECERA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 /* ---------------- formato ---------------- */
 
@@ -72,8 +74,6 @@ function fechaLarga(ymd) {
     month: 'long',
   }).format(new Date(a, m - 1, d));
 }
-
-const pad = (n) => String(n).padStart(2, '0');
 
 /** Precio a enseñar de un servicio del catálogo. */
 function precioServicio(s) {
@@ -199,9 +199,30 @@ function Opcion({ seleccionada, onClick, children, disabled }) {
 
 /* ---------------- pantalla ---------------- */
 
+/**
+ * Día que llega en `?dia=YYYY-MM-DD` (el botón "Nueva cita" de la Agenda manda
+ * el día que se estaba mirando), y cuántos meses hay que avanzar el calendario
+ * para que ese día se vea. Un día pasado no se puede reservar: se descarta y el
+ * calendario abre en blanco, como siempre.
+ */
+function diaDelEnlace(valor, tz) {
+  const hoy = diaEnZona(new Date(), tz);
+  if (!valor || !DIA_RE.test(valor) || valor < hoy) return { dia: '', meses: 0 };
+  const meses =
+    (Number(valor.slice(0, 4)) - Number(hoy.slice(0, 4))) * 12 +
+    (Number(valor.slice(5, 7)) - Number(hoy.slice(5, 7)));
+  return { dia: valor, meses: Math.max(0, meses) };
+}
+
 export default function CitaNueva() {
   const navigate = useNavigate();
   const { salon } = useAuth();
+  const [params] = useSearchParams();
+  // Se lee UNA vez al entrar: después manda lo que el dueño toque en el
+  // calendario, no la URL.
+  const [delEnlace] = useState(() =>
+    diaDelEnlace(params.get('dia'), salon?.timezone),
+  );
 
   const [paso, setPaso] = useState(1);
   // Se ha saltado a un paso desde el "Cambiar" del resumen: al seguir, se vuelve
@@ -240,8 +261,8 @@ export default function CitaNueva() {
   const [profesionalTocado, setProfesionalTocado] = useState('');
 
   // Paso 4 — día y hueco
-  const [mesOffset, setMesOffset] = useState(0);
-  const [fechaSel, setFechaSel] = useState('');
+  const [mesOffset, setMesOffset] = useState(delEnlace.meses);
+  const [fechaSel, setFechaSel] = useState(delEnlace.dia);
   const [ancla, setAncla] = useState(null);
   const [extras, setExtras] = useState([]);
   const [intentoSlots, setIntentoSlots] = useState(0);
@@ -400,28 +421,6 @@ export default function CitaNueva() {
       }).format(new Date()),
     [tz],
   );
-
-  const mes = useMemo(() => {
-    const anio = Number(hoyYmd.slice(0, 4));
-    const m = Number(hoyYmd.slice(5, 7)) - 1;
-    const primero = new Date(anio, m + mesOffset, 1);
-    const dias = new Date(
-      primero.getFullYear(),
-      primero.getMonth() + 1,
-      0,
-    ).getDate();
-    return {
-      anio: primero.getFullYear(),
-      mes: primero.getMonth(),
-      dias,
-      // getDay(): 0=domingo. La rejilla empieza en lunes.
-      hueco: (primero.getDay() + 6) % 7,
-      nombre: new Intl.DateTimeFormat('es-ES', {
-        month: 'long',
-        year: 'numeric',
-      }).format(primero),
-    };
-  }, [hoyYmd, mesOffset]);
 
   const elegirDia = (ymd) => {
     setFechaSel(ymd);
@@ -1149,110 +1148,14 @@ export default function CitaNueva() {
               </h2>
 
               {/* calendario */}
-              <div className="card p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <span
-                    className="tight text-[15.5px] font-medium text-ink"
-                    style={{ textTransform: 'capitalize' }}
-                  >
-                    {mes.nombre}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setMesOffset((o) => Math.max(0, o - 1))}
-                      disabled={mesOffset === 0}
-                      aria-label="Mes anterior"
-                      className="flex size-9 items-center justify-center rounded-full border border-line bg-paper text-ink disabled:opacity-30"
-                    >
-                      ←
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMesOffset((o) => o + 1)}
-                      aria-label="Mes siguiente"
-                      className="flex size-9 items-center justify-center rounded-full border border-line bg-paper text-ink"
-                    >
-                      →
-                    </button>
-                  </span>
-                </div>
-
-                <div className="mb-1 grid grid-cols-7 gap-1">
-                  {DIAS_CABECERA.map((d, i) => (
-                    <span
-                      key={`${d}${i}`}
-                      className="py-1 text-center text-[10.5px] uppercase tracking-[0.14em] text-stone/70"
-                    >
-                      {d}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-7 gap-1">
-                  {Array.from({ length: mes.hueco }).map((_, i) => (
-                    <span key={`h${i}`} />
-                  ))}
-                  {Array.from({ length: mes.dias }).map((_, i) => {
-                    const dia = i + 1;
-                    const ymd = `${mes.anio}-${pad(mes.mes + 1)}-${pad(dia)}`;
-                    const pasado = ymd < hoyYmd;
-                    const cerrado = diasCerrados.includes(
-                      new Date(mes.anio, mes.mes, dia).getDay(),
-                    );
-                    const elegido = fechaSel === ymd;
-                    const bloqueado = pasado || cerrado;
-                    const disponible = !bloqueado && !elegido;
-                    return (
-                      <button
-                        key={ymd}
-                        type="button"
-                        disabled={bloqueado}
-                        onClick={() => elegirDia(ymd)}
-                        aria-label={fechaLarga(ymd)}
-                        aria-pressed={elegido}
-                        className="tabular relative aspect-square rounded-xl text-[13.5px] transition"
-                        style={
-                          elegido
-                            ? { background: 'var(--ink)', color: 'var(--paper)' }
-                            : bloqueado
-                              ? {
-                                  color: 'var(--stone-2)',
-                                  opacity: 0.4,
-                                }
-                              : {
-                                  background: 'var(--cream-2)',
-                                  color: 'var(--ink)',
-                                }
-                        }
-                      >
-                        {dia}
-                        {disponible ? (
-                          <span
-                            className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full"
-                            style={{ background: 'var(--sage)' }}
-                            aria-hidden
-                          />
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] text-stone">
-                  <span className="flex items-center gap-1.5">
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: 'var(--sage)' }}
-                    />
-                    Disponible
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-stone/40" />
-                    Cerrado
-                  </span>
-                </div>
-              </div>
+              <CalendarioMes
+                hoyYmd={hoyYmd}
+                mesOffset={mesOffset}
+                onCambiarMes={setMesOffset}
+                fechaSel={fechaSel}
+                onElegir={elegirDia}
+                diasCerrados={diasCerrados}
+              />
 
               {/* huecos */}
               {!fechaSel ? (
@@ -1284,35 +1187,12 @@ export default function CitaNueva() {
                     {slots.length === 1 ? 'hueco' : 'huecos'}
                   </p>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    {slots.map((iso) => {
-                      const marcado = bloque.includes(iso);
-                      return (
-                        <button
-                          key={iso}
-                          type="button"
-                          onClick={() => tocarHueco(iso)}
-                          aria-pressed={marcado}
-                          className="tabular tight rounded-xl border py-3.5 text-[15px] font-medium transition"
-                          style={
-                            marcado
-                              ? {
-                                  background: 'var(--ink)',
-                                  borderColor: 'var(--ink)',
-                                  color: 'var(--paper)',
-                                }
-                              : {
-                                  background: 'var(--paper)',
-                                  borderColor: 'var(--line)',
-                                  color: 'var(--ink)',
-                                }
-                          }
-                        >
-                          {hora(iso, tz)}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <RejillaHuecos
+                    slots={slots}
+                    marcados={bloque}
+                    onTocar={tocarHueco}
+                    tz={tz}
+                  />
 
                   {admiteMulti ? (
                     <p className="px-1 text-[12.5px] leading-relaxed text-stone">

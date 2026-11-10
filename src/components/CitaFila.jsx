@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 
+import { colorProfesional, estiloCitaProfesional } from '../lib/color-profesional';
 import { metaEstado } from '../lib/estado-cita';
 import { formatearTelefono } from '../lib/telefono';
 
@@ -92,10 +93,15 @@ export default function CitaFila({ cita, tz }) {
   const hora = horaDe(cita.inicio, tz);
   const precio = `${Number(cita.precio ?? 0).toFixed(0)}€`;
 
+  // Cada cita con el color de su barbero (franja + fondo suave), para ver de
+  // un vistazo de quién es (petición de Imperio, nov-2026).
+  const colorBarbero = colorProfesional(cita.profesional?.color);
+
   return (
     <Link
       to={`/citas/${cita.id}`}
-      className="block border-l-2 border-l-transparent transition hover:border-l-terracotta hover:bg-paper/60 active:bg-paper"
+      className="block transition hover:brightness-[0.98] active:brightness-95"
+      style={estiloCitaProfesional(colorBarbero)}
     >
       {/* ---------- MÓVIL ---------- */}
       <div className="flex items-start gap-3 px-4 py-3.5 lg:hidden">
@@ -120,9 +126,18 @@ export default function CitaFila({ cita, tz }) {
             {telefono} · {visitas} visita{visitas === 1 ? '' : 's'}
           </div>
 
-          <div className="truncate text-[12.5px] text-stone">
-            {cita.servicio?.nombre}
-            {cita.profesional?.nombre ? ` · ${cita.profesional.nombre}` : ''}
+          <div className="flex min-w-0 items-center gap-1.5 text-[12.5px] text-stone">
+            <span className="truncate">{cita.servicio?.nombre}</span>
+            {cita.profesional?.nombre && (
+              <span className="flex shrink-0 items-center gap-1">
+                <span
+                  aria-hidden
+                  className="size-2 rounded-full"
+                  style={{ background: colorBarbero }}
+                />
+                {cita.profesional.nombre}
+              </span>
+            )}
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -168,7 +183,14 @@ export default function CitaFila({ cita, tz }) {
           </div>
         </div>
         <div className="tight text-[13px] text-ink">{cita.servicio?.nombre}</div>
-        <div className="text-[13px] text-stone">con {cita.profesional?.nombre}</div>
+        <div className="flex min-w-0 items-center gap-1.5 text-[13px] text-stone">
+          <span
+            aria-hidden
+            className="size-2 shrink-0 rounded-full"
+            style={{ background: colorBarbero }}
+          />
+          <span className="truncate">con {cita.profesional?.nombre}</span>
+        </div>
         <div className="flex items-center gap-2">
           <span className="pill" style={{ background: m.bg, color: m.fg }}>
             <span className="pill-dot" style={{ background: m.dot }} />

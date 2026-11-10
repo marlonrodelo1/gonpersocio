@@ -1,10 +1,12 @@
 import { useState } from 'react';
 
 import { Icon } from '../components/icons';
+import CampoPassword from '../components/CampoPassword';
 import Pantalla from '../components/Pantalla';
 import { apiPost } from '../lib/api';
 import { useAuth } from '../context/useAuth';
 import { EMAIL_SOPORTE, URL_PRIVACIDAD, URL_TERMINOS } from '../lib/identidad';
+import { PASSWORD_PISTA, validarPassword } from '../lib/password';
 import { abrirExterno } from '../lib/puente';
 
 /**
@@ -20,11 +22,170 @@ import { abrirExterno } from '../lib/puente';
  * `salon.trialUntil`), que ya viene cargado en el contexto: esta pantalla no
  * hace ninguna llamada y por tanto no tiene estado de carga ni de error.
  *
- * Cambiar el email, el nombre o la contraseña tampoco vive aquí: el email es la
- * identidad de la cuenta y tocarlo desde el móvil, con la sesión ya abierta, es
- * la vía más fácil de perderla. La contraseña se cambia con el enlace de
- * recuperación, que ya funciona en la app.
+ * Cambiar el email o el nombre tampoco vive aquí: el email es la identidad de
+ * la cuenta y tocarlo desde el móvil, con la sesión ya abierta, es la vía más
+ * fácil de perderla.
+ *
+ * La contraseña SÍ: antes había que cerrar sesión y pedir el enlace de
+ * recuperación, que es mucho rodeo para quien solo quiere cambiarla (el
+ * empleado que estrenó la cuenta con la que le puso el dueño, por ejemplo). Va
+ * por `cambiarPassword` del contexto, que llama a Supabase con la sesión del
+ * móvil: lo mismo que hace /panel/cuenta en la web, sin pasar por nuestro
+ * backend. La regla se comprueba antes con `validarPassword`, gemela de la web.
  */
+
+/**
+ * Cambiar la contraseña con la sesión abierta. Plegado por defecto: es algo
+ * que se hace una vez al año y no tiene por qué ocupar la pantalla.
+ */
+function CambiarPassword() {
+  const { cambiarPassword } = useAuth();
+  const [abierto, setAbierto] = useState(false);
+  const [pass, setPass] = useState('');
+  const [pass2, setPass2] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState(null);
+  const [hecho, setHecho] = useState(false);
+
+  const cerrar = () => {
+    setAbierto(false);
+    setPass('');
+    setPass2('');
+    setError(null);
+  };
+
+  async function guardar(e) {
+    e.preventDefault();
+    setError(null);
+    // La regla ENTERA antes de llamar a Supabase: si no, la única pista llega
+    // en su mensaje, en inglés y con el abecedario escrito.
+    const mala = validarPassword(pass);
+    if (mala) {
+      setError(mala);
+      return;
+    }
+    if (pass !== pass2) {
+      setError('Las dos contraseñas no coinciden.');
+      return;
+    }
+    setGuardando(true);
+    try {
+      await cambiarPassword(pass);
+      cerrar();
+      setHecho(true);
+    } catch (err) {
+      const m = (err?.message || '').toLowerCase();
+      // Si el proyecto exige volver a identificarse para cambiarla, la sesión
+      // del móvil no basta: se dice qué hacer en vez del texto de Supabase.
+      setError(
+        m.includes('reauth')
+          ? 'Por seguridad, cierra sesión, vuelve a entrar y cámbiala justo después.'
+          : err?.message || 'No se ha podido cambiar la contraseña.',
+      );
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <section className="card flex flex-col gap-3 p-5 md:p-7">
+      <header className="flex flex-col gap-1">
+        <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">
+          Seguridad
+        </span>
+        <h2 className="tight text-[18px] font-medium text-ink">Contraseña</h2>
+        <p className="text-[13px] text-stone">
+          La que usas para entrar en la app y en el panel web.
+        </p>
+      </header>
+
+      {hecho && !abierto ? (
+        <p
+          role="status"
+          className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-[13.5px]"
+          style={{ background: 'var(--sage-soft)', color: 'var(--sage-deep)' }}
+        >
+          <Icon.Check width="14" height="14" />
+          Contraseña cambiada. La próxima vez que entres, usa la nueva.
+        </p>
+      ) : null}
+
+      {!abierto ? (
+        <button
+          type="button"
+          onClick={() => {
+            setHecho(false);
+            setAbierto(true);
+          }}
+          className="tight inline-flex items-center gap-2 self-start rounded-full border border-line bg-paper px-4 py-2 text-[13.5px] font-medium text-ink transition hover:border-line-2"
+        >
+          Cambiar contraseña
+        </button>
+      ) : (
+        <form onSubmit={guardar} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="pass_nueva" className="text-[12.5px] text-stone">
+              Nueva contraseña
+            </label>
+            <CampoPassword
+              id="pass_nueva"
+              value={pass}
+              onChange={(e) => setPass(e.target.value)}
+              autoComplete="new-password"
+              placeholder={PASSWORD_PISTA}
+              disabled={guardando}
+              className="field-input"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="pass_repetida" className="text-[12.5px] text-stone">
+              Repítela
+            </label>
+            <CampoPassword
+              id="pass_repetida"
+              value={pass2}
+              onChange={(e) => setPass2(e.target.value)}
+              autoComplete="new-password"
+              disabled={guardando}
+              className="field-input"
+            />
+          </div>
+
+          {error ? (
+            <p
+              role="status"
+              className="rounded-xl px-3.5 py-2.5 text-[13.5px] leading-snug"
+              style={{ background: '#F1D6D6', color: '#7C2E2E' }}
+            >
+              {error}
+            </p>
+          ) : null}
+
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={guardando}
+              className="gloss-btn tight flex-1 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
+            >
+              {guardando ? 'Guardando…' : 'Guardar contraseña'}
+            </button>
+            <button
+              type="button"
+              onClick={cerrar}
+              disabled={guardando}
+              className="rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+          </div>
+          <p className="text-[12px] text-stone/80">
+            En este móvil sigues dentro: no hace falta volver a entrar.
+          </p>
+        </form>
+      )}
+    </section>
+  );
+}
 
 /** Etiquetas de plan SIN precio. El precio no puede entrar en este binario. */
 const PLANES = {
@@ -310,6 +471,11 @@ export default function Cuenta() {
             Para cambiar tu email o el nombre del negocio, escríbenos.
           </p>
         </section>
+
+        {/* ============================================
+            CONTRASEÑA
+            ============================================ */}
+        <CambiarPassword />
 
         {/* ============================================
             ESTADO DE LA CUENTA (solo lectura, sin precio)

@@ -58,6 +58,7 @@ const CAMPOS = [
   'instagram',
   'facebook',
   'tiktok',
+  'politicaPrivacidadUrl',
 ];
 
 /** Clases calcadas del panel web (config/page.tsx) para que se vea idéntico. */
@@ -460,6 +461,22 @@ export default function ConfigSalon() {
               editable={puedeEditar}
               maxLength={300}
               placeholder="@tusalon"
+            />
+          </Tarjeta>
+
+          <Tarjeta
+            eyebrow="Legal"
+            titulo="Protección de datos"
+            descripcion="Si tienes tu propio aviso legal o política de privacidad, pega aquí el enlace. Saldrá en el pie de tu web y junto al botón de reservar. Si lo dejas en blanco, se enlaza la de Gonper Studio."
+          >
+            <Campo
+              id="salon_politica_privacidad"
+              etiqueta="Enlace"
+              valor={form.politicaPrivacidadUrl}
+              onChange={escribir('politicaPrivacidadUrl')}
+              editable={puedeEditar}
+              maxLength={500}
+              placeholder="https://tusalon.es/privacidad"
             />
           </Tarjeta>
 

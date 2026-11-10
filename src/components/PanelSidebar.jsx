@@ -54,6 +54,9 @@ function construirNav({ esDueno, puede }) {
   const web = esDueno
     ? [
         { to: '/compartir', label: 'Compartir', Icono: Icon.Share },
+        // Logo, portada y buscador. Va primero de lo editable: sin logo ni
+        // portada, el resto del escaparate luce bastante menos.
+        { to: '/config/web', label: 'Logo y portada', Icono: Icon.Sparkle },
         { to: '/promociones', label: 'Promociones', Icono: Icon.Sparkle },
         { to: '/galeria', label: 'Galería', Icono: Icon.Sparkle },
         { to: '/antes-despues', label: 'Antes y después', Icono: Icon.Sparkle },
