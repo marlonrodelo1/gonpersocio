@@ -481,3 +481,10 @@ button:not(:disabled):active,
   border-radius: 99px;
 }
 
+
+/* Campos de hora de los turnos: sin el relojito del navegador de escritorio,
+   que robaba ancho y cortaba "20:45" en los turnos partidos. En el móvil no
+   se pinta y al tocar se abre el selector de hora del teléfono igual. */
+.hora-input::-webkit-calendar-picker-indicator {
+  display: none;
+}

@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import CitasAfectadas from './CitasAfectadas';
 import Hoja from './Hoja';
 import Interruptor from './Interruptor';
-import { apiDelete, apiGet, apiPut } from '../lib/api';
+import { apiGet, apiPut } from '../lib/api';
 import { mensajeError } from '../lib/avisos-cita';
 import { colorProfesional } from '../lib/color-profesional';
 import {
@@ -22,15 +22,16 @@ import { diaEnZona, diaLargo, diaSemana, sumarDias } from '../lib/zona';
  *
  * Una semana con flechas y una fila por barbero: qué trabaja cada día de
  * verdad (su horario habitual, recortado por la apertura del salón, y los
- * cambios por fecha resaltados). Tocar un día abre una hoja ENCIMA de esta
- * misma pantalla para darle el día libre o cambiarle las horas; "Horario
- * habitual" abre otra para su semana de siempre. Nada de pantallas nuevas.
+ * cambios por fecha resaltados). Tocar a un barbero abre una hoja ENCIMA de
+ * esta misma pantalla con su turno de ESA semana, día a día, con las horas a
+ * la vista para cambiarlas directamente ("de lunes a viernes de 10 a 18");
+ * "Habitual" abre otra para su semana de siempre. Nada de pantallas nuevas.
  *
  * Guardar va en dos pasos, como pide el servidor: primero una simulación
  * (`confirmar: false`) que dice qué citas se quedarían fuera de su turno, y el
- * dueño decide cada una ("Pasar a <compañero>" o "Mantener"); después se
- * guarda de verdad (`confirmar: true`). Si no queda ninguna cita fuera, se
- * guarda del tirón.
+ * dueño decide cada una (pasarla a uno de los compañeros libres a esa hora, o
+ * "Mantener"); después se guarda de verdad (`confirmar: true`). Si no queda
+ * ninguna cita fuera, se guarda del tirón.
  *
  * Días y horas son SIEMPRE los del calendario del salón: las fechas y tramos
  * llegan del servidor en su zona ('YYYY-MM-DD', 'HH:MM') y la semana de inicio
@@ -80,8 +81,22 @@ function Aviso({ tipo, children }) {
  * Piezas de edición
  * ------------------------------------------------------------------------ */
 
-/** Lista de tramos "de [hh:mm] a [hh:mm]" con "+ tramo" (máximo 4). */
-function EditorTramos({ idBase, tramos, onCambiar, disabled }) {
+/** Añadir un tramo por defecto: mañana si no hay ninguno, tarde si ya hay. */
+const anadirTramo = (tramos) => [...tramos, tramoPropuesto(tramos)];
+
+/**
+ * Lista de tramos "de [hh:mm] a [hh:mm]" con un botón para añadir otro
+ * ("+ Tramo" hasta 4 en el horario habitual, "+ Partido" en la semana).
+ */
+function EditorTramos({
+  idBase,
+  tramos,
+  onCambiar,
+  disabled,
+  textoAnadir = 'Tramo',
+  max = 4,
+  anadir = anadirTramo,
+}) {
   const cambiar = (i, campo, valor) =>
     onCambiar(tramos.map((t, j) => (j === i ? { ...t, [campo]: valor } : t)));
 
@@ -100,7 +115,7 @@ function EditorTramos({ idBase, tramos, onCambiar, disabled }) {
             disabled={disabled}
             aria-label={`Empieza (tramo ${i + 1})`}
             onChange={(e) => cambiar(i, 'inicio', e.target.value)}
-            className="field-input tabular min-w-0 flex-1 px-2.5 py-2.5"
+            className="hora-input field-input tabular min-w-[84px] flex-1 px-2 py-2.5 text-center text-[15px]"
           />
           <span className="shrink-0 text-[13px] text-stone">a</span>
           <input
@@ -111,98 +126,34 @@ function EditorTramos({ idBase, tramos, onCambiar, disabled }) {
             disabled={disabled}
             aria-label={`Termina (tramo ${i + 1})`}
             onChange={(e) => cambiar(i, 'fin', e.target.value)}
-            className="field-input tabular min-w-0 flex-1 px-2.5 py-2.5"
+            className="hora-input field-input tabular min-w-[84px] flex-1 px-2 py-2.5 text-center text-[15px]"
           />
+          {/* Sin hueco reservado cuando hay un solo tramo: en el móvil esos
+              36 px eran los que cortaban las horas ("15:0"). */}
           {tramos.length > 1 ? (
             <button
               type="button"
               disabled={disabled}
               onClick={() => onCambiar(tramos.filter((_, j) => j !== i))}
               aria-label={`Quitar el tramo ${i + 1}`}
-              className="grid size-9 shrink-0 place-items-center rounded-xl text-stone transition hover:bg-cream-2 hover:text-ink disabled:opacity-50"
+              className="grid size-8 shrink-0 place-items-center rounded-xl text-stone transition hover:bg-cream-2 hover:text-ink disabled:opacity-50"
             >
               <X size={15} />
             </button>
-          ) : (
-            <span className="size-9 shrink-0" aria-hidden />
-          )}
+          ) : null}
         </div>
       ))}
-      {tramos.length < 4 ? (
+      {tramos.length < max ? (
         <button
           type="button"
           disabled={disabled}
-          onClick={() => onCambiar([...tramos, tramoPropuesto(tramos)])}
+          onClick={() => onCambiar(anadir(tramos))}
           className="tight inline-flex w-fit items-center gap-1 rounded-xl border border-dashed border-line-2 px-3 py-1.5 text-[12.5px] font-medium text-stone transition hover:text-ink disabled:opacity-50"
         >
           <Plus size={13} />
-          Tramo
+          {textoAnadir}
         </button>
       ) : null}
-    </div>
-  );
-}
-
-/** Botón grande de elección (Libra / Trabaja). */
-function Eleccion({ activo, onClick, titulo, detalle, disabled }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={activo}
-      disabled={disabled}
-      onClick={onClick}
-      className="card-tight flex flex-col items-start gap-0.5 px-4 py-3 text-left transition disabled:opacity-60"
-      style={activo ? { borderColor: 'var(--ink)', background: 'var(--cream-2)' } : undefined}
-    >
-      <span className="tight text-[14.5px] font-medium text-ink">{titulo}</span>
-      <span className="text-[12px] leading-snug text-stone">{detalle}</span>
-    </button>
-  );
-}
-
-/** Chips L M X J V S D de la semana que se está viendo. */
-function ChipsSemana({ semana, fechas, fija, hoyLocal, onCambiar, disabled }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className={etiquetaClase}>Aplicar también a</span>
-      <div className="grid grid-cols-7 gap-1.5">
-        {semana.map((d) => {
-          const pasado = d.fecha < hoyLocal;
-          const elegido = fechas.includes(d.fecha);
-          const esFija = d.fecha === fija;
-          return (
-            <button
-              key={d.fecha}
-              type="button"
-              aria-pressed={elegido}
-              aria-label={diaLargo(d.fecha)}
-              disabled={disabled || pasado}
-              onClick={() => {
-                // El día que se tocó en la rejilla va siempre.
-                if (esFija) return;
-                onCambiar(
-                  elegido ? fechas.filter((f) => f !== d.fecha) : [...fechas, d.fecha],
-                );
-              }}
-              className="tight aspect-square rounded-xl border text-[13.5px] font-medium transition"
-              style={
-                elegido
-                  ? { background: 'var(--ink)', borderColor: 'var(--ink)', color: 'var(--paper)' }
-                  : pasado
-                    ? { borderColor: 'var(--line)', color: 'var(--stone-2)', opacity: 0.4 }
-                    : { background: 'var(--paper)', borderColor: 'var(--line)', color: 'var(--ink)' }
-              }
-            >
-              {letraDia(d.diaSemana)}
-            </button>
-          );
-        })}
-      </div>
-      <p className="text-[12px] text-stone">
-        {fechas.length === 1
-          ? 'Solo este día. Marca otros de la misma semana si es igual.'
-          : `${fechas.length} días: ${[...fechas].sort().map(etiquetaDia).join(', ')}.`}
-      </p>
     </div>
   );
 }
@@ -241,88 +192,153 @@ function textoQuedan(afectadas) {
 }
 
 /* ---------------------------------------------------------------------------
- * Hoja: cambio para un día (o varios de la misma semana)
+ * Hoja: turno de UNA semana de un barbero, día a día
  * ------------------------------------------------------------------------ */
 
-function tramosIniciales(dia) {
-  if (dia.cambio && !dia.cambio.libra && dia.cambio.tramos?.length) {
-    return ordenarTramos(dia.cambio.tramos);
-  }
-  if (dia.tramos?.length) return ordenarTramos(dia.tramos);
-  if (dia.habitual?.tramos?.length) return ordenarTramos(dia.habitual.tramos);
-  if (dia.salon?.length) return ordenarTramos(dia.salon);
-  return [{ inicio: '10:00', fin: '14:00' }];
+/** Lo que trabaja un día al abrir la hoja: sus tramos de verdad o "libra". */
+function filaInicial(dia) {
+  const tramos = dia.tramos?.length ? ordenarTramos(dia.tramos) : null;
+  return {
+    modo: tramos ? 'trabaja' : 'libra',
+    tramos: tramos ?? tramosPorDefecto(dia),
+  };
 }
 
-function EditorTurnoDia({ prof, dia, semana, hoyLocal, onCerrar, onGuardado }) {
-  const cambio = dia.cambio;
-  const [modo, setModo] = useState(
-    cambio ? (cambio.libra ? 'libra' : 'trabaja') : null,
-  );
-  const [tramos, setTramos] = useState(() => tramosIniciales(dia));
-  const [fechas, setFechas] = useState([dia.fecha]);
-  const [motivo, setMotivo] = useState(cambio?.motivo ?? '');
-  // Simulación ya hecha: { accion: 'cambio' | 'volver', cuerpo, resultado }.
+/** Si libra y se pasa a "trabaja", se proponen unas horas razonables. */
+function tramosPorDefecto(dia) {
+  if (dia.habitual?.tramos?.length) return ordenarTramos(dia.habitual.tramos);
+  if (dia.salon?.length) return ordenarTramos(dia.salon);
+  return [{ inicio: '10:00', fin: '18:00' }];
+}
+
+const mismaFila = (a, b) =>
+  a.modo === b.modo &&
+  (a.modo === 'libra' || JSON.stringify(ordenarTramos(a.tramos)) === JSON.stringify(ordenarTramos(b.tramos)));
+
+function EditorSemana({ prof, semana, fechaTocada, hoyLocal, desde, onCerrar, onGuardado }) {
+  // Días que se pueden tocar: no pasados y con el salón abierto.
+  const editable = (d) => d.fecha >= hoyLocal && (d.salon?.length ?? 0) > 0;
+
+  const [inicial] = useState(() => Object.fromEntries(semana.map((d) => [d.fecha, filaInicial(d)])));
+  const [filas, setFilas] = useState(inicial);
+  // Días con cambio por fecha que se quieren devolver a su horario habitual.
+  const [aHabitual, setAHabitual] = useState([]);
+  const [motivo, setMotivo] = useState('');
   const [revision, setRevision] = useState(null);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState(null);
+  const [aviso, setAviso] = useState(null);
 
-  const conCambio = semana.some((d) => fechas.includes(d.fecha) && d.cambio);
-  const habitual = dia.habitual?.tramos ?? [];
-
-  const enviar = (accion, cuerpo) =>
-    accion === 'volver' ? apiDelete('/turnos', cuerpo) : apiPut('/turnos', cuerpo);
-
-  const textoHecho = (accion, cuerpo) => {
-    const dias = cuerpo.fechas.map(etiquetaDia).join(', ');
-    if (accion === 'volver') return `${prof.nombre} vuelve a su horario habitual (${dias}).`;
-    if (cuerpo.cambio.libra) return `${prof.nombre} libra (${dias}).`;
-    return `${prof.nombre} trabaja de ${textoTramos(cuerpo.cambio.tramos)} (${dias}).`;
-  };
-
-  const confirmar = async (accion, cuerpo) => {
-    const r = await enviar(accion, { ...cuerpo, confirmar: true });
-    onGuardado(`Guardado: ${textoHecho(accion, cuerpo)}${textoQuedan(r?.afectadas)}`);
-  };
-
-  const preparar = async (accion) => {
+  const cambiarFila = (fecha, cambios) => {
     setError(null);
-    let cuerpo;
-    const fechasOrden = [...fechas].sort();
-    if (accion === 'cambio') {
-      if (!modo) {
-        setError('Elige si libra o en qué horas trabaja.');
-        return;
-      }
-      if (modo === 'trabaja') {
-        const malo = errorTramos(tramos);
+    setAviso(null);
+    setFilas((f) => ({ ...f, [fecha]: { ...f[fecha], ...cambios } }));
+  };
+
+  /** Solo viajan los días que cambian respecto a como estaban. */
+  const diasCambiados = () =>
+    semana
+      .filter(editable)
+      .flatMap((d) => {
+        if (aHabitual.includes(d.fecha)) return [{ fecha: d.fecha, habitual: true }];
+        const f = filas[d.fecha];
+        if (mismaFila(f, inicial[d.fecha])) return [];
+        return [
+          f.modo === 'libra'
+            ? { fecha: d.fecha, libra: true }
+            : { fecha: d.fecha, tramos: ordenarTramos(f.tramos) },
+        ];
+      });
+
+  // "Copiar el lunes": el primer día editable de lunes a viernes se copia a los
+  // demás días laborables editables de la semana.
+  const laborables = semana.filter((d) => d.diaSemana >= 1 && d.diaSemana <= 5 && editable(d));
+  const copiarPrimero = () => {
+    const [origen, ...resto] = laborables;
+    if (!origen) return;
+    const f = filas[origen.fecha];
+    setFilas((prev) => {
+      const nuevo = { ...prev };
+      for (const d of resto) nuevo[d.fecha] = { modo: f.modo, tramos: [...f.tramos] };
+      return nuevo;
+    });
+    setAHabitual((a) => a.filter((x) => !resto.some((d) => d.fecha === x)));
+    setAviso(
+      `Copiado el ${diaLargo(origen.fecha).split(',')[0].toLowerCase()} al resto de días laborables.`,
+    );
+  };
+
+  // "Igual que la semana pasada": lo que trabajó de verdad cada día.
+  const copiarSemanaPasada = async () => {
+    setError(null);
+    setAviso(null);
+    setOcupado(true);
+    try {
+      const qs = new URLSearchParams({ desde: sumarDias(desde, -7), dias: '7' });
+      const r = await apiGet(`/turnos?${qs}`);
+      const yo = (r?.profesionales ?? []).find((p) => p.id === prof.id);
+      if (!yo) throw new Error('No hemos encontrado su turno de la semana pasada.');
+      const porDia = Object.fromEntries((yo.dias ?? []).map((d) => [d.diaSemana, d]));
+      setFilas((prev) => {
+        const nuevo = { ...prev };
+        for (const d of semana.filter(editable)) {
+          const antes = porDia[d.diaSemana];
+          if (!antes) continue;
+          nuevo[d.fecha] = antes.tramos?.length
+            ? { modo: 'trabaja', tramos: ordenarTramos(antes.tramos) }
+            : { modo: 'libra', tramos: prev[d.fecha].tramos };
+        }
+        return nuevo;
+      });
+      setAHabitual([]);
+      setAviso('Copiado el turno de la semana pasada. Revisa y guarda.');
+    } catch (e) {
+      setError(mensajeError(e, 'No se ha podido copiar la semana pasada.'));
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const enviar = (confirmar) =>
+    apiPut('/turnos/semana', {
+      profesionalId: prof.id,
+      dias: diasCambiados(),
+      motivo: motivo.trim() || null,
+      confirmar,
+    });
+
+  const confirmar = async () => {
+    const r = await enviar(true);
+    onGuardado(`Turno de ${prof.nombre} guardado.${textoQuedan(r?.afectadas)}`);
+  };
+
+  const preparar = async () => {
+    setError(null);
+    const dias = diasCambiados();
+    if (dias.length === 0) {
+      setError('No has cambiado ningún día.');
+      return;
+    }
+    for (const d of dias) {
+      if (d.tramos) {
+        const malo = errorTramos(d.tramos);
         if (malo) {
-          setError(malo);
+          setError(`${etiquetaDia(d.fecha)}: ${malo}`);
           return;
         }
       }
-      cuerpo = {
-        profesionalId: prof.id,
-        fechas: fechasOrden,
-        cambio: modo === 'libra' ? { libra: true } : { tramos: ordenarTramos(tramos) },
-        motivo: motivo.trim() || null,
-      };
-    } else {
-      cuerpo = { profesionalId: prof.id, fechas: fechasOrden };
     }
-
     setOcupado(true);
     try {
-      const r = await enviar(accion, { ...cuerpo, confirmar: false });
+      const r = await enviar(false);
       const nuevas = (r?.afectadas ?? []).filter((a) => !a.yaEstabaFuera);
       if (nuevas.length === 0 && (r?.avisos ?? []).length === 0) {
-        // Nada que decidir: se guarda directamente.
-        await confirmar(accion, cuerpo);
+        await confirmar();
         return;
       }
-      setRevision({ accion, cuerpo, resultado: r });
+      setRevision(r);
     } catch (e) {
-      setError(mensajeError(e, 'No se ha podido guardar el cambio. Inténtalo otra vez.'));
+      setError(mensajeError(e, 'No se ha podido comprobar el turno. Inténtalo otra vez.'));
     } finally {
       setOcupado(false);
     }
@@ -332,9 +348,9 @@ function EditorTurnoDia({ prof, dia, semana, hoyLocal, onCerrar, onGuardado }) {
     setError(null);
     setOcupado(true);
     try {
-      await confirmar(revision.accion, revision.cuerpo);
+      await confirmar();
     } catch (e) {
-      setError(mensajeError(e, 'No se han podido guardar los turnos. Inténtalo otra vez.'));
+      setError(mensajeError(e, 'No se ha podido guardar el turno. Inténtalo otra vez.'));
     } finally {
       setOcupado(false);
     }
@@ -343,8 +359,8 @@ function EditorTurnoDia({ prof, dia, semana, hoyLocal, onCerrar, onGuardado }) {
   return (
     <Hoja
       abierta
-      titulo={diaLargo(dia.fecha)}
-      subtitulo={`Turno de ${prof.nombre}`}
+      titulo={`Turno de ${prof.nombre}`}
+      subtitulo={`Semana ${textoSemana(desde)}`}
       onCerrar={onCerrar}
       bloqueada={ocupado}
     >
@@ -353,7 +369,7 @@ function EditorTurnoDia({ prof, dia, semana, hoyLocal, onCerrar, onGuardado }) {
           <div className="flex flex-col gap-2">
             <span className={etiquetaClase}>Así quedará</span>
             <ul className="card-tight flex flex-col divide-y divide-line/70 overflow-hidden p-0">
-              {(revision.resultado?.jornadas ?? []).map((j) => (
+              {(revision.jornadas ?? []).map((j) => (
                 <li key={j.fecha} className="flex items-baseline justify-between gap-3 px-4 py-2.5">
                   <span className="text-[13.5px] text-ink">{diaLargo(j.fecha)}</span>
                   <span className="tabular text-right text-[13px] text-stone">
@@ -363,25 +379,16 @@ function EditorTurnoDia({ prof, dia, semana, hoyLocal, onCerrar, onGuardado }) {
               ))}
             </ul>
           </div>
-
-          {(revision.resultado?.avisos ?? []).map((a) => (
+          {(revision.avisos ?? []).map((a) => (
             <Aviso key={a} tipo="atencion">
               {a}
             </Aviso>
           ))}
-
-          <CitasAfectadas
-            afectadas={revision.resultado?.afectadas}
-            nombreActual={prof.nombre}
-          />
-
+          <CitasAfectadas afectadas={revision.afectadas} nombreActual={prof.nombre} />
           {error ? <Aviso tipo="error">{error}</Aviso> : null}
-
           <PieRevision
             ocupado={ocupado}
-            textoGuardar={
-              revision.accion === 'volver' ? 'Volver a su horario habitual' : 'Guardar cambio'
-            }
+            textoGuardar="Guardar turno"
             onGuardar={guardar}
             onVolver={() => {
               setError(null);
@@ -391,108 +398,153 @@ function EditorTurnoDia({ prof, dia, semana, hoyLocal, onCerrar, onGuardado }) {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="card-tight flex flex-col gap-1 px-4 py-3 text-[13px] leading-relaxed">
-            <p className="text-ink">
-              {dia.tramos.length
-                ? `Ahora trabaja de ${textoTramos(dia.tramos)}.`
-                : dia.salon.length
-                  ? 'Ahora libra este día.'
-                  : 'El salón está cerrado este día.'}
-            </p>
-            {cambio ? (
-              <p className="text-stone">
-                Es un cambio solo para este día
-                {cambio.motivo ? `: ${cambio.motivo}` : ''}. Normalmente{' '}
-                {habitual.length ? `trabaja de ${textoTramos(habitual)}` : 'libra'}.
-              </p>
-            ) : null}
-            {dia.salon.length ? (
-              <p className="text-stone">El salón abre de {textoTramos(dia.salon)}.</p>
-            ) : null}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={copiarPrimero}
+              disabled={ocupado || laborables.length < 2}
+              className="card-tight tight rounded-xl px-3 py-2.5 text-[12.5px] font-medium text-ink disabled:opacity-40"
+            >
+              Copiar el {laborables[0] ? diaLargo(laborables[0].fecha).split(',')[0].toLowerCase() : 'lunes'} al resto
+            </button>
+            <button
+              type="button"
+              onClick={copiarSemanaPasada}
+              disabled={ocupado}
+              className="card-tight tight rounded-xl px-3 py-2.5 text-[12.5px] font-medium text-ink disabled:opacity-40"
+            >
+              Igual que la semana pasada
+            </button>
           </div>
+          {aviso ? <Aviso tipo="ok">{aviso}</Aviso> : null}
 
-          <div role="group" aria-label="¿Qué hace este día?" className="grid grid-cols-2 gap-2">
-            <Eleccion
-              activo={modo === 'libra'}
-              disabled={ocupado}
-              onClick={() => setModo('libra')}
-              titulo="Libra"
-              detalle="No trabaja: no se le dan citas."
-            />
-            <Eleccion
-              activo={modo === 'trabaja'}
-              disabled={ocupado}
-              onClick={() => setModo('trabaja')}
-              titulo="Trabaja"
-              detalle="En las horas que pongas."
-            />
-          </div>
+          <ul className="flex flex-col gap-2">
+            {semana.map((d) => {
+              const f = filas[d.fecha];
+              const puede = editable(d) && !ocupado;
+              const vuelve = aHabitual.includes(d.fecha);
+              const tocado = d.fecha === fechaTocada;
+              return (
+                <li
+                  key={d.fecha}
+                  className="card-tight flex flex-col gap-2.5 px-3.5 py-3"
+                  style={{
+                    opacity: editable(d) ? 1 : 0.55,
+                    borderColor: tocado ? 'var(--ink)' : undefined,
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="tight text-[14px] font-medium text-ink">{diaLargo(d.fecha)}</p>
+                      <p className="text-[11.5px] text-stone">
+                        {d.salon?.length ? `Salón: ${textoTramos(d.salon)}` : 'El salón cierra'}
+                        {d.fecha < hoyLocal ? ' · ya pasó' : ''}
+                      </p>
+                    </div>
+                    {editable(d) && !vuelve ? (
+                      <div className="flex shrink-0 rounded-xl border border-line bg-paper p-0.5" role="group">
+                        {[
+                          ['trabaja', 'Trabaja'],
+                          ['libra', 'Libra'],
+                        ].map(([valor, texto]) => (
+                          <button
+                            key={valor}
+                            type="button"
+                            aria-pressed={f.modo === valor}
+                            disabled={!puede}
+                            onClick={() => cambiarFila(d.fecha, { modo: valor })}
+                            className="tight rounded-lg px-3 py-1.5 text-[12.5px] font-medium transition"
+                            style={
+                              f.modo === valor
+                                ? { background: 'var(--ink)', color: 'var(--paper)' }
+                                : { color: 'var(--stone-2)' }
+                            }
+                          >
+                            {texto}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
 
-          {modo === 'trabaja' ? (
-            <EditorTramos
-              idBase={`turno-${dia.fecha}`}
-              tramos={tramos}
-              onCambiar={setTramos}
-              disabled={ocupado}
-            />
-          ) : null}
+                  {vuelve ? (
+                    <p className="text-[13px] text-stone">
+                      Vuelve a su horario habitual:{' '}
+                      {d.habitual?.tramos?.length ? textoTramos(d.habitual.tramos) : 'libra'}.
+                    </p>
+                  ) : !editable(d) ? (
+                    <p className="tabular text-[13px] text-stone">
+                      {d.tramos?.length ? textoTramos(d.tramos) : 'Libra'}
+                    </p>
+                  ) : f.modo === 'trabaja' ? (
+                    <EditorTramos
+                      idBase={`semana-${d.fecha}`}
+                      tramos={f.tramos}
+                      onCambiar={(t) => cambiarFila(d.fecha, { tramos: t })}
+                      disabled={!puede}
+                      textoAnadir="Partido"
+                      max={2}
+                    />
+                  ) : (
+                    <p className="text-[13px] text-stone">No trabaja: no se le dan citas.</p>
+                  )}
 
-          <ChipsSemana
-            semana={semana}
-            fechas={fechas}
-            fija={dia.fecha}
-            hoyLocal={hoyLocal}
-            onCambiar={setFechas}
-            disabled={ocupado}
-          />
+                  {editable(d) && d.origen === 'fecha' ? (
+                    <button
+                      type="button"
+                      disabled={ocupado}
+                      onClick={() =>
+                        setAHabitual((a) =>
+                          a.includes(d.fecha) ? a.filter((x) => x !== d.fecha) : [...a, d.fecha],
+                        )
+                      }
+                      className="tight w-fit text-[12.5px] font-medium text-stone underline underline-offset-2"
+                    >
+                      {vuelve ? 'Mantener el cambio de este día' : 'Volver a su horario habitual'}
+                    </button>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor={`turno-motivo-${dia.fecha}`} className={etiquetaClase}>
+            <label htmlFor={`semana-motivo-${prof.id}`} className={etiquetaClase}>
               Motivo (opcional)
             </label>
             <input
-              id={`turno-motivo-${dia.fecha}`}
+              id={`semana-motivo-${prof.id}`}
               type="text"
               value={motivo}
               maxLength={200}
               disabled={ocupado}
               onChange={(e) => setMotivo(e.target.value)}
-              placeholder="Ej. médico, vacaciones, cambio con Juan"
+              placeholder="Ej. cambio de turno con Juan, vacaciones"
               className="field-input"
             />
           </div>
 
           {error ? <Aviso tipo="error">{error}</Aviso> : null}
 
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => preparar('cambio')}
-              disabled={ocupado || !modo}
-              className="gloss-btn tight rounded-xl px-5 py-3.5 text-[14.5px] font-medium disabled:opacity-50"
-            >
-              {ocupado ? 'Comprobando…' : 'Guardar'}
-            </button>
-            {conCambio ? (
-              <button
-                type="button"
-                onClick={() => preparar('volver')}
-                disabled={ocupado}
-                className="card-tight tight rounded-xl px-5 py-3 text-[14px] font-medium text-ink disabled:opacity-50"
-              >
-                Volver a su horario habitual
-              </button>
-            ) : null}
-            <p className="text-[12px] leading-relaxed text-stone">
-              Antes de guardar te enseñamos las citas que se quedarían fuera de
-              su turno. Ninguna se cancela ni se mueve sola.
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={preparar}
+            disabled={ocupado}
+            className="gloss-btn tight rounded-xl px-5 py-3.5 text-[14.5px] font-medium disabled:opacity-50"
+          >
+            {ocupado ? 'Comprobando…' : 'Guardar turno'}
+          </button>
+          <p className="text-[12px] leading-relaxed text-stone">
+            Antes de guardar te enseñamos las citas que se quedarían fuera de su
+            turno y los compañeros libres a esa hora. Ninguna se cancela ni se
+            mueve sola.
+          </p>
         </div>
       )}
     </Hoja>
   );
 }
+
 
 /* ---------------------------------------------------------------------------
  * Hoja: horario habitual (semana de siempre) de un barbero
@@ -1080,12 +1132,13 @@ export default function TurnosEquipo({ timezone }) {
       )}
 
       {abierto?.tipo === 'dia' ? (
-        <EditorTurnoDia
-          key={`${abierto.prof.id}-${abierto.dia.fecha}`}
+        <EditorSemana
+          key={`${abierto.prof.id}-${desde}`}
           prof={abierto.prof}
-          dia={abierto.dia}
           semana={abierto.semana}
+          fechaTocada={abierto.dia.fecha}
           hoyLocal={hoyLocal}
+          desde={desde}
           onCerrar={() => setAbierto(null)}
           onGuardado={alGuardar}
         />
