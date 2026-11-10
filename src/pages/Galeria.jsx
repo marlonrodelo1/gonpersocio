@@ -97,7 +97,7 @@ function Foto({ imagen, puedeEditar, borrando, confirmando, onPreguntar, onBorra
                 type="button"
                 disabled={borrando === imagen.id}
                 onClick={() => onBorrar(imagen.id)}
-                className="rounded-full px-3.5 py-2 text-[12.5px] font-medium disabled:opacity-60"
+                className="rounded-xl px-3.5 py-2 text-[12.5px] font-medium disabled:opacity-60"
                 style={{ background: '#F1D6D6', color: '#7C2E2E' }}
               >
                 {borrando === imagen.id ? 'Borrando…' : 'Sí, borrar'}
@@ -106,7 +106,7 @@ function Foto({ imagen, puedeEditar, borrando, confirmando, onPreguntar, onBorra
                 type="button"
                 disabled={borrando === imagen.id}
                 onClick={() => onPreguntar(null)}
-                className="rounded-full px-3.5 py-2 text-[12.5px] font-medium text-white/90 disabled:opacity-60"
+                className="rounded-xl px-3.5 py-2 text-[12.5px] font-medium text-white/90 disabled:opacity-60"
               >
                 No
               </button>
@@ -146,7 +146,7 @@ function Foto({ imagen, puedeEditar, borrando, confirmando, onPreguntar, onBorra
             <button
               type="button"
               onClick={() => onPreguntar(imagen.id)}
-              className="tight inline-flex h-7 shrink-0 items-center justify-center rounded-full border border-line bg-paper px-3 text-[12px] font-medium transition hover:bg-cream"
+              className="tight inline-flex h-7 shrink-0 items-center justify-center rounded-xl border border-line bg-paper px-3 text-[12px] font-medium transition hover:bg-cream"
               style={{ color: '#B14848' }}
             >
               Borrar
@@ -257,7 +257,7 @@ export default function Galeria() {
           <button
             type="button"
             onClick={refrescar}
-            className="gloss-btn tight mt-4 rounded-full px-5 py-2.5 text-[14px] font-medium"
+            className="gloss-btn tight mt-4 rounded-xl px-5 py-2.5 text-[14px] font-medium"
           >
             Reintentar
           </button>

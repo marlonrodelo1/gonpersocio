@@ -196,7 +196,7 @@ export default function PromocionForm() {
   const volver = (
     <Link
       to="/promociones"
-      className="tight -mr-1 inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[13.5px] font-medium"
+      className="tight -mr-1 inline-flex shrink-0 items-center gap-1 rounded-xl px-3 py-1.5 text-[13.5px] font-medium"
       style={{ background: 'var(--chrome-2)', color: 'var(--on-chrome)' }}
     >
       <span aria-hidden>←</span>
@@ -232,7 +232,7 @@ export default function PromocionForm() {
           {noExiste ? (
             <Link
               to="/promociones"
-              className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium"
+              className="gloss-btn tight inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[14px] font-medium"
             >
               Ver mis promociones
             </Link>
@@ -244,7 +244,7 @@ export default function PromocionForm() {
                 setErrorCarga(null);
                 setIntento((n) => n + 1);
               }}
-              className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium"
+              className="gloss-btn tight inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[14px] font-medium"
             >
               Reintentar
             </button>
@@ -460,7 +460,7 @@ export default function PromocionForm() {
             type="button"
             onClick={guardar}
             disabled={guardando}
-            className="gloss-btn tight inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13.5px] font-medium disabled:opacity-60"
+            className="gloss-btn tight inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-[13.5px] font-medium disabled:opacity-60"
           >
             {guardando
               ? 'Guardando…'

@@ -38,6 +38,12 @@ import {
  * (sin elegir, se cerraba siempre el salón entero aunque pensara en un solo
  * barbero). A un empleado con `cerrar_franjas` el servidor le pone SIEMPRE su
  * propia ficha, mande lo que mande; aquí solo se le explica.
+ *
+ * MENSAJE PARA LOS CLIENTES. En un cierre de todo el salón el dueño puede dejar
+ * un aviso ("Del 21 al 25 de diciembre atendemos solo sin cita, por orden de
+ * llegada") que leerá quien intente reservar esos días en la web, en la app de
+ * clientes y por el asistente. En un cierre de una sola persona no se pide: sus
+ * vacaciones no se anuncian (y el servidor lo descartaría igualmente).
  */
 
 /* ---------- atajos ---------- */
@@ -172,6 +178,9 @@ function enCurso(desdeIso, hastaIso) {
 
 const labelClass = 'text-[11px] uppercase tracking-[0.2em] text-stone/80';
 
+/** Mismo tope que el servidor y la base de datos. */
+const MENSAJE_MAX = 300;
+
 function Aviso({ tipo, texto }) {
   if (!texto) return null;
   const estilo =
@@ -203,7 +212,7 @@ function SelectorDestino({ equipo, valor, onChange, disabled }) {
               aria-pressed={elegido}
               disabled={disabled}
               onClick={() => onChange(p.id)}
-              className="tight inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13.5px] transition disabled:opacity-60"
+              className="tight inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-[13.5px] transition disabled:opacity-60"
               style={
                 elegido
                   ? { background: 'var(--ink)', borderColor: 'var(--ink)', color: 'var(--paper)' }
@@ -256,6 +265,11 @@ function Confirmacion({ pendiente, preview, guardando, onConfirmar, onCambiar })
         {pendiente.cuerpo.motivo ? (
           <p className="text-[13px] text-stone">Motivo: {pendiente.cuerpo.motivo}</p>
         ) : null}
+        {pendiente.cuerpo.mensajePublico ? (
+          <p className="whitespace-pre-line break-words text-[13px] text-stone">
+            Verán tus clientes: «{pendiente.cuerpo.mensajePublico}»
+          </p>
+        ) : null}
       </div>
 
       {!listo ? (
@@ -286,7 +300,7 @@ function Confirmacion({ pendiente, preview, guardando, onConfirmar, onCambiar })
           type="button"
           onClick={onConfirmar}
           disabled={guardando || !listo || rechazo}
-          className="gloss-btn tight flex-1 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-50"
+          className="gloss-btn tight flex-1 rounded-xl px-5 py-3 text-[14px] font-medium disabled:opacity-50"
         >
           {guardando ? 'Cerrando…' : 'Sí, cerrar'}
         </button>
@@ -294,7 +308,7 @@ function Confirmacion({ pendiente, preview, guardando, onConfirmar, onCambiar })
           type="button"
           onClick={onCambiar}
           disabled={guardando}
-          className="rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
+          className="rounded-xl border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
         >
           Cambiar
         </button>
@@ -323,6 +337,8 @@ export default function Cierres() {
 
   const [guardando, setGuardando] = useState(false);
   const [motivo, setMotivo] = useState('');
+  // Aviso para los clientes. Solo se pide (y se manda) en cierres del salón.
+  const [mensajePublico, setMensajePublico] = useState('');
   const [destino, setDestino] = useState(''); // '' = todo el salón
   const [avisoForm, setAvisoForm] = useState(null); // { tipo, texto, extra }
   const [abierto, setAbierto] = useState(null); // 'horas' | 'dias' | null
@@ -400,6 +416,9 @@ export default function Cierres() {
   // elegir entre lo mismo: no se pregunta.
   const eligeDestino = esDueno && equipo.length > 1;
   const destinoValido = eligeDestino && equipo.some((p) => p.id === destino) ? destino : '';
+  // ¿El cierre que se prepara es de TODO el salón? Solo entonces tiene sentido
+  // un mensaje público. Un empleado siempre cierra su propia agenda.
+  const cierreDelSalon = esDueno && !destinoValido;
 
   const textoDestino = () => {
     if (!esDueno) return 'solo tu agenda';
@@ -414,10 +433,21 @@ export default function Cierres() {
       setAvisoForm({ tipo: 'error', texto: franja.error });
       return;
     }
+    const aviso = mensajePublico.trim();
+    if (cierreDelSalon && aviso.length > MENSAJE_MAX) {
+      setAvisoForm({
+        tipo: 'error',
+        texto: `El mensaje para tus clientes no puede superar los ${MENSAJE_MAX} caracteres.`,
+      });
+      return;
+    }
     const cuerpo = {
       ...franja.cuerpo,
       motivo: motivo.trim() || null,
       ...(esDueno && destinoValido ? { profesionalId: destinoValido } : {}),
+      // Solo en cierres del salón y si se ha escrito algo: sin él, el cuerpo
+      // es exactamente el de siempre.
+      ...(cierreDelSalon && aviso ? { mensajePublico: aviso } : {}),
     };
     ultimaClave.current += 1;
     const clave = ultimaClave.current;
@@ -518,10 +548,13 @@ export default function Cierres() {
       setPendiente(null);
       setPreview(null);
       setMotivo('');
+      setMensajePublico('');
       setAbierto(null);
       setAvisoForm({
         tipo: 'ok',
-        texto: 'Cerrado. Nadie podrá reservar en esas horas.',
+        texto: res?.cierre?.mensajePublico
+          ? 'Cerrado. Nadie podrá reservar en esas horas y quien lo intente verá tu mensaje.'
+          : 'Cerrado. Nadie podrá reservar en esas horas.',
         // El recuento DESPUÉS de guardar: si entró una reserva mientras se
         // confirmaba, aquí sale.
         extra: res?.avisoCitas ?? null,
@@ -584,7 +617,7 @@ export default function Cierres() {
           <button
             type="button"
             onClick={reintentar}
-            className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+            className="gloss-btn tight inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13.5px] font-medium"
           >
             Reintentar
           </button>
@@ -664,6 +697,34 @@ export default function Cierres() {
                     />
                   </div>
 
+                  {/* Solo en cierres de todo el salón: lo que leerá quien
+                      intente reservar esos días, en vez de un "no hay huecos"
+                      que suena a lleno. */}
+                  {cierreDelSalon ? (
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="cierre_mensaje_publico" className={labelClass}>
+                        Mensaje para tus clientes (opcional)
+                      </label>
+                      <textarea
+                        id="cierre_mensaje_publico"
+                        rows={3}
+                        value={mensajePublico}
+                        onChange={(e) => setMensajePublico(e.target.value)}
+                        maxLength={MENSAJE_MAX}
+                        disabled={ocupado}
+                        placeholder="Ej. Del 21 al 25 de diciembre atendemos solo sin cita, por orden de llegada."
+                        className="field-input resize-y leading-relaxed"
+                      />
+                      <p className="text-[12px] leading-snug text-stone">
+                        Lo verá quien intente reservar esos días en tu web y en la
+                        app, y el asistente se lo dirá a quien pregunte.{' '}
+                        <span className="tabular text-stone/70">
+                          {mensajePublico.length}/{MENSAJE_MAX}
+                        </span>
+                      </p>
+                    </div>
+                  ) : null}
+
                   {/* Unas horas de un día concreto: el médico del jueves, una
                       salida a media mañana. Lo que los atajos no cubren. */}
                   <div className="flex flex-col gap-3 border-t border-line pt-4">
@@ -731,7 +792,7 @@ export default function Cierres() {
                           type="button"
                           disabled={ocupado}
                           onClick={prepararHoras}
-                          className="gloss-btn tight rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-50"
+                          className="gloss-btn tight rounded-xl px-5 py-3 text-[14px] font-medium disabled:opacity-50"
                         >
                           Revisar y cerrar esas horas
                         </button>
@@ -791,7 +852,7 @@ export default function Cierres() {
                           type="button"
                           disabled={ocupado}
                           onClick={prepararDias}
-                          className="gloss-btn tight rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-50"
+                          className="gloss-btn tight rounded-xl px-5 py-3 text-[14px] font-medium disabled:opacity-50"
                         >
                           Revisar y cerrar esos días
                         </button>
@@ -863,6 +924,23 @@ export default function Cierres() {
                               {c.motivo}
                             </p>
                           ) : null}
+                          {/* El aviso que leen los clientes. Solo existe en
+                              cierres del salón; el `!c.profesionalId` es por
+                              si acaso. */}
+                          {!c.profesionalId && c.mensajePublico ? (
+                            <p
+                              className="mt-2 whitespace-pre-line break-words rounded-xl px-3 py-2 text-[13px] leading-snug"
+                              style={{
+                                background: 'rgba(197,142,44,0.12)',
+                                color: '#7A5A1B',
+                              }}
+                            >
+                              <span className="block text-[10.5px] uppercase tracking-[0.18em] opacity-80">
+                                Ven tus clientes
+                              </span>
+                              {c.mensajePublico}
+                            </p>
+                          ) : null}
                         </div>
                         {activo ? (
                           <span
@@ -891,7 +969,7 @@ export default function Cierres() {
                               type="button"
                               disabled={borrando === c.id}
                               onClick={() => borrar(c.id)}
-                              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-medium disabled:opacity-50"
                               style={{ background: '#F1D6D6', color: '#7C2E2E' }}
                             >
                               <Icon.Check width="14" height="14" />
@@ -901,7 +979,7 @@ export default function Cierres() {
                               type="button"
                               disabled={borrando === c.id}
                               onClick={() => setConfirmando(null)}
-                              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium text-stone disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-medium text-stone disabled:opacity-50"
                             >
                               <Icon.X width="14" height="14" />
                               No
@@ -911,7 +989,7 @@ export default function Cierres() {
                           <button
                             type="button"
                             onClick={() => setConfirmando(c.id)}
-                            className="self-start rounded-full border bg-paper px-3.5 py-1.5 text-[12.5px] tight text-[#7C2E2E] transition hover:bg-[#F1D6D6]/40"
+                            className="self-start rounded-xl border bg-paper px-3.5 py-1.5 text-[12.5px] tight text-[#7C2E2E] transition hover:bg-[#F1D6D6]/40"
                             style={{ borderColor: 'rgba(177,72,72,0.35)' }}
                           >
                             Quitar cierre

@@ -1,5 +1,19 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import {
+  CalendarCog,
+  CalendarOff,
+  Clock,
+  Columns2,
+  CreditCard,
+  Globe,
+  ImageIcon,
+  Images,
+  Star,
+  Store,
+  Tag,
+  Users,
+} from 'lucide-react';
 
 import { Icon } from './icons';
 import LogoGonper from './LogoGonper';
@@ -7,6 +21,24 @@ import { useAuth } from '../context/useAuth';
 import { platform } from '../lib/capacitor';
 import { abrirEnWeb, abrirExterno } from '../lib/puente';
 import { APP_NOMBRE, WEB_PANEL } from '../lib/identidad';
+
+// Cada entrada de "Web del salón" con su propio icono (antes todas llevaban el
+// mismo destello). Trazo 1,5 para que pesen igual que los del resto del menú.
+const IconoLogo = (p) => <ImageIcon strokeWidth={1.5} {...p} />;
+const IconoPromos = (p) => <Tag strokeWidth={1.5} {...p} />;
+const IconoGaleria = (p) => <Images strokeWidth={1.5} {...p} />;
+const IconoAntesDespues = (p) => <Columns2 strokeWidth={1.5} {...p} />;
+const IconoResenas = (p) => <Star strokeWidth={1.5} {...p} />;
+
+// Configuración: también cada una con su icono (antes eran puntos).
+const ICONO_CONFIG = {
+  '/config/salon': Store,
+  '/config/reservas': CalendarCog,
+  '/horario': Clock,
+  '/cierres': CalendarOff,
+  '/equipo': Users,
+  '/cobros': CreditCard,
+};
 
 /**
  * Barra lateral, CLON del panel web (`panel-sidebar.tsx`) para que la app se vea
@@ -56,11 +88,11 @@ function construirNav({ esDueno, puede }) {
         { to: '/compartir', label: 'Compartir', Icono: Icon.Share },
         // Logo, portada y buscador. Va primero de lo editable: sin logo ni
         // portada, el resto del escaparate luce bastante menos.
-        { to: '/config/web', label: 'Logo y portada', Icono: Icon.Sparkle },
-        { to: '/promociones', label: 'Promociones', Icono: Icon.Sparkle },
-        { to: '/galeria', label: 'Galería', Icono: Icon.Sparkle },
-        { to: '/antes-despues', label: 'Antes y después', Icono: Icon.Sparkle },
-        { to: '/resenas', label: 'Reseñas', Icono: Icon.Sparkle },
+        { to: '/config/web', label: 'Logo y portada', Icono: IconoLogo },
+        { to: '/promociones', label: 'Promociones', Icono: IconoPromos },
+        { to: '/galeria', label: 'Galería', Icono: IconoGaleria },
+        { to: '/antes-despues', label: 'Antes y después', Icono: IconoAntesDespues },
+        { to: '/resenas', label: 'Reseñas', Icono: IconoResenas },
       ]
     : [{ to: '/compartir', label: 'Compartir', Icono: Icon.Share }];
 
@@ -235,6 +267,7 @@ export default function PanelSidebar() {
                 </div>
                 {nav.config.map((it) => {
                   const act = activo(it.to);
+                  const IcoConfig = ICONO_CONFIG[it.to];
                   return (
                     <Link
                       key={it.to}
@@ -244,7 +277,17 @@ export default function PanelSidebar() {
                         act ? 'bg-ink text-cream' : 'text-stone hover:bg-paper hover:text-ink'
                       }`}
                     >
-                      <span className={`h-1.5 w-1.5 rounded-full ${act ? 'bg-cream' : 'bg-stone/40'}`} />
+                      {IcoConfig ? (
+                        <IcoConfig
+                          width="17"
+                          height="17"
+                          strokeWidth={1.5}
+                          aria-hidden
+                          className={act ? 'text-cream' : 'text-stone'}
+                        />
+                      ) : (
+                        <span className={`h-1.5 w-1.5 rounded-full ${act ? 'bg-cream' : 'bg-stone/40'}`} />
+                      )}
                       <span className="tight">{it.label}</span>
                     </Link>
                   );
@@ -301,7 +344,7 @@ export default function PanelSidebar() {
                 }}
                 className="mt-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] text-stone transition hover:bg-paper hover:text-ink"
               >
-                <Icon.Sparkle width="14" height="14" className="text-terracotta" />
+                <Globe width="16" height="16" strokeWidth={1.5} aria-hidden className="text-terracotta" />
                 <span className="tight">Mi web pública</span>
                 <Icon.Arrow width="11" height="11" className="ml-auto text-stone/60" />
               </button>

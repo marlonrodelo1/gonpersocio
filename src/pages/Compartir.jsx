@@ -133,7 +133,7 @@ export default function Compartir() {
           <button
             type="button"
             onClick={() => setIntento((n) => n + 1)}
-            className="gloss-btn tight mt-4 rounded-full px-5 py-2.5 text-[14px] font-medium"
+            className="gloss-btn tight mt-4 rounded-xl px-5 py-2.5 text-[14px] font-medium"
           >
             Reintentar
           </button>
@@ -162,7 +162,7 @@ export default function Compartir() {
               <button
                 type="button"
                 onClick={() => copiar(url, 'enlace')}
-                className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-[14px] font-medium"
+                className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-medium"
               >
                 {copiado === 'enlace' ? (
                   <>
@@ -246,7 +246,7 @@ export default function Compartir() {
                 <button
                   type="button"
                   onClick={() => abrirExterno(`${API_BASE}${datos.flyerPath}`)}
-                  className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[14px] font-medium"
+                  className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-[14px] font-medium"
                 >
                   <Icon.Arrow width="14" height="14" />
                   Descargar cartel para imprimir
@@ -255,7 +255,7 @@ export default function Compartir() {
               <button
                 type="button"
                 onClick={() => abrirExterno(`${API_BASE}${datos.qrPathImpresion}`)}
-                className="card-tight tight inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[14px] font-medium text-ink"
+                className="card-tight tight inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-[14px] font-medium text-ink"
               >
                 Solo el código QR
               </button>

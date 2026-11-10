@@ -99,7 +99,7 @@ function Aviso({ expirada, texto, conBoton }) {
         <button
           type="button"
           onClick={onPagar}
-          className="tight shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold"
+          className="tight shrink-0 rounded-xl px-3.5 py-1.5 text-[12.5px] font-semibold"
           style={{
             background: expirada ? '#7C2E2E' : 'var(--amber-2)',
             color: '#fff',

@@ -139,7 +139,7 @@ function AvisoError({ mensaje, onReintentar }) {
       <button
         type="button"
         onClick={onReintentar}
-        className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+        className="gloss-btn tight inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13.5px] font-medium"
       >
         <RefreshCw size={15} />
         Reintentar
@@ -203,7 +203,7 @@ function CampoNumero({ id, etiqueta, valor, onChange, paso, sufijo, decimal, dis
           aria-label={`Bajar ${etiqueta.toLowerCase()}`}
           disabled={disabled}
           onClick={() => ajustar(-1)}
-          className="h-[42px] w-[42px] shrink-0 rounded-full border border-line bg-paper text-[18px] text-ink disabled:opacity-50"
+          className="h-[42px] w-[42px] shrink-0 rounded-xl border border-line bg-paper text-[18px] text-ink disabled:opacity-50"
         >
           −
         </button>
@@ -226,7 +226,7 @@ function CampoNumero({ id, etiqueta, valor, onChange, paso, sufijo, decimal, dis
           aria-label={`Subir ${etiqueta.toLowerCase()}`}
           disabled={disabled}
           onClick={() => ajustar(1)}
-          className="h-[42px] w-[42px] shrink-0 rounded-full border border-line bg-paper text-[18px] text-ink disabled:opacity-50"
+          className="h-[42px] w-[42px] shrink-0 rounded-xl border border-line bg-paper text-[18px] text-ink disabled:opacity-50"
         >
           +
         </button>
@@ -475,7 +475,7 @@ function FormularioServicio({
           type="button"
           onClick={() => onGuardar(leerFormulario(f, porPartes))}
           disabled={guardando}
-          className="gloss-btn tight flex-1 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
+          className="gloss-btn tight flex-1 rounded-xl px-5 py-3 text-[14px] font-medium disabled:opacity-60"
         >
           {guardando ? 'Guardando…' : textoBoton}
         </button>
@@ -483,7 +483,7 @@ function FormularioServicio({
           type="button"
           onClick={onCancelar}
           disabled={guardando}
-          className="rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
+          className="rounded-xl border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
         >
           Cancelar
         </button>
@@ -678,7 +678,7 @@ function Tarjeta({ servicio, categorias, puedeEditar, onGuardado, onBorrado }) {
               type="button"
               onClick={abrir}
               aria-expanded={abierto}
-              className="inline-flex items-center gap-1 rounded-full border border-line bg-paper px-3 py-1.5 text-[12.5px] font-medium text-ink"
+              className="inline-flex items-center gap-1 rounded-xl border border-line bg-paper px-3 py-1.5 text-[12.5px] font-medium text-ink"
             >
               {hecho ? (
                 <>
@@ -725,7 +725,7 @@ function Tarjeta({ servicio, categorias, puedeEditar, onGuardado, onBorrado }) {
                     type="button"
                     onClick={borrar}
                     disabled={ocupado}
-                    className="rounded-full px-3.5 py-2 text-[13px] font-medium disabled:opacity-50"
+                    className="rounded-xl px-3.5 py-2 text-[13px] font-medium disabled:opacity-50"
                     style={{ background: '#F1D6D6', color: '#7C2E2E' }}
                   >
                     {borrando ? 'Borrando…' : 'Sí, borrar'}
@@ -734,7 +734,7 @@ function Tarjeta({ servicio, categorias, puedeEditar, onGuardado, onBorrado }) {
                     type="button"
                     onClick={() => setConfirmandoBorrar(false)}
                     disabled={ocupado}
-                    className="rounded-full px-3.5 py-2 text-[13px] font-medium text-stone disabled:opacity-50"
+                    className="rounded-xl px-3.5 py-2 text-[13px] font-medium text-stone disabled:opacity-50"
                   >
                     No
                   </button>
@@ -957,7 +957,7 @@ export default function Servicios() {
                   setAviso(null);
                   setCreando(true);
                 }}
-                className="gloss-btn tight inline-flex items-center justify-center gap-2 self-start rounded-full px-5 py-2.5 text-[14px] font-medium"
+                className="gloss-btn tight inline-flex items-center justify-center gap-2 self-start rounded-xl px-5 py-2.5 text-[14px] font-medium"
               >
                 <Plus size={15} />
                 Nuevo servicio

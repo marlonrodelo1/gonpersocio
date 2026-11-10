@@ -141,7 +141,7 @@ function SelectorColor({ valor, onChange, disabled }) {
               aria-label={c.nombre}
               aria-pressed={elegido}
               onClick={() => onChange(c.hex)}
-              className="flex h-11 w-11 items-center justify-center rounded-full transition disabled:opacity-50"
+              className="flex h-11 w-11 items-center justify-center rounded-xl transition disabled:opacity-50"
               style={{
                 background: c.hex,
                 boxShadow: elegido
@@ -178,7 +178,7 @@ function CampoPosicion({ id, valor, onChange, disabled }) {
           aria-label="Subir en la lista"
           disabled={disabled}
           onClick={() => ajustar(-1)}
-          className="h-[42px] w-[42px] shrink-0 rounded-full border border-line bg-paper text-[18px] text-ink disabled:opacity-50"
+          className="h-[42px] w-[42px] shrink-0 rounded-xl border border-line bg-paper text-[18px] text-ink disabled:opacity-50"
         >
           −
         </button>
@@ -196,7 +196,7 @@ function CampoPosicion({ id, valor, onChange, disabled }) {
           aria-label="Bajar en la lista"
           disabled={disabled}
           onClick={() => ajustar(1)}
-          className="h-[42px] w-[42px] shrink-0 rounded-full border border-line bg-paper text-[18px] text-ink disabled:opacity-50"
+          className="h-[42px] w-[42px] shrink-0 rounded-xl border border-line bg-paper text-[18px] text-ink disabled:opacity-50"
         >
           +
         </button>
@@ -368,7 +368,7 @@ function FormularioNuevo({ colorInicial, onCreado, onCancelar }) {
             type="button"
             onClick={guardar}
             disabled={guardando}
-            className="gloss-btn tight flex-1 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
+            className="gloss-btn tight flex-1 rounded-xl px-5 py-3 text-[14px] font-medium disabled:opacity-60"
           >
             {guardando ? 'Guardando…' : 'Añadir al equipo'}
           </button>
@@ -376,7 +376,7 @@ function FormularioNuevo({ colorInicial, onCreado, onCancelar }) {
             type="button"
             onClick={onCancelar}
             disabled={guardando}
-            className="rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
+            className="rounded-xl border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -580,7 +580,7 @@ function Tarjeta({ profesional, puedeEditar, catalogoPermisos, onGuardado, onBor
               type="button"
               onClick={guardar}
               disabled={ocupado}
-              className="gloss-btn tight flex-1 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
+              className="gloss-btn tight flex-1 rounded-xl px-5 py-3 text-[14px] font-medium disabled:opacity-60"
             >
               {guardando ? 'Guardando…' : 'Guardar'}
             </button>
@@ -588,7 +588,7 @@ function Tarjeta({ profesional, puedeEditar, catalogoPermisos, onGuardado, onBor
               type="button"
               onClick={() => setAbierto(false)}
               disabled={ocupado}
-              className="rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
+              className="rounded-xl border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
             >
               Cancelar
             </button>
@@ -620,7 +620,7 @@ function Tarjeta({ profesional, puedeEditar, catalogoPermisos, onGuardado, onBor
                     type="button"
                     onClick={borrar}
                     disabled={ocupado}
-                    className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-medium disabled:opacity-50"
                     style={{ background: '#F1D6D6', color: '#7C2E2E' }}
                   >
                     <Icon.Check width="14" height="14" />
@@ -630,7 +630,7 @@ function Tarjeta({ profesional, puedeEditar, catalogoPermisos, onGuardado, onBor
                     type="button"
                     onClick={() => setConfirmando(false)}
                     disabled={ocupado}
-                    className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium text-stone disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-medium text-stone disabled:opacity-50"
                   >
                     <Icon.X width="14" height="14" />
                     No
@@ -792,7 +792,7 @@ export default function Equipo() {
           <button
             type="button"
             onClick={reintentar}
-            className="gloss-btn tight rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+            className="gloss-btn tight rounded-xl px-5 py-2.5 text-[13.5px] font-medium"
           >
             Reintentar
           </button>
@@ -815,7 +815,7 @@ export default function Equipo() {
                 type="button"
                 disabled={lleno}
                 onClick={() => setCreando(true)}
-                className="gloss-btn tight inline-flex items-center justify-center gap-2 self-start rounded-full px-5 py-2.5 text-[14px] font-medium disabled:opacity-50"
+                className="gloss-btn tight inline-flex items-center justify-center gap-2 self-start rounded-xl px-5 py-2.5 text-[14px] font-medium disabled:opacity-50"
               >
                 <Icon.Plus width="15" height="15" />
                 Nuevo profesional
@@ -885,7 +885,7 @@ export default function Equipo() {
                 <button
                   type="button"
                   onClick={abrirNavegador}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-ink"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-paper px-5 py-3 text-[14px] font-medium text-ink"
                 >
                   <Icon.Share width="15" height="15" />
                   Invitar desde el navegador

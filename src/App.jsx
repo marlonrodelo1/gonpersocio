@@ -425,7 +425,7 @@ function SinSalon() {
           <button
             type="button"
             onClick={logout}
-            className="gloss-btn tight mt-1 inline-flex h-12 items-center justify-center rounded-full px-5 text-[15px] font-medium"
+            className="gloss-btn tight mt-1 inline-flex h-12 items-center justify-center rounded-xl px-5 text-[15px] font-medium"
           >
             Salir con otra cuenta
           </button>
@@ -535,7 +535,7 @@ function SinSalon() {
         <button
           type="submit"
           disabled={creando}
-          className="gloss-btn tight w-full rounded-full py-3 text-[15px] font-medium disabled:opacity-60"
+          className="gloss-btn tight w-full rounded-xl py-3 text-[15px] font-medium disabled:opacity-60"
         >
           {creando ? 'Creando tu negocio…' : 'Empezar los 7 días gratis'}
         </button>

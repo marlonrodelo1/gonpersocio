@@ -99,7 +99,7 @@ function AvisoError({ mensaje, onReintentar }) {
       <button
         type="button"
         onClick={onReintentar}
-        className="gloss-btn tight mt-1 rounded-full px-5 py-2.5 text-[14px] font-medium"
+        className="gloss-btn tight mt-1 rounded-xl px-5 py-2.5 text-[14px] font-medium"
       >
         Reintentar
       </button>
@@ -507,7 +507,7 @@ export default function ConfigSalon() {
                   type="button"
                   onClick={guardar}
                   disabled={guardando}
-                  className="gloss-btn tight rounded-full px-5 py-3 text-[13.5px] font-medium disabled:opacity-60"
+                  className="gloss-btn tight rounded-xl px-5 py-3 text-[13.5px] font-medium disabled:opacity-60"
                 >
                   {guardando ? 'Guardando…' : 'Guardar cambios'}
                 </button>

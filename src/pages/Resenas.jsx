@@ -246,7 +246,7 @@ function Fila({ resena, tz, puedeModerar, ocupado, onModerar, onBorrar }) {
               type="button"
               disabled={bloqueada}
               onClick={() => onBorrar(resena.id)}
-              className="tight inline-flex h-7 items-center justify-center rounded-full px-3 text-[12px] font-medium disabled:opacity-50"
+              className="tight inline-flex h-7 items-center justify-center rounded-xl px-3 text-[12px] font-medium disabled:opacity-50"
               style={{ background: '#F1D6D6', color: '#7C2E2E' }}
             >
               {bloqueada ? 'Borrando…' : 'Sí'}
@@ -255,7 +255,7 @@ function Fila({ resena, tz, puedeModerar, ocupado, onModerar, onBorrar }) {
               type="button"
               disabled={bloqueada}
               onClick={() => setConfirmando(false)}
-              className="tight inline-flex h-7 items-center justify-center rounded-full border border-line bg-paper px-3 text-[12px] font-medium text-stone disabled:opacity-50"
+              className="tight inline-flex h-7 items-center justify-center rounded-xl border border-line bg-paper px-3 text-[12px] font-medium text-stone disabled:opacity-50"
             >
               No
             </button>
@@ -268,8 +268,8 @@ function Fila({ resena, tz, puedeModerar, ocupado, onModerar, onBorrar }) {
               onClick={() => onModerar(resena.id, { aprobada: !resena.aprobada })}
               className={
                 resena.aprobada
-                  ? 'tight inline-flex h-7 items-center justify-center rounded-full border border-line bg-paper px-3 text-[12px] font-medium text-stone hover:bg-cream hover:text-ink disabled:opacity-50'
-                  : 'gloss-btn tight inline-flex h-7 items-center justify-center rounded-full px-3 text-[12px] font-medium disabled:opacity-50'
+                  ? 'tight inline-flex h-7 items-center justify-center rounded-xl border border-line bg-paper px-3 text-[12px] font-medium text-stone hover:bg-cream hover:text-ink disabled:opacity-50'
+                  : 'gloss-btn tight inline-flex h-7 items-center justify-center rounded-xl px-3 text-[12px] font-medium disabled:opacity-50'
               }
             >
               {resena.aprobada ? 'Quitar' : 'Aprobar'}
@@ -281,7 +281,7 @@ function Fila({ resena, tz, puedeModerar, ocupado, onModerar, onBorrar }) {
                 type="button"
                 disabled={bloqueada}
                 onClick={() => onModerar(resena.id, { destacada: !resena.destacada })}
-                className="tight inline-flex h-7 items-center justify-center gap-1 rounded-full border border-line bg-paper px-3 text-[12px] font-medium text-ink hover:bg-cream disabled:opacity-50"
+                className="tight inline-flex h-7 items-center justify-center gap-1 rounded-xl border border-line bg-paper px-3 text-[12px] font-medium text-ink hover:bg-cream disabled:opacity-50"
               >
                 <span className="text-terracotta">★</span>
                 {resena.destacada ? 'Quitar' : 'Destacar'}
@@ -293,7 +293,7 @@ function Fila({ resena, tz, puedeModerar, ocupado, onModerar, onBorrar }) {
               disabled={bloqueada}
               aria-label={`Borrar la reseña de ${resena.autorNombre}`}
               onClick={() => setConfirmando(true)}
-              className="tight inline-flex h-7 items-center justify-center rounded-full border border-line bg-paper px-3 text-[12px] font-medium hover:bg-paper/80 disabled:opacity-50"
+              className="tight inline-flex h-7 items-center justify-center rounded-xl border border-line bg-paper px-3 text-[12px] font-medium hover:bg-paper/80 disabled:opacity-50"
               style={{ color: '#B14848' }}
             >
               Eliminar
@@ -482,8 +482,8 @@ export default function Resenas() {
               onClick={() => cambiarFiltro(f.id)}
               className={
                 activo
-                  ? 'tight rounded-full border border-terracotta bg-terracotta px-3.5 py-1.5 text-[12.5px] font-medium text-cream'
-                  : 'tight rounded-full border border-line bg-paper px-3.5 py-1.5 text-[12.5px] font-medium text-stone hover:text-ink'
+                  ? 'tight rounded-xl border border-terracotta bg-terracotta px-3.5 py-1.5 text-[12.5px] font-medium text-cream'
+                  : 'tight rounded-xl border border-line bg-paper px-3.5 py-1.5 text-[12.5px] font-medium text-stone hover:text-ink'
               }
             >
               {f.etiqueta}
@@ -504,7 +504,7 @@ export default function Resenas() {
           <button
             type="button"
             onClick={() => setIntento((n) => n + 1)}
-            className="gloss-btn tight mt-4 rounded-full px-5 py-2.5 text-[14px] font-medium"
+            className="gloss-btn tight mt-4 rounded-xl px-5 py-2.5 text-[14px] font-medium"
           >
             Reintentar
           </button>
@@ -609,7 +609,7 @@ export default function Resenas() {
                   type="button"
                   onClick={cargarMas}
                   disabled={cargandoMas}
-                  className="tight w-full rounded-full border border-line bg-paper py-3 text-[14px] font-medium text-ink disabled:opacity-60"
+                  className="tight w-full rounded-xl border border-line bg-paper py-3 text-[14px] font-medium text-ink disabled:opacity-60"
                 >
                   {cargandoMas ? 'Cargando…' : 'Cargar más'}
                 </button>

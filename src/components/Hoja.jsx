@@ -91,7 +91,7 @@ export default function Hoja({ abierta, titulo, subtitulo, onCerrar, bloqueada, 
             onClick={onCerrar}
             disabled={bloqueada}
             aria-label="Cerrar"
-            className="grid size-9 shrink-0 place-items-center rounded-full border border-line bg-paper text-stone disabled:opacity-40"
+            className="grid size-9 shrink-0 place-items-center rounded-xl border border-line bg-paper text-stone disabled:opacity-40"
           >
             <Icon.X width="16" height="16" />
           </button>

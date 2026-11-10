@@ -75,14 +75,14 @@ export default function AvisoConfigPendiente() {
           type="button"
           onClick={abrir}
           disabled={abriendo}
-          className="gloss-btn tight rounded-full px-4 py-2 text-[13.5px] font-medium disabled:opacity-60"
+          className="gloss-btn tight rounded-xl px-4 py-2 text-[13.5px] font-medium disabled:opacity-60"
         >
           {abriendo ? 'Abriendo…' : 'Abrir en la web'}
         </button>
         <button
           type="button"
           onClick={() => setOculto(true)}
-          className="tight rounded-full border border-line bg-paper px-4 py-2 text-[13.5px] font-medium text-ink"
+          className="tight rounded-xl border border-line bg-paper px-4 py-2 text-[13.5px] font-medium text-ink"
         >
           Ahora no
         </button>

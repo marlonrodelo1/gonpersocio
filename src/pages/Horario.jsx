@@ -100,7 +100,7 @@ function AvisoError({ mensaje, onReintentar }) {
       <button
         type="button"
         onClick={onReintentar}
-        className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+        className="gloss-btn tight inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13.5px] font-medium"
       >
         <Icon.Arrow width="15" height="15" />
         Reintentar
@@ -194,7 +194,7 @@ function NuevoTramo({ dia, onCreado, onCancelar }) {
           type="button"
           onClick={guardar}
           disabled={guardando}
-          className="gloss-btn tight flex-1 rounded-full px-5 py-2.5 text-[14px] font-medium disabled:opacity-60"
+          className="gloss-btn tight flex-1 rounded-xl px-5 py-2.5 text-[14px] font-medium disabled:opacity-60"
         >
           {guardando ? 'Guardando…' : `Añadir al ${dia.nombre.toLowerCase()}`}
         </button>
@@ -202,7 +202,7 @@ function NuevoTramo({ dia, onCreado, onCancelar }) {
           type="button"
           onClick={onCancelar}
           disabled={guardando}
-          className="rounded-full border border-line bg-paper px-4 py-2.5 text-[14px] font-medium text-stone disabled:opacity-50"
+          className="rounded-xl border border-line bg-paper px-4 py-2.5 text-[14px] font-medium text-stone disabled:opacity-50"
         >
           Cancelar
         </button>
@@ -226,7 +226,7 @@ function ConfirmarQuitar({ dia, tramo, quitando, onSi, onNo }) {
           type="button"
           disabled={quitando}
           onClick={onSi}
-          className="rounded-full px-4 py-2 text-[13px] font-medium disabled:opacity-60"
+          className="rounded-xl px-4 py-2 text-[13px] font-medium disabled:opacity-60"
           style={{ background: '#F1D6D6', color: '#7C2E2E' }}
         >
           {quitando ? 'Quitando…' : 'Sí, quitar'}
@@ -235,7 +235,7 @@ function ConfirmarQuitar({ dia, tramo, quitando, onSi, onNo }) {
           type="button"
           disabled={quitando}
           onClick={onNo}
-          className="rounded-full px-4 py-2 text-[13px] font-medium text-stone disabled:opacity-60"
+          className="rounded-xl px-4 py-2 text-[13px] font-medium text-stone disabled:opacity-60"
         >
           No
         </button>
@@ -437,7 +437,7 @@ export default function Horario() {
                                   setAnadiendo(null);
                                   setConfirmando(confirmando === t.id ? null : t.id);
                                 }}
-                                className="grid size-6 place-items-center rounded-full text-stone transition hover:bg-cream-2 hover:text-ink disabled:opacity-50"
+                                className="grid size-6 place-items-center rounded-xl text-stone transition hover:bg-cream-2 hover:text-ink disabled:opacity-50"
                               >
                                 <X size={13} />
                               </button>
@@ -453,7 +453,7 @@ export default function Horario() {
                               setAnadiendo(dia.diaSemana);
                             }}
                             aria-label={`Añadir un tramo al ${dia.nombre.toLowerCase()}`}
-                            className="tight inline-flex items-center gap-1 rounded-full border border-dashed border-line-2 px-3 py-1.5 text-[12.5px] font-medium text-stone transition hover:text-ink"
+                            className="tight inline-flex items-center gap-1 rounded-xl border border-dashed border-line-2 px-3 py-1.5 text-[12.5px] font-medium text-stone transition hover:text-ink"
                           >
                             <Plus size={13} />
                             Tramo
@@ -531,7 +531,8 @@ export default function Horario() {
               </p>
               <p className="mt-0.5 text-[13px] leading-relaxed text-stone">
                 Para una tarde libre, un festivo o las vacaciones no toques el
-                horario: usa Cierres.
+                horario: usa Cierres. Si esos días atiendes sin cita, ahí
+                puedes dejar un mensaje a tus clientes.
               </p>
             </div>
             <Icon.Caret

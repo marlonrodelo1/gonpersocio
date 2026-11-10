@@ -74,7 +74,7 @@ function Ranura({ ranura, elegida, ocupado, onElegir, onQuitar }) {
             disabled={ocupado}
             onClick={onQuitar}
             aria-label={`Quitar la foto de ${ranura.titulo.toLowerCase()}`}
-            className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full backdrop-blur disabled:opacity-60"
+            className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-xl backdrop-blur disabled:opacity-60"
             style={{ background: 'rgba(255,255,255,0.9)', color: '#6B6356' }}
           >
             <Icon.X width="15" height="15" />
@@ -167,7 +167,7 @@ function Comparativa({ item, puedeEditar, confirmando, borrando, onPreguntar, on
                   type="button"
                   disabled={borrando === item.id}
                   onClick={() => onBorrar(item.id)}
-                  className="tight inline-flex h-8 items-center justify-center rounded-full bg-paper px-3 text-[12.5px] font-medium disabled:opacity-60"
+                  className="tight inline-flex h-8 items-center justify-center rounded-xl bg-paper px-3 text-[12.5px] font-medium disabled:opacity-60"
                   style={{ color: '#7C2E2E' }}
                 >
                   {borrando === item.id ? 'Borrando…' : 'Sí, borrar'}
@@ -188,7 +188,7 @@ function Comparativa({ item, puedeEditar, confirmando, borrando, onPreguntar, on
               <button
                 type="button"
                 onClick={() => onPreguntar(item.id)}
-                className="tight inline-flex h-8 items-center justify-center rounded-full border border-line bg-paper px-3 text-[12.5px] font-medium transition hover:bg-cream"
+                className="tight inline-flex h-8 items-center justify-center rounded-xl border border-line bg-paper px-3 text-[12.5px] font-medium transition hover:bg-cream"
                 style={{ color: '#B14848' }}
               >
                 Eliminar
@@ -352,7 +352,7 @@ export default function AntesDespues() {
           <button
             type="button"
             onClick={refrescar}
-            className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+            className="gloss-btn tight inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13.5px] font-medium"
           >
             Reintentar
           </button>
@@ -427,7 +427,7 @@ export default function AntesDespues() {
                 type="button"
                 onClick={publicar}
                 disabled={!completo || subiendo}
-                className="gloss-btn tight inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium disabled:opacity-50"
+                className="gloss-btn tight inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14.5px] font-medium disabled:opacity-50"
               >
                 {subiendo ? (
                   'Publicando…'

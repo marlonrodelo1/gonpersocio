@@ -103,7 +103,7 @@ export default function ResetPasswordOverlay() {
           <button
             type="submit"
             disabled={cargando}
-            className="gloss-btn tight mt-1 inline-flex h-12 items-center justify-center rounded-full px-5 text-[15px] font-medium"
+            className="gloss-btn tight mt-1 inline-flex h-12 items-center justify-center rounded-xl px-5 text-[15px] font-medium"
           >
             {cargando ? 'Guardando…' : 'Guardar contraseña'}
           </button>

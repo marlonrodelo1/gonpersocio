@@ -196,7 +196,7 @@ export default function Cobros() {
           <button
             type="button"
             onClick={reintentar}
-            className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+            className="gloss-btn tight inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13.5px] font-medium"
           >
             Reintentar
           </button>
@@ -251,7 +251,7 @@ export default function Cobros() {
                       type="button"
                       onClick={configurarEnWeb}
                       disabled={abriendoWeb}
-                      className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
+                      className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-medium disabled:opacity-60"
                     >
                       <Icon.Share width="15" height="15" />
                       {abriendoWeb
@@ -264,7 +264,7 @@ export default function Cobros() {
                       type="button"
                       onClick={comprobarEstado}
                       disabled={comprobando}
-                      className="tight inline-flex items-center justify-center gap-2 rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-ink disabled:opacity-60"
+                      className="tight inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-paper px-5 py-3 text-[14px] font-medium text-ink disabled:opacity-60"
                     >
                       {comprobando ? 'Comprobando…' : 'Ya lo he hecho'}
                     </button>
@@ -303,7 +303,7 @@ export default function Cobros() {
                         setModo(o.v);
                         setAviso(null);
                       }}
-                      className={`tight flex items-start gap-3 rounded-2xl border px-4 py-3 text-left transition disabled:cursor-not-allowed ${
+                      className={`tight flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition disabled:cursor-not-allowed ${
                         elegido
                           ? 'border-ink bg-cream'
                           : 'border-line bg-paper'
@@ -361,7 +361,7 @@ export default function Cobros() {
                         setPct(p);
                         setAviso(null);
                       }}
-                      className={`tabular tight rounded-2xl border py-3 text-[14px] font-medium transition disabled:cursor-not-allowed ${
+                      className={`tabular tight rounded-xl border py-3 text-[14px] font-medium transition disabled:cursor-not-allowed ${
                         elegido
                           ? 'border-ink bg-ink text-cream'
                           : 'border-line bg-paper text-ink'
@@ -416,7 +416,7 @@ export default function Cobros() {
                 type="button"
                 onClick={guardar}
                 disabled={guardando || !hayCambios}
-                className="gloss-btn tight inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13.5px] font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                className="gloss-btn tight inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-[13.5px] font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {guardando ? 'Guardando…' : 'Guardar'}
               </button>

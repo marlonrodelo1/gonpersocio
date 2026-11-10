@@ -225,7 +225,7 @@ function TarjetaImagen({
               type="button"
               disabled={ocupado}
               onClick={() => entrada.current?.click()}
-              className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
+              className="gloss-btn tight inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-medium disabled:opacity-60"
             >
               <ImagePlus size={16} />
               {subiendo
@@ -239,7 +239,7 @@ function TarjetaImagen({
                 type="button"
                 disabled={ocupado}
                 onClick={() => setConfirmando(true)}
-                className="rounded-full border bg-paper px-4 py-3 text-[13.5px] font-medium disabled:opacity-60"
+                className="rounded-xl border bg-paper px-4 py-3 text-[13.5px] font-medium disabled:opacity-60"
                 style={{ borderColor: 'rgba(177,72,72,0.35)', color: '#7C2E2E' }}
               >
                 Quitar
@@ -259,7 +259,7 @@ function TarjetaImagen({
                   type="button"
                   disabled={quitando}
                   onClick={quitar}
-                  className="rounded-full px-4 py-2 text-[13px] font-medium disabled:opacity-60"
+                  className="rounded-xl px-4 py-2 text-[13px] font-medium disabled:opacity-60"
                   style={{ background: '#F1D6D6', color: '#7C2E2E' }}
                 >
                   {quitando ? 'Quitando…' : 'Sí, quitar'}
@@ -268,7 +268,7 @@ function TarjetaImagen({
                   type="button"
                   disabled={quitando}
                   onClick={() => setConfirmando(false)}
-                  className="rounded-full px-4 py-2 text-[13px] font-medium text-stone disabled:opacity-60"
+                  className="rounded-xl px-4 py-2 text-[13px] font-medium text-stone disabled:opacity-60"
                 >
                   No
                 </button>
@@ -439,7 +439,7 @@ function TarjetaMarketplace({ web, limites, puedeEditar, onGuardado }) {
                 type="button"
                 onClick={guardarTexto}
                 disabled={guardandoTexto}
-                className="gloss-btn tight self-start rounded-full px-5 py-2.5 text-[13.5px] font-medium disabled:opacity-60"
+                className="gloss-btn tight self-start rounded-xl px-5 py-2.5 text-[13.5px] font-medium disabled:opacity-60"
               >
                 {guardandoTexto ? 'Guardando…' : 'Guardar descripción'}
               </button>
@@ -516,7 +516,7 @@ export default function ConfigWeb() {
           <button
             type="button"
             onClick={reintentar}
-            className="gloss-btn tight rounded-full px-5 py-2.5 text-[14px] font-medium"
+            className="gloss-btn tight rounded-xl px-5 py-2.5 text-[14px] font-medium"
           >
             Reintentar
           </button>

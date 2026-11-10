@@ -268,7 +268,7 @@ export default function Clientes() {
           <button
             type="button"
             onClick={() => setIntento((n) => n + 1)}
-            className="gloss-btn tight mt-4 rounded-full px-5 py-2.5 text-[14px] font-medium"
+            className="gloss-btn tight mt-4 rounded-xl px-5 py-2.5 text-[14px] font-medium"
           >
             Reintentar
           </button>
@@ -318,7 +318,7 @@ export default function Clientes() {
               type="button"
               onClick={cargarMas}
               disabled={cargandoMas}
-              className="tight mt-3 w-full rounded-full border border-line bg-paper py-3 text-[14px] font-medium text-ink disabled:opacity-60"
+              className="tight mt-3 w-full rounded-xl border border-line bg-paper py-3 text-[14px] font-medium text-ink disabled:opacity-60"
             >
               {cargandoMas ? 'Cargando…' : 'Cargar más'}
             </button>

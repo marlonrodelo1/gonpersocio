@@ -290,7 +290,7 @@ export default function Agenda() {
     <Link
       to={`/citas/nueva?dia=${claveDeFecha(new Date(anclaMs))}`}
       aria-label="Nueva cita"
-      className="tight inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[13.5px] font-medium"
+      className="tight inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13.5px] font-medium"
       style={{ background: 'var(--chrome)', color: 'var(--on-chrome)' }}
     >
       <Icon.Plus width="15" height="15" />
@@ -342,7 +342,7 @@ export default function Agenda() {
                   type="button"
                   aria-pressed={vista === valor}
                   onClick={() => actualizar({ vista: valor === 'dia' ? null : valor })}
-                  className={`tight flex-1 rounded-full px-3 py-1.5 text-[13.5px] ${
+                  className={`tight flex-1 rounded-xl px-3 py-1.5 text-[13.5px] ${
                     vista === valor
                       ? 'bg-ink font-medium text-cream'
                       : 'text-stone'
@@ -420,7 +420,7 @@ export default function Agenda() {
             <button
               type="button"
               onClick={() => setIntento((n) => n + 1)}
-              className="gloss-btn tight mt-4 rounded-full px-5 py-2.5 text-[13.5px]"
+              className="gloss-btn tight mt-4 rounded-xl px-5 py-2.5 text-[13.5px]"
             >
               Reintentar
             </button>
@@ -480,7 +480,7 @@ function ChipsEquipo({ equipo, activo, miId, onElegir }) {
             type="button"
             aria-pressed={elegido}
             onClick={() => onElegir(p.id)}
-            className="tight inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13.5px] transition"
+            className="tight inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3.5 py-2 text-[13.5px] transition"
             style={
               elegido
                 ? { background: 'var(--ink)', borderColor: 'var(--ink)', color: 'var(--paper)' }
@@ -597,7 +597,7 @@ function TarjetaCita({ cita, timezone }) {
     <Link
       to={`/citas/${cita.id}`}
       aria-label={`Abrir la cita de ${cita.cliente?.nombre ?? 'cliente'} a las ${horaEn(cita.inicio, timezone)}`}
-      className="block rounded-2xl border border-line p-3.5 transition active:brightness-95"
+      className="block rounded-xl border border-line p-3.5 transition active:brightness-95"
       style={estiloCitaProfesional(colorBarbero)}
     >
       <div className="flex items-baseline justify-between gap-3">

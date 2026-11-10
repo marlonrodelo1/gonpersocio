@@ -71,7 +71,7 @@ export default function CalendarioMes({
             onClick={() => onCambiarMes((o) => Math.max(0, o - 1))}
             disabled={mesOffset === 0}
             aria-label="Mes anterior"
-            className="flex size-9 items-center justify-center rounded-full border border-line bg-paper text-ink disabled:opacity-30"
+            className="flex size-9 items-center justify-center rounded-xl border border-line bg-paper text-ink disabled:opacity-30"
           >
             ←
           </button>
@@ -79,7 +79,7 @@ export default function CalendarioMes({
             type="button"
             onClick={() => onCambiarMes((o) => o + 1)}
             aria-label="Mes siguiente"
-            className="flex size-9 items-center justify-center rounded-full border border-line bg-paper text-ink"
+            className="flex size-9 items-center justify-center rounded-xl border border-line bg-paper text-ink"
           >
             →
           </button>

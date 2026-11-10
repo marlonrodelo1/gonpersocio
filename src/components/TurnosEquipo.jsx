@@ -13,7 +13,6 @@ import {
   letraDia,
   ordenarTramos,
   textoTramos,
-  tramoCorto,
   tramoPropuesto,
 } from '../lib/tramos';
 import { diaEnZona, diaLargo, diaSemana, sumarDias } from '../lib/zona';
@@ -120,7 +119,7 @@ function EditorTramos({ idBase, tramos, onCambiar, disabled }) {
               disabled={disabled}
               onClick={() => onCambiar(tramos.filter((_, j) => j !== i))}
               aria-label={`Quitar el tramo ${i + 1}`}
-              className="grid size-9 shrink-0 place-items-center rounded-full text-stone transition hover:bg-cream-2 hover:text-ink disabled:opacity-50"
+              className="grid size-9 shrink-0 place-items-center rounded-xl text-stone transition hover:bg-cream-2 hover:text-ink disabled:opacity-50"
             >
               <X size={15} />
             </button>
@@ -134,7 +133,7 @@ function EditorTramos({ idBase, tramos, onCambiar, disabled }) {
           type="button"
           disabled={disabled}
           onClick={() => onCambiar([...tramos, tramoPropuesto(tramos)])}
-          className="tight inline-flex w-fit items-center gap-1 rounded-full border border-dashed border-line-2 px-3 py-1.5 text-[12.5px] font-medium text-stone transition hover:text-ink disabled:opacity-50"
+          className="tight inline-flex w-fit items-center gap-1 rounded-xl border border-dashed border-line-2 px-3 py-1.5 text-[12.5px] font-medium text-stone transition hover:text-ink disabled:opacity-50"
         >
           <Plus size={13} />
           Tramo
@@ -185,7 +184,7 @@ function ChipsSemana({ semana, fechas, fija, hoyLocal, onCambiar, disabled }) {
                   elegido ? fechas.filter((f) => f !== d.fecha) : [...fechas, d.fecha],
                 );
               }}
-              className="tight aspect-square rounded-full border text-[13.5px] font-medium transition"
+              className="tight aspect-square rounded-xl border text-[13.5px] font-medium transition"
               style={
                 elegido
                   ? { background: 'var(--ink)', borderColor: 'var(--ink)', color: 'var(--paper)' }
@@ -216,7 +215,7 @@ function PieRevision({ ocupado, textoGuardar, onGuardar, onVolver }) {
         type="button"
         onClick={onGuardar}
         disabled={ocupado}
-        className="gloss-btn tight flex-1 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
+        className="gloss-btn tight flex-1 rounded-xl px-5 py-3 text-[14px] font-medium disabled:opacity-60"
       >
         {ocupado ? 'Guardando…' : textoGuardar}
       </button>
@@ -224,7 +223,7 @@ function PieRevision({ ocupado, textoGuardar, onGuardar, onVolver }) {
         type="button"
         onClick={onVolver}
         disabled={ocupado}
-        className="rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
+        className="rounded-xl border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
       >
         Volver
       </button>
@@ -470,7 +469,7 @@ function EditorTurnoDia({ prof, dia, semana, hoyLocal, onCerrar, onGuardado }) {
               type="button"
               onClick={() => preparar('cambio')}
               disabled={ocupado || !modo}
-              className="gloss-btn tight rounded-full px-5 py-3.5 text-[14.5px] font-medium disabled:opacity-50"
+              className="gloss-btn tight rounded-xl px-5 py-3.5 text-[14.5px] font-medium disabled:opacity-50"
             >
               {ocupado ? 'Comprobando…' : 'Guardar'}
             </button>
@@ -479,7 +478,7 @@ function EditorTurnoDia({ prof, dia, semana, hoyLocal, onCerrar, onGuardado }) {
                 type="button"
                 onClick={() => preparar('volver')}
                 disabled={ocupado}
-                className="card-tight tight rounded-full px-5 py-3 text-[14px] font-medium text-ink disabled:opacity-50"
+                className="card-tight tight rounded-xl px-5 py-3 text-[14px] font-medium text-ink disabled:opacity-50"
               >
                 Volver a su horario habitual
               </button>
@@ -652,7 +651,7 @@ function EditorHorarioHabitual({ prof, onCerrar, onGuardado }) {
           <button
             type="button"
             onClick={() => setIntento((n) => n + 1)}
-            className="gloss-btn tight rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+            className="gloss-btn tight rounded-xl px-5 py-2.5 text-[13.5px] font-medium"
           >
             Reintentar
           </button>
@@ -749,7 +748,7 @@ function EditorHorarioHabitual({ prof, onCerrar, onGuardado }) {
               type="button"
               onClick={() => preparar('semana')}
               disabled={ocupado || !tocado}
-              className="gloss-btn tight rounded-full px-5 py-3.5 text-[14.5px] font-medium disabled:opacity-50"
+              className="gloss-btn tight rounded-xl px-5 py-3.5 text-[14.5px] font-medium disabled:opacity-50"
             >
               {ocupado ? 'Comprobando…' : 'Guardar horario'}
             </button>
@@ -758,7 +757,7 @@ function EditorHorarioHabitual({ prof, onCerrar, onGuardado }) {
                 type="button"
                 onClick={() => preparar('salon')}
                 disabled={ocupado}
-                className="card-tight tight rounded-full px-5 py-3 text-[14px] font-medium text-ink disabled:opacity-50"
+                className="card-tight tight rounded-xl px-5 py-3 text-[14px] font-medium text-ink disabled:opacity-50"
               >
                 Que trabaje todo el horario del salón
               </button>
@@ -778,44 +777,87 @@ function EditorHorarioHabitual({ prof, onCerrar, onGuardado }) {
  * Rejilla de la semana
  * ------------------------------------------------------------------------ */
 
-function CeldaTurno({ prof, dia, pasado, onTocar }) {
+/**
+ * Una fila por barbero para el DÍA elegido. Antes era una rejilla de 7
+ * columnas por barbero: en un móvil cada celda medía ~39 px y un turno partido
+ * ("10:30–14:30 15:30–19") se rompía en tres líneas ilegibles. Ahora se elige
+ * el día arriba y el horario sale entero, en una línea.
+ */
+function FilaTurno({ prof, dia, pasado, onTocar, onHabitual }) {
   const esCambio = dia.origen === 'fecha';
   const libra = dia.tramos.length === 0;
   const texto = libra
     ? dia.salon.length === 0
-      ? 'Cerrado'
+      ? 'El salón cierra'
       : 'Libra'
-    : textoTramos(dia.tramos);
-
-  const estilo = esCambio
-    ? {
-        background: 'rgba(197,142,44,0.16)',
-        borderColor: 'rgba(197,142,44,0.55)',
-        color: '#7A5A1B',
-      }
-    : libra
-      ? { background: 'var(--cream-2)', borderColor: 'var(--line)', color: 'var(--stone-2)' }
-      : { background: 'var(--paper)', borderColor: 'var(--line)', color: 'var(--ink)' };
+    : dia.tramos.map((t) => `${t.inicio}–${t.fin}`).join(' · ');
 
   return (
-    <button
-      type="button"
-      disabled={pasado}
-      onClick={onTocar}
-      title={esCambio && dia.cambio?.motivo ? dia.cambio.motivo : undefined}
-      aria-label={`${prof.nombre}, ${diaLargo(dia.fecha)}: ${texto}${
-        esCambio ? ' (cambio solo para ese día)' : ''
-      }`}
-      className="tabular flex min-h-[48px] flex-col items-center justify-center gap-0.5 break-words rounded-lg border px-0.5 py-1.5 text-center text-[10px] leading-[1.15] transition"
-      style={{ ...estilo, opacity: pasado ? 0.45 : 1 }}
+    <li
+      className="flex items-center gap-2 rounded-2xl border px-3 py-2.5"
+      style={
+        esCambio
+          ? { background: 'rgba(197,142,44,0.10)', borderColor: 'rgba(197,142,44,0.45)' }
+          : { background: 'var(--paper)', borderColor: 'var(--line)' }
+      }
     >
-      {libra ? (
-        <span>{texto}</span>
-      ) : (
-        dia.tramos.slice(0, 2).map((t) => <span key={t.inicio}>{tramoCorto(t)}</span>)
-      )}
-      {!libra && dia.tramos.length > 2 ? <span>+{dia.tramos.length - 2}</span> : null}
-    </button>
+      <button
+        type="button"
+        disabled={pasado}
+        onClick={onTocar}
+        aria-label={`${prof.nombre}, ${diaLargo(dia.fecha)}: ${
+          libra ? texto : textoTramos(dia.tramos)
+        }${esCambio ? ' (cambio solo para ese día)' : ''}. Cambiar`}
+        className="flex min-w-0 flex-1 items-center gap-2.5 text-left disabled:cursor-default"
+      >
+        <span
+          aria-hidden
+          className="size-2.5 shrink-0 rounded-full"
+          style={{ background: colorProfesional(prof.color) }}
+        />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="flex items-center gap-1.5">
+            <span className="tight truncate text-[14.5px] font-medium text-ink">
+              {prof.nombre}
+            </span>
+            {esCambio ? (
+              <span
+                className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em]"
+                style={{ background: 'rgba(197,142,44,0.18)', color: '#7A5A1B' }}
+              >
+                Cambio
+              </span>
+            ) : null}
+          </span>
+          <span
+            className="tabular text-[13px] leading-snug"
+            style={{ color: libra ? 'var(--stone-2)' : 'var(--ink)' }}
+          >
+            {/* Cada tramo entero: si no cabe, salta de línea ENTRE tramos y
+                nunca a mitad de "15:30–19:00". */}
+            {libra
+              ? texto
+              : dia.tramos.map((t, i) => (
+                  <span key={t.inicio} className="whitespace-nowrap">
+                    {i > 0 ? ' · ' : ''}
+                    {t.inicio}–{t.fin}
+                  </span>
+                ))}
+          </span>
+          {esCambio && dia.cambio?.motivo ? (
+            <span className="truncate text-[11.5px] text-stone">{dia.cambio.motivo}</span>
+          ) : null}
+        </span>
+        {pasado ? null : <ChevronRight size={16} aria-hidden className="shrink-0 text-stone/60" />}
+      </button>
+      <button
+        type="button"
+        onClick={onHabitual}
+        className="tight shrink-0 rounded-xl border border-line bg-cream px-2.5 py-1 text-[11.5px] font-medium text-stone transition hover:text-ink"
+      >
+        Habitual
+      </button>
+    </li>
   );
 }
 
@@ -828,6 +870,8 @@ export default function TurnosEquipo({ timezone }) {
   // { tipo: 'dia', prof, dia, semana } | { tipo: 'habitual', prof } | null
   const [abierto, setAbierto] = useState(null);
   const [aviso, setAviso] = useState(null);
+  // Día que se está mirando. null = el que toca por defecto (ver diaVisto).
+  const [diaElegido, setDiaElegido] = useState(null);
 
   // La respuesta se guarda con la petición a la que pertenece: "cargando" se
   // deduce comparándolas, sin setState síncrono en el efecto.
@@ -858,6 +902,7 @@ export default function TurnosEquipo({ timezone }) {
 
   const mover = (semanas) => {
     setAviso(null);
+    setDiaElegido(null);
     setDesde((d) => sumarDias(d, semanas * 7));
   };
 
@@ -868,6 +913,14 @@ export default function TurnosEquipo({ timezone }) {
   };
 
   const fechas = datos?.fechas ?? [];
+  // Por defecto: hoy si está en la semana que se mira; si no, el lunes. Se
+  // deduce en cada render (sin efecto) para que al cambiar de semana no quede
+  // elegido un día que ya no está en pantalla.
+  const diaVisto = fechas.some((f) => f.fecha === diaElegido)
+    ? diaElegido
+    : fechas.some((f) => f.fecha === hoyLocal)
+      ? hoyLocal
+      : (fechas[0]?.fecha ?? null);
 
   return (
     <section className="card flex flex-col gap-4 p-4 sm:p-5">
@@ -875,8 +928,8 @@ export default function TurnosEquipo({ timezone }) {
         <span className="text-[11px] uppercase tracking-[0.22em] text-stone/70">Equipo</span>
         <h2 className="tight text-[20px] font-medium text-ink">Turnos del equipo</h2>
         <p className="text-[13px] leading-relaxed text-stone">
-          Lo que trabaja cada uno esta semana. Toca un día para darle el día
-          libre o cambiarle las horas.
+          Elige un día y verás lo que trabaja cada uno. Toca a un barbero para
+          darle el día libre o cambiarle las horas.
         </p>
       </header>
 
@@ -906,6 +959,7 @@ export default function TurnosEquipo({ timezone }) {
             type="button"
             onClick={() => {
               setAviso(null);
+              setDiaElegido(null);
               setDesde(lunesActual);
             }}
             className="card-tight tight shrink-0 px-3 py-2 text-[12.5px] text-ink"
@@ -925,7 +979,7 @@ export default function TurnosEquipo({ timezone }) {
           <button
             type="button"
             onClick={() => setIntento((n) => n + 1)}
-            className="gloss-btn tight rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+            className="gloss-btn tight rounded-xl px-5 py-2.5 text-[13.5px] font-medium"
           >
             Reintentar
           </button>
@@ -946,89 +1000,82 @@ export default function TurnosEquipo({ timezone }) {
           style={{ opacity: recargando ? 0.55 : 1 }}
           aria-busy={recargando}
         >
-          <div className="grid grid-cols-7 gap-1">
+          {/* Primero el día, luego el equipo: así cada horario cabe entero. */}
+          <div className="grid grid-cols-7 gap-1" role="tablist" aria-label="Día de la semana">
             {fechas.map((f) => {
               const esHoy = f.fecha === hoyLocal;
+              const elegido = f.fecha === diaVisto;
+              const hayCambio = (datos.profesionales ?? []).some((p) =>
+                (p.dias ?? []).some((d) => d.fecha === f.fecha && d.origen === 'fecha'),
+              );
               return (
-                <div key={f.fecha} className="flex flex-col items-center gap-0.5">
-                  <span className="text-[10px] uppercase tracking-[0.14em] text-stone/70">
+                <button
+                  key={f.fecha}
+                  type="button"
+                  role="tab"
+                  aria-selected={elegido}
+                  aria-label={diaLargo(f.fecha)}
+                  onClick={() => setDiaElegido(f.fecha)}
+                  className="flex flex-col items-center gap-0.5 rounded-xl py-1.5 transition"
+                  style={
+                    elegido
+                      ? { background: 'var(--ink)', color: 'var(--paper)' }
+                      : { color: f.fecha < hoyLocal ? 'var(--stone-2)' : 'var(--ink)' }
+                  }
+                >
+                  <span className="text-[10px] uppercase tracking-[0.14em] opacity-75">
                     {letraDia(f.diaSemana)}
                   </span>
-                  <span
-                    className="tabular grid size-6 place-items-center rounded-full text-[12px] font-medium"
-                    style={
-                      esHoy
-                        ? { background: 'var(--ink)', color: 'var(--paper)' }
-                        : { color: f.fecha < hoyLocal ? 'var(--stone-2)' : 'var(--ink)' }
-                    }
-                  >
+                  <span className="tabular text-[14px] font-medium leading-none">
                     {Number(f.fecha.slice(8))}
                   </span>
-                </div>
+                  <span
+                    aria-hidden
+                    className="size-1 rounded-full"
+                    style={{
+                      background: hayCambio
+                        ? '#C58E2C'
+                        : esHoy && !elegido
+                          ? 'var(--ink)'
+                          : 'transparent',
+                    }}
+                  />
+                </button>
               );
             })}
           </div>
 
-          <ul className="flex flex-col gap-3">
+          <p className="tight px-1 text-[13.5px] font-medium text-ink">
+            {diaVisto ? diaLargo(diaVisto) : ''}
+            {diaVisto && diaVisto < hoyLocal ? (
+              <span className="font-normal text-stone"> · ya pasó</span>
+            ) : null}
+          </p>
+
+          <ul className="flex flex-col gap-2">
             {datos.profesionales.map((p) => {
               const porFecha = Object.fromEntries((p.dias ?? []).map((d) => [d.fecha, d]));
               const semana = fechas.map((f) => porFecha[f.fecha]).filter(Boolean);
+              const dia = porFecha[diaVisto];
+              if (!dia) return null;
               return (
-                <li key={p.id} className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2 px-0.5">
-                    <span
-                      aria-hidden
-                      className="size-2.5 shrink-0 rounded-full"
-                      style={{ background: colorProfesional(p.color) }}
-                    />
-                    <span className="tight min-w-0 flex-1 truncate text-[14px] font-medium text-ink">
-                      {p.nombre}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setAbierto({ tipo: 'habitual', prof: p })}
-                      className="tight shrink-0 rounded-full border border-line bg-paper px-3 py-1.5 text-[12px] font-medium text-stone transition hover:text-ink"
-                    >
-                      Horario habitual
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1">
-                    {fechas.map((f) => {
-                      const dia = porFecha[f.fecha];
-                      if (!dia) return <span key={f.fecha} />;
-                      return (
-                        <CeldaTurno
-                          key={f.fecha}
-                          prof={p}
-                          dia={dia}
-                          pasado={dia.fecha < hoyLocal}
-                          onTocar={() => setAbierto({ tipo: 'dia', prof: p, dia, semana })}
-                        />
-                      );
-                    })}
-                  </div>
-                </li>
+                <FilaTurno
+                  key={p.id}
+                  prof={p}
+                  dia={dia}
+                  pasado={dia.fecha < hoyLocal}
+                  onTocar={() => setAbierto({ tipo: 'dia', prof: p, dia, semana })}
+                  onHabitual={() => setAbierto({ tipo: 'habitual', prof: p })}
+                />
               );
             })}
           </ul>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 text-[11.5px] text-stone">
-            <span className="flex items-center gap-1.5">
-              <span
-                aria-hidden
-                className="size-2.5 rounded-sm border"
-                style={{
-                  background: 'rgba(197,142,44,0.16)',
-                  borderColor: 'rgba(197,142,44,0.55)',
-                }}
-              />
-              Cambio solo ese día
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span aria-hidden className="size-2.5 rounded-sm border border-line bg-cream-2" />
-              Libra
-            </span>
-          </div>
+          <p className="px-1 text-[11.5px] leading-relaxed text-stone">
+            Toca a un barbero para cambiar su turno solo ese día. «Habitual» es el
+            horario que se repite cada semana. El punto dorado marca los días con
+            algún cambio.
+          </p>
         </div>
       )}
 

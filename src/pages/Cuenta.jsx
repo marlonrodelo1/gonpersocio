@@ -117,7 +117,7 @@ function CambiarPassword() {
             setHecho(false);
             setAbierto(true);
           }}
-          className="tight inline-flex items-center gap-2 self-start rounded-full border border-line bg-paper px-4 py-2 text-[13.5px] font-medium text-ink transition hover:border-line-2"
+          className="tight inline-flex items-center gap-2 self-start rounded-xl border border-line bg-paper px-4 py-2 text-[13.5px] font-medium text-ink transition hover:border-line-2"
         >
           Cambiar contraseña
         </button>
@@ -165,7 +165,7 @@ function CambiarPassword() {
             <button
               type="submit"
               disabled={guardando}
-              className="gloss-btn tight flex-1 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
+              className="gloss-btn tight flex-1 rounded-xl px-5 py-3 text-[14px] font-medium disabled:opacity-60"
             >
               {guardando ? 'Guardando…' : 'Guardar contraseña'}
             </button>
@@ -173,7 +173,7 @@ function CambiarPassword() {
               type="button"
               onClick={cerrar}
               disabled={guardando}
-              className="rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
+              className="rounded-xl border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
             >
               Cancelar
             </button>
@@ -522,7 +522,7 @@ export default function Cuenta() {
               <button
                 type="button"
                 onClick={() => abrirExterno(`mailto:${EMAIL_SOPORTE}`)}
-                className="gloss-btn tight flex w-full items-center justify-center gap-2 rounded-full py-3 text-[14.5px] font-medium"
+                className="gloss-btn tight flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[14.5px] font-medium"
               >
                 <Icon.Send width="16" height="16" aria-hidden />
                 Escribir a soporte
@@ -550,7 +550,7 @@ export default function Cuenta() {
             type="button"
             onClick={salir}
             disabled={saliendo}
-            className="tight inline-flex items-center gap-2 self-start rounded-full border px-4 py-2 text-[13.5px] font-medium transition disabled:opacity-60"
+            className="tight inline-flex items-center gap-2 self-start rounded-xl border px-4 py-2 text-[13.5px] font-medium transition disabled:opacity-60"
             style={{
               borderColor: 'rgba(177,72,72,0.4)',
               color: '#7C2E2E',
@@ -581,7 +581,7 @@ export default function Cuenta() {
           <button
             type="button"
             onClick={() => abrirExterno(`mailto:${EMAIL_SOPORTE}`)}
-            className="tight inline-flex items-center gap-2 self-start rounded-full border border-line bg-paper px-4 py-2 text-[13.5px] font-medium text-ink transition hover:border-line-2"
+            className="tight inline-flex items-center gap-2 self-start rounded-xl border border-line bg-paper px-4 py-2 text-[13.5px] font-medium text-ink transition hover:border-line-2"
           >
             <Icon.Send width="15" height="15" aria-hidden />
             Escribir a soporte
@@ -636,7 +636,7 @@ export default function Cuenta() {
             <button
               type="button"
               onClick={() => setBorrando(true)}
-              className="tight inline-flex items-center gap-2 self-start rounded-full border px-4 py-2 text-[13.5px] font-medium transition"
+              className="tight inline-flex items-center gap-2 self-start rounded-xl border px-4 py-2 text-[13.5px] font-medium transition"
               style={{
                 borderColor: 'rgba(177,72,72,0.4)',
                 color: '#7C2E2E',
@@ -673,7 +673,7 @@ export default function Cuenta() {
                   disabled={
                     borrandoEnCurso || textoBorrado.trim().toUpperCase() !== 'ELIMINAR'
                   }
-                  className="tight inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-medium transition disabled:opacity-50"
+                  className="tight inline-flex items-center gap-2 rounded-xl px-4 py-2 text-[13.5px] font-medium transition disabled:opacity-50"
                   style={{
                     borderColor: 'rgba(177,72,72,0.4)',
                     color: '#7C2E2E',
@@ -690,7 +690,7 @@ export default function Cuenta() {
                     setErrorBorrado(null);
                   }}
                   disabled={borrandoEnCurso}
-                  className="tight inline-flex items-center gap-2 rounded-full border border-line bg-paper px-4 py-2 text-[13.5px] font-medium text-ink transition disabled:opacity-50"
+                  className="tight inline-flex items-center gap-2 rounded-xl border border-line bg-paper px-4 py-2 text-[13.5px] font-medium text-ink transition disabled:opacity-50"
                 >
                   Cancelar
                 </button>

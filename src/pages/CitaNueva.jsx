@@ -108,7 +108,7 @@ function AvisoError({ titulo, mensaje, onReintentar }) {
         <button
           type="button"
           onClick={onReintentar}
-          className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+          className="gloss-btn tight inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13.5px] font-medium"
         >
           Reintentar
         </button>
@@ -658,7 +658,7 @@ export default function CitaNueva() {
     <button
       type="button"
       onClick={atras}
-      className="card-tight tight inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-[13px] font-medium text-ink"
+      className="card-tight tight inline-flex h-10 shrink-0 items-center gap-2 rounded-xl px-4 text-[13px] font-medium text-ink"
     >
       <Icon.Arrow width="14" height="14" style={{ transform: 'rotate(180deg)' }} />
       {atrasSale ? 'Salir' : 'Atrás'}
@@ -728,7 +728,7 @@ export default function CitaNueva() {
                   <button
                     type="button"
                     onClick={() => setCliente(null)}
-                    className="shrink-0 rounded-full border border-line bg-paper px-3.5 py-2 text-[13px] font-medium text-stone"
+                    className="shrink-0 rounded-xl border border-line bg-paper px-3.5 py-2 text-[13px] font-medium text-stone"
                   >
                     Cambiar
                   </button>
@@ -821,7 +821,7 @@ export default function CitaNueva() {
                       type="button"
                       onClick={crearFicha}
                       disabled={guardandoFicha || !fichaCompletable}
-                      className="gloss-btn tight flex-1 rounded-full px-5 py-3 text-[14px] font-medium disabled:opacity-60"
+                      className="gloss-btn tight flex-1 rounded-xl px-5 py-3 text-[14px] font-medium disabled:opacity-60"
                     >
                       {guardandoFicha ? 'Guardando…' : 'Guardar ficha'}
                     </button>
@@ -833,7 +833,7 @@ export default function CitaNueva() {
                           setErrorFicha(null);
                         }}
                         disabled={guardandoFicha}
-                        className="rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone"
+                        className="rounded-xl border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone"
                       >
                         Cancelar
                       </button>
@@ -1319,7 +1319,7 @@ export default function CitaNueva() {
                     <button
                       type="button"
                       onClick={reintentarHueco}
-                      className="rounded-full bg-paper px-4 py-2 text-[13px] font-medium text-ink"
+                      className="rounded-xl bg-paper px-4 py-2 text-[13px] font-medium text-ink"
                     >
                       Elegir otra hora
                     </button>
@@ -1336,7 +1336,7 @@ export default function CitaNueva() {
                 type="button"
                 onClick={atras}
                 disabled={enviando}
-                className="card-tight tight inline-flex shrink-0 items-center gap-2 rounded-full px-5 py-3.5 text-[15px] font-medium text-ink disabled:opacity-45"
+                className="card-tight tight inline-flex shrink-0 items-center gap-2 rounded-xl px-5 py-3.5 text-[15px] font-medium text-ink disabled:opacity-45"
               >
                 <Icon.Arrow
                   width="15"
@@ -1351,7 +1351,7 @@ export default function CitaNueva() {
                 type="button"
                 onClick={seguir}
                 disabled={!puedeSeguir}
-                className="gloss-btn tight flex-1 rounded-full px-5 py-3.5 text-[15px] font-medium disabled:opacity-45"
+                className="gloss-btn tight flex-1 rounded-xl px-5 py-3.5 text-[15px] font-medium disabled:opacity-45"
               >
                 {volverAResumen && todoCompleto ? 'Volver al resumen' : 'Continuar'}
               </button>
@@ -1360,7 +1360,7 @@ export default function CitaNueva() {
                 type="button"
                 onClick={crear}
                 disabled={enviando}
-                className="gloss-btn tight flex-1 rounded-full px-5 py-3.5 text-[15px] font-medium disabled:opacity-60"
+                className="gloss-btn tight flex-1 rounded-xl px-5 py-3.5 text-[15px] font-medium disabled:opacity-60"
               >
                 {enviando ? 'Creando…' : 'Crear cita'}
               </button>

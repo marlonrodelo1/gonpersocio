@@ -107,7 +107,7 @@ function AvisoError({ mensaje, onReintentar }) {
       <button
         type="button"
         onClick={onReintentar}
-        className="gloss-btn tight mt-4 rounded-full px-5 py-2.5 text-[14px] font-medium"
+        className="gloss-btn tight mt-4 rounded-xl px-5 py-2.5 text-[14px] font-medium"
       >
         Reintentar
       </button>
@@ -208,7 +208,7 @@ function Ajuste({ etiqueta, ayuda, valor, opciones, onChange, editable, nota, ex
                 // Cuerpo ajustado para que la etiqueta más larga de todas
                 // ("30 min antes") entre en una línea a 375 px. Con una sola
                 // que parta en dos, la rejilla engorda esa fila entera.
-                className="rounded-full border px-1.5 py-2.5 text-center text-[12.5px] font-medium transition"
+                className="rounded-xl border px-1.5 py-2.5 text-center text-[12.5px] font-medium transition"
                 style={
                   elegida
                     ? {
@@ -614,7 +614,7 @@ export default function ConfigReservas() {
                 type="button"
                 onClick={guardar}
                 disabled={guardando}
-                className="gloss-btn tight rounded-full px-5 py-3.5 text-[15px] font-medium disabled:opacity-60"
+                className="gloss-btn tight rounded-xl px-5 py-3.5 text-[15px] font-medium disabled:opacity-60"
               >
                 {guardando ? 'Guardando…' : 'Guardar cambios'}
               </button>

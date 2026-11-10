@@ -100,7 +100,7 @@ function Pastillas({ valor, onCambio }) {
             aria-selected={activo}
             onClick={() => onCambio(p.valor)}
             className={
-              'tight flex-1 rounded-full px-3 py-2 text-[13px] font-medium transition ' +
+              'tight flex-1 rounded-xl px-3 py-2 text-[13px] font-medium transition ' +
               (activo ? 'bg-ink text-cream' : 'text-stone hover:text-ink')
             }
           >
@@ -393,7 +393,7 @@ export default function Numeros() {
             <button
               type="button"
               onClick={() => setIntento((n) => n + 1)}
-              className="gloss-btn tight mt-4 rounded-full px-5 py-2.5 text-[14px] font-medium"
+              className="gloss-btn tight mt-4 rounded-xl px-5 py-2.5 text-[14px] font-medium"
             >
               Reintentar
             </button>

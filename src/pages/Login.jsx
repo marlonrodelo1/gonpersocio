@@ -214,7 +214,7 @@ export default function Login() {
             <button
               type="button"
               onClick={() => cambiarModo('entrar')}
-              className={`flex-1 rounded-full px-4 py-2.5 text-[13.5px] font-medium transition ${
+              className={`flex-1 rounded-xl px-4 py-2.5 text-[13.5px] font-medium transition ${
                 modo === 'entrar' ? 'gloss-btn tight' : 'text-stone'
               }`}
             >
@@ -223,7 +223,7 @@ export default function Login() {
             <button
               type="button"
               onClick={() => cambiarModo('registro')}
-              className={`flex-1 rounded-full px-4 py-2.5 text-[13.5px] font-medium transition ${
+              className={`flex-1 rounded-xl px-4 py-2.5 text-[13.5px] font-medium transition ${
                 modo === 'registro' ? 'gloss-btn tight' : 'text-stone'
               }`}
             >
@@ -248,7 +248,7 @@ export default function Login() {
               type="button"
               onClick={() => onSocial(entrarConApple)}
               disabled={cargando}
-              className="tight inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-full bg-ink px-4 text-[14px] font-medium text-paper disabled:opacity-60"
+              className="tight inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-xl bg-ink px-4 text-[14px] font-medium text-paper disabled:opacity-60"
             >
               <AppleIcon />
               Continuar con Apple
@@ -257,7 +257,7 @@ export default function Login() {
               type="button"
               onClick={() => onSocial(entrarConGoogle)}
               disabled={cargando}
-              className="tight inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-full border border-line bg-paper px-4 text-[14px] font-medium text-ink disabled:opacity-60"
+              className="tight inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-line bg-paper px-4 text-[14px] font-medium text-ink disabled:opacity-60"
             >
               <GoogleIcon />
               Continuar con Google
@@ -320,7 +320,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={cargando}
-              className="gloss-btn tight mt-1 inline-flex h-12 items-center justify-center rounded-full px-5 text-[15px] font-medium"
+              className="gloss-btn tight mt-1 inline-flex h-12 items-center justify-center rounded-xl px-5 text-[15px] font-medium"
             >
               {cargando ? 'Entrando…' : 'Entrar'}
             </button>
@@ -401,7 +401,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={cargando}
-              className="gloss-btn tight mt-1 inline-flex h-12 items-center justify-center rounded-full px-5 text-[15px] font-medium"
+              className="gloss-btn tight mt-1 inline-flex h-12 items-center justify-center rounded-xl px-5 text-[15px] font-medium"
             >
               {cargando ? 'Creando…' : 'Crear cuenta y salón'}
             </button>
@@ -423,7 +423,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={cargando}
-              className="gloss-btn tight mt-1 inline-flex h-12 items-center justify-center rounded-full px-5 text-[15px] font-medium"
+              className="gloss-btn tight mt-1 inline-flex h-12 items-center justify-center rounded-xl px-5 text-[15px] font-medium"
             >
               {cargando ? 'Enviando…' : 'Enviar enlace'}
             </button>

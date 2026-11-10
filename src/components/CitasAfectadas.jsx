@@ -27,7 +27,7 @@ function BotonLlamar({ telefono }) {
   return (
     <a
       href={hrefLlamar(telefono)}
-      className="gloss-btn tight inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-[13.5px] font-medium"
+      className="gloss-btn tight inline-flex w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-[13.5px] font-medium"
     >
       <Icon.Phone width="15" height="15" />
       Llamar
@@ -119,7 +119,7 @@ function Tarjeta({ cita, nombreActual }) {
             type="button"
             onClick={pasar}
             disabled={decision?.estado === 'pasando'}
-            className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[13.5px] font-medium disabled:opacity-60"
+            className="gloss-btn tight inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13.5px] font-medium disabled:opacity-60"
           >
             <span
               aria-hidden
@@ -137,7 +137,7 @@ function Tarjeta({ cita, nombreActual }) {
               setDecision({ estado: 'mantener' });
             }}
             disabled={decision?.estado === 'pasando'}
-            className="rounded-full border border-line bg-paper px-4 py-2.5 text-[13.5px] font-medium text-stone disabled:opacity-60"
+            className="rounded-xl border border-line bg-paper px-4 py-2.5 text-[13.5px] font-medium text-stone disabled:opacity-60"
           >
             Mantener
           </button>

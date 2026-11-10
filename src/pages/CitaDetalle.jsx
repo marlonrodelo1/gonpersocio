@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import Pantalla from '../components/Pantalla';
 import Hoja from '../components/Hoja';
+import EditarCliente from '../components/EditarCliente';
 import CalendarioMes from '../components/CalendarioMes';
 import RejillaHuecos from '../components/RejillaHuecos';
 import { Icon } from '../components/icons';
@@ -312,7 +313,7 @@ function Fallo({ mensaje, onReintentar }) {
       <button
         type="button"
         onClick={onReintentar}
-        className="gloss-btn tight w-fit rounded-full px-5 py-3 text-[14px] font-medium"
+        className="gloss-btn tight w-fit rounded-xl px-5 py-3 text-[14px] font-medium"
       >
         Reintentar
       </button>
@@ -332,7 +333,7 @@ function BotonLlamar({ telefono }) {
   return (
     <a
       href={hrefLlamar(telefono)}
-      className="gloss-btn tight inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-[13.5px] font-medium"
+      className="gloss-btn tight inline-flex w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-[13.5px] font-medium"
     >
       <Icon.Phone width="15" height="15" />
       Llamar
@@ -361,7 +362,7 @@ function AvisoFicha({ aviso, telefono, onCerrar }) {
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar aviso"
-            className="-mr-1 -mt-0.5 grid size-7 shrink-0 place-items-center rounded-full opacity-70 hover:opacity-100"
+            className="-mr-1 -mt-0.5 grid size-7 shrink-0 place-items-center rounded-xl opacity-70 hover:opacity-100"
           >
             <Icon.X width="13" height="13" />
           </button>
@@ -412,7 +413,7 @@ function FormPrecio({ precioEur, ocupado, onGuardar, onCancelar }) {
         <button
           type="submit"
           disabled={ocupado}
-          className="gloss-btn tight shrink-0 rounded-full px-4 py-2.5 text-[13.5px] font-medium disabled:opacity-60"
+          className="gloss-btn tight shrink-0 rounded-xl px-4 py-2.5 text-[13.5px] font-medium disabled:opacity-60"
         >
           {ocupado ? 'Guardando…' : 'Guardar'}
         </button>
@@ -420,7 +421,7 @@ function FormPrecio({ precioEur, ocupado, onGuardar, onCancelar }) {
           type="button"
           onClick={onCancelar}
           disabled={ocupado}
-          className="shrink-0 rounded-full border border-line bg-paper px-4 py-2.5 text-[13.5px] font-medium text-stone disabled:opacity-50"
+          className="shrink-0 rounded-xl border border-line bg-paper px-4 py-2.5 text-[13.5px] font-medium text-stone disabled:opacity-50"
         >
           Cancelar
         </button>
@@ -456,7 +457,7 @@ function FormNota({ nota, ocupado, onGuardar, onCancelar }) {
         <button
           type="submit"
           disabled={ocupado}
-          className="gloss-btn tight rounded-full px-4 py-2.5 text-[13.5px] font-medium disabled:opacity-60"
+          className="gloss-btn tight rounded-xl px-4 py-2.5 text-[13.5px] font-medium disabled:opacity-60"
         >
           {ocupado ? 'Guardando…' : 'Guardar nota'}
         </button>
@@ -464,7 +465,7 @@ function FormNota({ nota, ocupado, onGuardar, onCancelar }) {
           type="button"
           onClick={onCancelar}
           disabled={ocupado}
-          className="rounded-full border border-line bg-paper px-4 py-2.5 text-[13.5px] font-medium text-stone disabled:opacity-50"
+          className="rounded-xl border border-line bg-paper px-4 py-2.5 text-[13.5px] font-medium text-stone disabled:opacity-50"
         >
           Cancelar
         </button>
@@ -791,7 +792,7 @@ function EditorCita({ datos, tz, onCerrar, onGuardado }) {
                       aria-pressed={marcada}
                       disabled={guardando}
                       onClick={() => tocarParte(p.id)}
-                      className="tight inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13.5px] font-medium transition disabled:opacity-60"
+                      className="tight inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-[13.5px] font-medium transition disabled:opacity-60"
                       style={
                         marcada
                           ? { background: 'var(--ink)', borderColor: 'var(--ink)', color: 'var(--paper)' }
@@ -846,7 +847,7 @@ function EditorCita({ datos, tz, onCerrar, onGuardado }) {
                     aria-pressed={elegido}
                     disabled={guardando}
                     onClick={() => elegirProfesional(p.id)}
-                    className="tight inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[13.5px] font-medium transition disabled:opacity-60"
+                    className="tight inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-[13.5px] font-medium transition disabled:opacity-60"
                     style={
                       elegido
                         ? { background: 'var(--ink)', borderColor: 'var(--ink)', color: 'var(--paper)' }
@@ -982,7 +983,7 @@ function EditorCita({ datos, tz, onCerrar, onGuardado }) {
             type="button"
             onClick={guardar}
             disabled={!puedeGuardar}
-            className="gloss-btn tight rounded-full px-5 py-3.5 text-[14.5px] font-medium disabled:opacity-50"
+            className="gloss-btn tight rounded-xl px-5 py-3.5 text-[14.5px] font-medium disabled:opacity-50"
           >
             {guardando ? 'Guardando…' : 'Guardar cambio'}
           </button>
@@ -991,7 +992,7 @@ function EditorCita({ datos, tz, onCerrar, onGuardado }) {
             type="button"
             onClick={onCerrar}
             disabled={guardando}
-            className="rounded-full border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
+            className="rounded-xl border border-line bg-paper px-5 py-3 text-[14px] font-medium text-stone disabled:opacity-50"
           >
             Cerrar sin cambiar
           </button>
@@ -1008,8 +1009,11 @@ function EditorCita({ datos, tz, onCerrar, onGuardado }) {
 export default function CitaDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { salon, puede } = useAuth();
+  const { salon, puede, esDueno } = useAuth();
   const tz = salon?.timezone ?? 'Europe/Madrid';
+  // Corregir el nombre/teléfono/email del cliente sin salir de la cita. Igual
+  // que en su ficha, solo quien manda (el servidor lo vuelve a comprobar).
+  const [editandoCliente, setEditandoCliente] = useState(false);
   // La ficha del cliente solo se enlaza a quien puede abrirla: sin el permiso,
   // /clientes/:id le rebotaría a Hoy sin explicarle nada.
   const veClientes = puede('ver_clientes');
@@ -1174,7 +1178,7 @@ export default function CitaDetalle() {
       type="button"
       onClick={() => navigate(-1)}
       aria-label="Volver"
-      className="card-tight tight inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-[13px] font-medium text-ink"
+      className="card-tight tight inline-flex h-10 shrink-0 items-center gap-2 rounded-xl px-4 text-[13px] font-medium text-ink"
     >
       <Icon.Arrow width="14" height="14" style={{ transform: 'rotate(180deg)' }} />
       Volver
@@ -1204,7 +1208,7 @@ export default function CitaDetalle() {
           <button
             type="button"
             onClick={salir}
-            className="card-tight tight w-fit rounded-full px-5 py-3 text-[14px] font-medium text-ink"
+            className="card-tight tight w-fit rounded-xl px-5 py-3 text-[14px] font-medium text-ink"
           >
             Volver
           </button>
@@ -1243,7 +1247,7 @@ export default function CitaDetalle() {
           <button
             type="button"
             onClick={() => navigate('/agenda')}
-            className="gloss-btn tight mt-4 rounded-full px-5 py-3 text-[14px] font-medium"
+            className="gloss-btn tight mt-4 rounded-xl px-5 py-3 text-[14px] font-medium"
           >
             Ir a la agenda
           </button>
@@ -1385,7 +1389,7 @@ export default function CitaDetalle() {
                       disabled={algoOcupado || nueva < DURACION_MIN || nueva > DURACION_MAX}
                       onClick={() => parchear({ ajusteMin: d }, 'duracion')}
                       aria-label={d > 0 ? `Alargar ${d} minutos` : `Acortar ${-d} minutos`}
-                      className="tabular tight rounded-full border border-line bg-paper px-3 py-1.5 text-[13px] font-medium text-ink transition disabled:opacity-40"
+                      className="tabular tight rounded-xl border border-line bg-paper px-3 py-1.5 text-[13px] font-medium text-ink transition disabled:opacity-40"
                     >
                       {d > 0 ? `+${d}` : `−${-d}`} min
                     </button>
@@ -1410,7 +1414,7 @@ export default function CitaDetalle() {
                 setErrorEdicion(null);
                 setEditando(true);
               }}
-              className="card-tight tight mt-1 flex items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[14.5px] font-medium text-ink disabled:opacity-50"
+              className="card-tight tight mt-1 flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[14.5px] font-medium text-ink disabled:opacity-50"
             >
               <Icon.Cal width="16" height="16" />
               Cambiar cita
@@ -1471,16 +1475,50 @@ export default function CitaDetalle() {
                 {cliente.telefono ? ` · ${cliente.telefono}` : ''}
               </p>
             </div>
-            {veClientes && cliente.id ? (
-              <Link
-                to={`/clientes/${cliente.id}`}
-                className="card-tight tight inline-flex shrink-0 items-center gap-1 px-3 py-1.5 text-[12.5px] font-medium text-ink"
-              >
-                Ficha
-                <Icon.Arrow width="12" height="12" />
-              </Link>
-            ) : null}
+            <div className="flex shrink-0 flex-col items-stretch gap-1.5">
+              {esDueno && cliente.id ? (
+                <button
+                  type="button"
+                  onClick={() => setEditandoCliente(true)}
+                  className="card-tight tight inline-flex items-center justify-center px-3 py-1.5 text-[12.5px] font-medium text-ink"
+                >
+                  Editar
+                </button>
+              ) : null}
+              {veClientes && cliente.id ? (
+                <Link
+                  to={`/clientes/${cliente.id}`}
+                  className="card-tight tight inline-flex items-center justify-center gap-1 px-3 py-1.5 text-[12.5px] font-medium text-ink"
+                >
+                  Ficha
+                  <Icon.Arrow width="12" height="12" />
+                </Link>
+              ) : null}
+            </div>
           </div>
+
+          {editandoCliente ? (
+            <Hoja
+              abierta
+              titulo="Datos del cliente"
+              subtitulo={cliente.nombre}
+              onCerrar={() => setEditandoCliente(false)}
+            >
+              <EditarCliente
+                cliente={cliente}
+                conNotas={false}
+                onCancelar={() => setEditandoCliente(false)}
+                onGuardado={(guardado) => {
+                  setEditandoCliente(false);
+                  // Se pinta ya con lo guardado (el servidor devuelve el
+                  // teléfono normalizado) sin recargar toda la cita.
+                  setDatos((prev) =>
+                    prev ? { ...prev, cliente: { ...prev.cliente, ...guardado } } : prev,
+                  );
+                }}
+              />
+            </Hoja>
+          ) : null}
 
           {cliente.totalNoShows >= 2 ? (
             <div
@@ -1505,7 +1543,7 @@ export default function CitaDetalle() {
             <div className="grid grid-cols-2 gap-2.5">
               <a
                 href={hrefLlamar(cliente.telefono)}
-                className="gloss-btn tight flex items-center justify-center gap-2 rounded-full px-4 py-3.5 text-[14px] font-medium"
+                className="gloss-btn tight flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-[14px] font-medium"
               >
                 <Icon.Phone width="17" height="17" />
                 Llamar
@@ -1514,7 +1552,7 @@ export default function CitaDetalle() {
                 href={hrefWhatsapp(cliente.telefono)}
                 target="_blank"
                 rel="noreferrer"
-                className="card-tight tight flex items-center justify-center gap-2 rounded-full px-4 py-3.5 text-[14px] font-medium text-ink"
+                className="card-tight tight flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-[14px] font-medium text-ink"
               >
                 <Icon.Chat width="17" height="17" />
                 WhatsApp
@@ -1767,7 +1805,7 @@ export default function CitaDetalle() {
                   type="button"
                   disabled={guardando}
                   onClick={() => ejecutar(pidiendo)}
-                  className="gloss-btn tight rounded-full px-4 py-3.5 text-[14px] font-medium disabled:opacity-60"
+                  className="gloss-btn tight rounded-xl px-4 py-3.5 text-[14px] font-medium disabled:opacity-60"
                 >
                   {guardando ? 'Guardando…' : 'Sí, adelante'}
                 </button>
@@ -1778,7 +1816,7 @@ export default function CitaDetalle() {
                     setPidiendo(null);
                     setMotivoCancel('');
                   }}
-                  className="card-tight tight rounded-full px-4 py-3.5 text-[14px] font-medium text-ink disabled:opacity-60"
+                  className="card-tight tight rounded-xl px-4 py-3.5 text-[14px] font-medium text-ink disabled:opacity-60"
                 >
                   Mejor no
                 </button>
@@ -1794,7 +1832,7 @@ export default function CitaDetalle() {
                     setErrorAccion(null);
                     setPidiendo('confirmar');
                   }}
-                  className="gloss-btn tight flex items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[14.5px] font-medium disabled:opacity-60"
+                  className="gloss-btn tight flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[14.5px] font-medium disabled:opacity-60"
                 >
                   <Icon.Check width="17" height="17" />
                   Confirmar cita
@@ -1808,7 +1846,7 @@ export default function CitaDetalle() {
                     setErrorAccion(null);
                     setPidiendo('no_show');
                   }}
-                  className="card-tight tight flex items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[14.5px] font-medium text-[#7C2E2E] hover:bg-[#F1D6D6]/40 disabled:opacity-60"
+                  className="card-tight tight flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[14.5px] font-medium text-[#7C2E2E] hover:bg-[#F1D6D6]/40 disabled:opacity-60"
                 >
                   No se presentó
                 </button>
@@ -1822,7 +1860,7 @@ export default function CitaDetalle() {
                     setMotivoCancel('');
                     setPidiendo('cancelar');
                   }}
-                  className="card-tight tight flex items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[14.5px] font-medium text-[#7C2E2E] hover:bg-[#F1D6D6]/40 disabled:opacity-60"
+                  className="card-tight tight flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[14.5px] font-medium text-[#7C2E2E] hover:bg-[#F1D6D6]/40 disabled:opacity-60"
                 >
                   <Icon.X width="16" height="16" />
                   Cancelar cita

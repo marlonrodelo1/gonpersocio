@@ -171,7 +171,7 @@ function AvisoPendientes({ citas, tz }) {
   return (
     <Link
       to={`/citas/${siguiente.id}`}
-      className="flex items-center gap-3 rounded-2xl border px-4 py-3 transition hover:brightness-[0.98]"
+      className="flex items-center gap-3 rounded-xl border px-4 py-3 transition hover:brightness-[0.98]"
       style={{ background: 'rgba(197,142,44,0.12)', borderColor: 'rgba(197,142,44,0.4)' }}
     >
       <span
@@ -270,7 +270,7 @@ export default function Hoy() {
     <Link
       to="/citas/nueva"
       aria-label="Nueva cita"
-      className="tight inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[13.5px] font-medium"
+      className="tight inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13.5px] font-medium"
       style={{ background: 'var(--chrome)', color: 'var(--on-chrome)' }}
     >
       <Icon.Plus width="15" height="15" />
@@ -305,7 +305,7 @@ export default function Hoy() {
           <button
             type="button"
             onClick={reintentar}
-            className="gloss-btn tight mt-4 rounded-full px-5 py-2 text-[14px] font-medium"
+            className="gloss-btn tight mt-4 rounded-xl px-5 py-2 text-[14px] font-medium"
           >
             Reintentar
           </button>
@@ -417,7 +417,7 @@ export default function Hoy() {
               {puede('cerrar_franjas') ? (
                 <Link
                   to="/cierres"
-                  className="tight inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-[12.5px] text-stone transition hover:text-ink"
+                  className="tight inline-flex items-center gap-1.5 rounded-xl border border-line bg-paper px-3 py-1.5 text-[12.5px] text-stone transition hover:text-ink"
                 >
                   Bloquear franja
                 </Link>
@@ -469,7 +469,7 @@ export default function Hoy() {
               {esDueno ? (
                 <Link
                   to="/compartir"
-                  className="tight mt-4 inline-flex rounded-full bg-ink px-4 py-2 text-[13px] font-medium text-cream hover:bg-ink/90"
+                  className="tight mt-4 inline-flex rounded-xl bg-ink px-4 py-2 text-[13px] font-medium text-cream hover:bg-ink/90"
                 >
                   Comparte tu web para recibir reservas
                 </Link>

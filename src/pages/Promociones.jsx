@@ -206,7 +206,7 @@ function Fila({ promo, hoy, puedeEditar, onCambiada, onBorrada }) {
                 type="button"
                 disabled={ocupado}
                 onClick={borrar}
-                className="tight inline-flex h-7 items-center gap-1 rounded-full px-3 text-[12px] font-medium disabled:opacity-50"
+                className="tight inline-flex h-7 items-center gap-1 rounded-xl px-3 text-[12px] font-medium disabled:opacity-50"
                 style={{ background: '#F1D6D6', color: '#7C2E2E' }}
               >
                 <Icon.Check width="13" height="13" />
@@ -216,7 +216,7 @@ function Fila({ promo, hoy, puedeEditar, onCambiada, onBorrada }) {
                 type="button"
                 disabled={ocupado}
                 onClick={() => setConfirmando(false)}
-                className="tight inline-flex h-7 items-center justify-center rounded-full border border-line bg-paper px-3 text-[12px] font-medium text-stone disabled:opacity-50"
+                className="tight inline-flex h-7 items-center justify-center rounded-xl border border-line bg-paper px-3 text-[12px] font-medium text-stone disabled:opacity-50"
               >
                 No
               </button>
@@ -225,7 +225,7 @@ function Fila({ promo, hoy, puedeEditar, onCambiada, onBorrada }) {
             <>
               <Link
                 to={`/promociones/${promo.id}`}
-                className="tight inline-flex h-7 items-center justify-center rounded-full border border-line bg-paper px-3 text-[12px] font-medium text-ink hover:bg-cream"
+                className="tight inline-flex h-7 items-center justify-center rounded-xl border border-line bg-paper px-3 text-[12px] font-medium text-ink hover:bg-cream"
               >
                 Editar
               </Link>
@@ -233,7 +233,7 @@ function Fila({ promo, hoy, puedeEditar, onCambiada, onBorrada }) {
                 type="button"
                 disabled={ocupado}
                 onClick={alternar}
-                className="tight inline-flex h-7 items-center justify-center rounded-full border border-line bg-paper px-3 text-[12px] font-medium text-stone hover:bg-cream hover:text-ink disabled:opacity-50"
+                className="tight inline-flex h-7 items-center justify-center rounded-xl border border-line bg-paper px-3 text-[12px] font-medium text-stone hover:bg-cream hover:text-ink disabled:opacity-50"
               >
                 {ocupado ? '…' : promo.activa ? 'Pausar' : 'Activar'}
               </button>
@@ -241,7 +241,7 @@ function Fila({ promo, hoy, puedeEditar, onCambiada, onBorrada }) {
                 type="button"
                 onClick={() => setConfirmando(true)}
                 aria-label={`Borrar ${promo.titulo}`}
-                className="tight inline-flex h-7 w-7 items-center justify-center rounded-full border border-line bg-paper text-stone hover:bg-cream hover:text-terracotta"
+                className="tight inline-flex h-7 w-7 items-center justify-center rounded-xl border border-line bg-paper text-stone hover:bg-cream hover:text-terracotta"
               >
                 <Icon.X width="14" height="14" />
               </button>
@@ -347,7 +347,7 @@ export default function Promociones() {
   const nueva = puedeEditar ? (
     <Link
       to="/promociones/nueva"
-      className="gloss-btn tight inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2.5 text-[13.5px] font-medium"
+      className="gloss-btn tight inline-flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2.5 text-[13.5px] font-medium"
     >
       <Icon.Plus width="15" height="15" aria-hidden />
       Nueva
@@ -372,7 +372,7 @@ export default function Promociones() {
           <button
             type="button"
             onClick={reintentar}
-            className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+            className="gloss-btn tight inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13.5px] font-medium"
           >
             Reintentar
           </button>
@@ -394,7 +394,7 @@ export default function Promociones() {
             {puedeEditar ? (
               <Link
                 to="/promociones/nueva"
-                className="gloss-btn tight mt-1 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium"
+                className="gloss-btn tight mt-1 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[14px] font-medium"
               >
                 <Icon.Plus width="15" height="15" aria-hidden />
                 Crear la primera

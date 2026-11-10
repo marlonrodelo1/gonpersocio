@@ -53,7 +53,7 @@ export function BotonesFoto({ onElegir, ocupado, etiqueta }) {
         type="button"
         disabled={ocupado}
         onClick={() => camara.current?.click()}
-        className="gloss-btn tight inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-4 py-3 text-[13.5px] font-medium disabled:opacity-60"
+        className="gloss-btn tight inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13.5px] font-medium disabled:opacity-60"
       >
         <Camera size={16} className="shrink-0" />
         <span className="truncate">{etiqueta ?? 'Hacer foto'}</span>
@@ -63,7 +63,7 @@ export function BotonesFoto({ onElegir, ocupado, etiqueta }) {
         disabled={ocupado}
         onClick={() => carrete.current?.click()}
         aria-label="Elegir una foto del carrete"
-        className="tight inline-flex shrink-0 items-center justify-center rounded-full border border-line bg-paper px-4 py-3 text-[13.5px] font-medium text-ink disabled:opacity-60"
+        className="tight inline-flex shrink-0 items-center justify-center rounded-xl border border-line bg-paper px-4 py-3 text-[13.5px] font-medium text-ink disabled:opacity-60"
       >
         <Images size={16} />
       </button>

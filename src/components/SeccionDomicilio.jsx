@@ -267,7 +267,7 @@ export default function SeccionDomicilio() {
           <button
             type="button"
             onClick={reintentar}
-            className="gloss-btn tight inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-medium"
+            className="gloss-btn tight inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13.5px] font-medium"
           >
             <IconoRefrescar width="15" height="15" />
             Reintentar
@@ -343,7 +343,7 @@ export default function SeccionDomicilio() {
                           setModo(m.id);
                           setAviso(null);
                         }}
-                        className={`tight rounded-2xl border px-4 py-3 text-left transition disabled:opacity-60 ${
+                        className={`tight rounded-xl border px-4 py-3 text-left transition disabled:opacity-60 ${
                           elegido
                             ? 'border-ink bg-ink text-cream'
                             : 'border-line bg-paper text-ink hover:border-line-2'
@@ -407,7 +407,7 @@ export default function SeccionDomicilio() {
                           setRadioOriginal(null);
                           setAviso(null);
                         }}
-                        className="tabular rounded-full border bg-paper px-3.5 py-1.5 text-[13px] font-medium text-ink disabled:opacity-60"
+                        className="tabular rounded-xl border bg-paper px-3.5 py-1.5 text-[13px] font-medium text-ink disabled:opacity-60"
                         style={{
                           borderColor:
                             radioKm === km ? 'var(--ink)' : 'var(--line)',
@@ -479,7 +479,7 @@ export default function SeccionDomicilio() {
                               disabled={guardando}
                               onClick={() => quitarCp(cp)}
                               aria-label={`Quitar el código postal ${cp}`}
-                              className="tabular inline-flex items-center gap-1.5 rounded-full border border-line bg-paper py-2 pl-3.5 pr-2.5 text-[14px] font-medium text-ink disabled:opacity-60"
+                              className="tabular inline-flex items-center gap-1.5 rounded-xl border border-line bg-paper py-2 pl-3.5 pr-2.5 text-[14px] font-medium text-ink disabled:opacity-60"
                             >
                               {cp}
                               <Icon.X width="14" height="14" className="text-stone" aria-hidden />
@@ -521,7 +521,7 @@ export default function SeccionDomicilio() {
                         type="button"
                         onClick={anadirCp}
                         disabled={guardando || !cpNuevoValido}
-                        className="gloss-btn tight inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-3 text-[14px] font-medium disabled:opacity-50"
+                        className="gloss-btn tight inline-flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-3 text-[14px] font-medium disabled:opacity-50"
                       >
                         <Icon.Plus width="15" height="15" />
                         Añadir
@@ -580,7 +580,7 @@ export default function SeccionDomicilio() {
                   type="button"
                   onClick={guardar}
                   disabled={guardando}
-                  className="gloss-btn tight rounded-full px-5 py-3 text-[13.5px] font-medium disabled:opacity-60"
+                  className="gloss-btn tight rounded-xl px-5 py-3 text-[13.5px] font-medium disabled:opacity-60"
                 >
                   {guardando ? 'Guardando…' : 'Guardar zona de domicilio'}
                 </button>
